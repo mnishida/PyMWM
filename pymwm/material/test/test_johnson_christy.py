@@ -7,10 +7,9 @@ from nose.tools import assert_equal, assert_true
 def test_johnson_christy():
     import numpy as np
     from pymwm.material import Material
-    unit = 0.5
-    gold = Material({'model': 'gold_jc', 'unit': unit})
-    silver = Material({'model': 'silver_jc', 'unit': unit})
-    copper = Material({'model': 'copper_jc', 'unit': unit})
+    gold = Material({'model': 'gold_jc'})
+    silver = Material({'model': 'silver_jc'})
+    copper = Material({'model': 'copper_jc'})
 
     jc = gold._johnson_christy
     # import matplotlib.pyplot as plt

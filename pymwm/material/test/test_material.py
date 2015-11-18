@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import division, print_function
 from nose.tools import assert_equal, assert_true
 import numpy as np
 
@@ -11,9 +10,8 @@ result_drude_lorentz = (-584.0804081464505+108.34074410238823j)
 def test_material():
     from pymwm.material import Material
     from scipy.constants import c
-    unit = 0.5
     c0 = c * 1e-8
-    C = 10 * unit / c0
+    C = 10 / c0
     drude = Material({'model': 'drude',
                       'e': 9.0685, 'wp': 2 * np.pi * 2.1556 * C,
                       'gp': 2 * np.pi * 1.836e-2 * C})
@@ -31,17 +29,19 @@ def test_material():
     KRS5 = Material({'model': 'KRS5'})
     ZnSe = Material({'model': 'ZnSe'})
     Ge = Material({'model': 'Ge'})
-    gold_d = Material({'model': 'gold_d', 'unit': unit})
-    gold_dl = Material({'model': 'gold_dl', 'unit': unit})
-    assert_true(np.allclose(air(0.3 * np.pi), 1.0))
-    assert_true(np.allclose(water(0.3 * np.pi), 1.333 ** 2))
-    assert_true(np.allclose(SiN(0.3 * np.pi), 2.0 ** 2))
-    assert_true(np.allclose(polymer(0.3 * np.pi), 2.26))
-    assert_true(np.allclose(SF03(0.3 * np.pi), 1.84666 ** 2))
-    assert_true(np.allclose(KRS5(0.3 * np.pi), 2.4 ** 2))
-    assert_true(np.allclose(ZnSe(0.3 * np.pi), 2.4 ** 2))
-    assert_true(np.allclose(Ge(0.3 * np.pi), 4.092 ** 2))
-    assert_true(np.allclose(drude(0.3 * np.pi), result_drude))
-    assert_true(np.allclose(drude_lorentz(0.3 * np.pi), result_drude_lorentz))
-    assert_true(np.allclose(gold_d(0.3 * np.pi), result_drude))
-    assert_true(np.allclose(gold_dl(0.3 * np.pi), result_drude_lorentz))
+    gold_d = Material({'model': 'gold_d'})
+    gold_dl = Material({'model': 'gold_dl'})
+    w = 0.6 * np.pi
+    assert_true(np.allclose(air(w), 1.0))
+    assert_true(np.allclose(water(w), 1.333 ** 2))
+    assert_true(np.allclose(SiN(w), 2.0 ** 2))
+    assert_true(np.allclose(polymer(w), 2.26))
+    assert_true(np.allclose(SF03(w), 1.84666 ** 2))
+    assert_true(np.allclose(KRS5(w), 2.4 ** 2))
+    assert_true(np.allclose(ZnSe(w), 2.4 ** 2))
+    assert_true(np.allclose(Ge(w), 4.092 ** 2))
+    print(drude(w))
+    assert_true(np.allclose(drude(w), result_drude))
+    assert_true(np.allclose(drude_lorentz(w), result_drude_lorentz))
+    assert_true(np.allclose(gold_d(w), result_drude))
+    assert_true(np.allclose(gold_dl(w), result_drude_lorentz))

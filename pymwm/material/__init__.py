@@ -70,22 +70,22 @@ class Material(object):
             'SF6': 1.80518,
             'SF03': 1.84666}
         if 'gold_jc' in model:
-            from pycm.material.jc import Johnson_Christy
+            from pymwm.material.jc import Johnson_Christy
             self._johnson_christy = Johnson_Christy('gold')
         elif 'silver_jc' in model:
-            from pycm.material.jc import Johnson_Christy
+            from pymwm.material.jc import Johnson_Christy
             self._johnson_christy = Johnson_Christy('silver')
         elif 'copper_jc' in model:
-            from pycm.material.jc import Johnson_Christy
+            from pymwm.material.jc import Johnson_Christy
             self._johnson_christy = Johnson_Christy('copper')
         if 'gold_palik' in model:
-            from pycm.material.palik import Palik
+            from pymwm.material.palik import Palik
             self._palik = Palik('gold')
         elif 'silver_palik' in model:
-            from pycm.material.palik import Palik
+            from pymwm.material.palik import Palik
             self._palik = Palik('silver')
         elif 'copper_palik' in model:
-            from pycm.material.palik import Palik
+            from pymwm.material.palik import Palik
             self._palik = Palik('copper')
         elif 'gold_dl' in model:
             self._params['e'] = 5.3983
