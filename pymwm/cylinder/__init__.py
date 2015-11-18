@@ -40,7 +40,8 @@ class Cylinder(object):
                         abs(c / fimag) [um] where fimag is the imaginary part
                         of the frequency. (default: 5.0)
                     'dw': A float indicating frequency interval
-                    [rad c / 1um]=[2.99792458e14 rad / s] (default: 1 / 64).
+                        [rad c / 1um]=[2.99792458e14 rad / s]
+                        (default: 1 / 64).
                     'num_n': An integer indicating the number of orders of
                         modes.
                     'num_m': An integer indicating the number of modes in each

@@ -214,6 +214,10 @@ class Samples(object):
             xs: A 1D array indicating the roots, whose length is 2*num_m+1.
             success: A 1D array indicating the convergence information for xs.
         """
+        if self.clad.model == 'pec':
+            xs = self.beta2_pec(w, n)
+            success = np.ones_like(xs, dtype=bool)
+            return xs, success
         from scipy.optimize import root
         roots = []
         vals = []
@@ -253,6 +257,10 @@ class Samples(object):
             xs: A 1D array indicating the roots, whose length is 2*num_m+1.
             success: A 1D array indicating the convergence information for xs.
         """
+        if self.clad.model == 'pec':
+            xs = self.beta2_pec(self.ws[0], n)
+            success = np.ones_like(xs, dtype=bool)
+            return xs, success
         w_0 = 0.1
         xs = self.beta2_pec(w_0, n)
         e1 = self.fill(w_0)
