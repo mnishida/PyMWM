@@ -46,8 +46,8 @@ class Cylinder(object):
                     'num_m': An integer indicating the number of modes in each
                         order and polarization.
         """
-        from pymwm.material import Material
-        from pymwm.waveguide.cylinder.samples import Samples
+        from pyoptmat import Material
+        from pymwm.cylinder.samples import Samples
         self.r = params['core']['size']
         self.fill = Material(params['core']['fill'])
         self.clad = Material(params['clad'])

@@ -46,8 +46,8 @@ def func(args):
 
 def test_attributes():
     import os
-    from pymwm.material import Material
-    from pymwm.waveguide.cylinder.samples import Samples
+    from pyoptmat import Material
+    from pymwm.cylinder.samples import Samples
     params = {'core': {'shape': 'cylinder', 'size': 0.15,
                        'fill': {'model': 'air'}},
               'clad': {'model': 'gold_dl'},
@@ -73,8 +73,8 @@ def test_attributes():
 
 
 def test_beta2_pec():
-    from pymwm.material import Material
-    from pymwm.waveguide.cylinder.samples import Samples
+    from pyoptmat import Material
+    from pymwm.cylinder.samples import Samples
     params = {'core': {'shape': 'cylinder', 'size': 0.15,
                        'fill': {'model': 'air'}},
               'clad': {'model': 'gold_dl'},
@@ -112,8 +112,8 @@ def test_beta2_pec():
 
 def test_beta2_wmin():
     from multiprocessing import Pool
-    from pymwm.material import Material
-    from pymwm.waveguide.cylinder.samples import Samples
+    from pyoptmat import Material
+    from pymwm.cylinder.samples import Samples
     params = {'core': {'shape': 'cylinder', 'size': 0.15,
                        'fill': {'model': 'air'}},
               'clad': {'model': 'gold_dl'},
@@ -135,8 +135,8 @@ def test_beta2_wmin():
 
 def test_db():
     from multiprocessing import Pool
-    from pymwm.material import Material
-    from pymwm.waveguide.cylinder.samples import Samples
+    from pyoptmat import Material
+    from pymwm.cylinder.samples import Samples
     params = {'core': {'shape': 'cylinder', 'size': 0.15,
                        'fill': {'model': 'air'}},
               'clad': {'model': 'gold_dl'},
@@ -169,8 +169,8 @@ def test_db():
 
 def test_interpolation():
     from multiprocessing import Pool
-    from pymwm.material import Material
-    from pymwm.waveguide.cylinder.samples import Samples
+    from pyoptmat import Material
+    from pymwm.cylinder.samples import Samples
     params = {'core': {'shape': 'cylinder', 'size': 0.15,
                        'fill': {'model': 'air'}},
               'clad': {'model': 'gold_dl'},
