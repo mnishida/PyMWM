@@ -67,3 +67,24 @@ class Cylinder(object):
                      for key, val in convs.items()}
             self.samples.save(betas, convs)
         self.beta_funcs = self.samples.interpolation(betas, convs, self.bounds)
+
+    def beta(self, w, alpha):
+        """Return phase constant
+
+        Args:
+            w: A complex indicating the angular frequency
+            alpha: A tuple (pol, n, m) where pol is 'M' for TM-like mode or
+                'E' for TE-like mode, indicates the polarization 'M' or 'E',
+                n is the order of the mode, and m is the number of modes in
+                the order and the polarization.
+        Returns:
+            h: A complex indicating the phase constant.
+        """
+        wr = w.real
+        wi = w.imag
+        hr = self.beta_funcs[(alpha, 'real')](wr, wi)
+        hi = self.beta_funcs[(alpha, 'imag')](wr, wi)
+        if hr.shape == (1, 1):
+            hr = hr[0, 0]
+            hi = hi[0, 0]
+        return hr + 1j * hi

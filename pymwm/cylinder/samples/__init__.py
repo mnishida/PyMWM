@@ -359,11 +359,10 @@ class Samples(object):
             for i in range(num_m):
                 betas[('M', n, i + 1)][iwr, iwi] = self.beta_from_beta2(xs[i])
                 convs[('M', n, i + 1)][iwr, iwi] = success[i]
-                if n != 0:
-                    betas[('E', n, i + 1)][iwr, iwi] = self.beta_from_beta2(
-                        xs[i + num_m + 1])
-                    convs[('E', n, i + 1)][iwr, iwi] = success[
-                        i + num_m + 1]
+                betas[('E', n, i + 1)][iwr, iwi] = self.beta_from_beta2(
+                    xs[i + num_m + 1])
+                convs[('E', n, i + 1)][iwr, iwi] = success[
+                    i + num_m + 1]
         for iwi in range(1, len(self.wis)):
             for iwr in range(len(self.ws)):
                 wr = self.ws[iwr]
@@ -378,9 +377,8 @@ class Samples(object):
                     betas[('M', n, i + 1)][iwr, iwi] = self.beta_from_beta2(
                         xs[i])
                     convs[('M', n, i + 1)][iwr, iwi] = success[i]
-                    if n != 0:
-                        betas[('E', n, i + 1)][iwr, iwi] = (
-                            self.beta_from_beta2(xs[i + num_m + 1]))
-                        convs[('E', n, i + 1)][iwr, iwi] = success[
-                            i + num_m + 1]
+                    betas[('E', n, i + 1)][iwr, iwi] = (
+                        self.beta_from_beta2(xs[i + num_m + 1]))
+                    convs[('E', n, i + 1)][iwr, iwi] = success[
+                        i + num_m + 1]
         return betas, convs
