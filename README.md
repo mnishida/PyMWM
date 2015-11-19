@@ -5,9 +5,9 @@ see LICENSE.
 
 * propagation constants  
 <img src="https://github.com/mnishida/PyMWM/wiki/images/phase_constant.png"
-     alt="phase constant" title="phase constant" width="300"/>
+     alt="phase constant" title="phase constant" width="400"/>
 <img src="https://github.com/mnishida/PyMWM/wiki/images/attenuation_constant.png"
-     alt="attenuation constant" title="attenuation constant" width="300"/>
+     alt="attenuation constant" title="attenuation constant" width="400"/>
 
 * TE01  
 <img src="https://github.com/mnishida/PyMWM/wiki/images/TE01_electric.png"
