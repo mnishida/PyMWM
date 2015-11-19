@@ -3,6 +3,11 @@ PyMWM is a metallic waveguide mode solver witten in Python and Cython.
 This software is released under the GNU General Public License version 2,
 see LICENSE.
 
+* propagation constants  
+<img src="https://github.com/mnishida/PyMWM/wiki/images/phase_constant.png"
+     alt="phase constant" title="phase constant" width="300"/>
+<img src="https://github.com/mnishida/PyMWM/wiki/images/attenuation_constant.png"
+     alt="attenuation constant" title="attenuation constant" width="300"/>
 
 * TE01  
 <img src="https://github.com/mnishida/PyMWM/wiki/images/TE01_electric.png"
