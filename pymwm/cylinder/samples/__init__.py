@@ -104,7 +104,6 @@ class Samples(object):
                         raise ValueError("exceed data bounds")
                     conv = convs[alpha][:, ::-1]
                     if np.all(conv[imin: imax + 1, jmin:]):
-                        print("use", alpha)
                         data = betas[alpha][:, ::-1]
                         beta_funcs[(alpha, 'real')] = RectBivariateSpline(
                             ws[imin: imax + 1], wis[jmin:],
@@ -117,7 +116,7 @@ class Samples(object):
         return beta_funcs
 
     def load(self):
-        s = shelve.open(self.filename)
+        s = shelve.open(self.filename, flag='r')
         try:
             betas = s[self.key]['betas']
             convs = s[self.key]['convs']

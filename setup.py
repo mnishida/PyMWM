@@ -1,34 +1,19 @@
 from setuptools import setup, find_packages
-from setuptools.extension import Extension
-from Cython.Build import cythonize
-import os
-import numpy
 
 version = '0.1.0'
 
 long_description = """
-PyMWM is a metallic waveguide mode solver witten in Python and Cython.
+PyMWM is a metallic waveguide mode solver witten in Python.
 """
-extra_compile_args = ['-fPIC', '-m64', '-fopenmp', '-march=native', '-O3',
-                      '-ftree-vectorizer-verbose=2', '-Wl,--no-as-needed']
-extra_link_args = ['-shared']
-depends = []
-mkl_include = '/opt/intel/mkl/include'
-mkl_lib = '/opt/intel/mkl/lib/intel64'
-library_dirs = [mkl_lib, '/usr/local/lib']
-libraries = ['gsl', 'mkl_rt', 'pthread', 'gfortran', 'complex_bessel',
-             'dl', 'm']
-extentions = [
-]
-ext_modules = cythonize(extentions)
 
 setup(name='pymwm',
       version=version,
       description='A metallic waveguide mode solver',
       long_description=long_description,
-      # Get more strings from http://www.python.org/pypi?%3Aaction=list_classifiers
+      # Get more strings from
+      # http://www.python.org/pypi?%3Aaction=list_classifiers
       classifiers=[
-          "Development Status :: 1 - Planning",
+          "Development Status :: 4 - Beta",
           "Intended Audience :: Developers",
           "Intended Audience :: Science/Research",
           "Programming Language :: Python",
@@ -40,13 +25,15 @@ setup(name='pymwm',
       author='Munehiro Nishida',
       author_email='mnishida@hiroshima-u.ac.jp',
       url='http://home.hiroshima-u.ac.jp/mnishida/',
-      license="'GPL2'",
+      license="'GPLv2+'",
       packages=find_packages(exclude=['ez_setup']),
       include_package_data=True,
       test_suite='nose.collector',
       zip_safe=False,
       install_requires=[
           'setuptools',
+          'numpy',
+          'scipy',
           'pyoptmat',
           # -*- Extra requirements: -*-
           # 'numpy>=1.7',
@@ -56,5 +43,4 @@ setup(name='pymwm',
       entry_points="""
       # -*- Entry points: -*-
       """,
-      ext_modules=ext_modules
       )
