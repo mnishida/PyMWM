@@ -34,6 +34,7 @@ setup(name='pymwm',
           'setuptools',
           'numpy',
           'scipy',
+          'matplotlib',
           'pyoptmat',
           # -*- Extra requirements: -*-
           # 'numpy>=1.7',
