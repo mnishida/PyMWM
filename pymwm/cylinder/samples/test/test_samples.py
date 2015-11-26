@@ -147,7 +147,7 @@ def test_db():
     wg = Samples(r, fill, clad, params['modes'])
     try:
         betas, convs = wg.load()
-    except KeyError:
+    except:
         num_n = params['modes']['num_n']
         p = Pool(num_n)
         betas_list = p.map(wg, range(num_n))
@@ -181,7 +181,7 @@ def test_interpolation():
     wg = Samples(r, fill, clad, params['modes'])
     try:
         betas, convs = wg.load()
-    except KeyError:
+    except:
         num_n = params['modes']['num_n']
         p = Pool(num_n)
         betas_list = p.map(wg, range(num_n))

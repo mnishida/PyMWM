@@ -63,13 +63,18 @@ class Samples(object):
         lmax = p.setdefault('lmax', 5.0)
         lmin = p.setdefault('lmin', 0.4)
         limag = p.setdefault('limag', 5.0)
-        self.key = "{0}_{1}_{2}_{3}_{4}_{5}".format(
-            lmax, lmin, limag, p['dw'], p['num_n'], p['num_m'])
         ind_wmin = int(np.floor(2 * np.pi / lmax / dw))
         ind_wmax = int(np.ceil(2 * np.pi / lmin / dw))
         ind_wimag = int(np.ceil(2 * np.pi / limag / dw))
         self.ws = np.arange(ind_wmin, ind_wmax + 1) * dw
         self.wis = -np.arange(ind_wimag + 1) * dw
+
+    @property
+    def key(self):
+        p = self.params
+        return "{0}_{1}_{2}_{3}_{4}_{5}_{6}".format(
+            p['lmax'], p['lmin'], p['limag'], p['dw'], p['num_n'], p['num_m'],
+            self.clad.im_factor)
 
     @property
     def filename(self):
@@ -120,7 +125,6 @@ class Samples(object):
         try:
             betas = s[self.key]['betas']
             convs = s[self.key]['convs']
-            # self.interpolation()
         finally:
             s.close()
         return betas, convs
@@ -196,8 +200,9 @@ class Samples(object):
         kpvs = kvp(n, v)
         te = jpus / u + kpvs * jus / (v * kvs)
         tm = e1 * jpus / u + e2 * kpvs * jus / (v * kvs)
-        return (tm * te - x * (n / w) ** 2 *
-                ((1 / u ** 2 + 1 / v ** 2) * jus) ** 2)
+        val = (tm * te - x * (n / w) ** 2 *
+               ((1 / u ** 2 + 1 / v ** 2) * jus) ** 2)
+        return val
 
     def beta2(self, w, n, e1, e2, xis):
         """Return roots and convergences of the characteristic equation
@@ -228,8 +233,8 @@ class Samples(object):
                 val = self.eigeq(h2, (w, n, e1, e2))
                 for h2_0 in roots:
                     denom = h2 - h2_0
-                    # while (abs(denom) < 1e-8):
-                    #     denom += 1.0e-8
+                    while (abs(denom) < 1e-8):
+                        denom += 1.0e-8
                     val /= denom
                 return np.array([val.real, val.imag])
 
@@ -307,6 +312,34 @@ class Samples(object):
         plt.colorbar()
         plt.show()
 
+    def _betas_convs(self, n, xs_array, success_array):
+        num_m = self.params['num_m']
+        betas = {}
+        convs = {}
+        for m in range(1, num_m + 2):
+            betas[('M', n, m)] = np.zeros((len(self.ws), len(self.wis)),
+                                          dtype=complex)
+            convs[('M', n, m)] = np.zeros((len(self.ws), len(self.wis)),
+                                          dtype=bool)
+        for m in range(1, num_m + 1):
+            betas[('E', n, m)] = np.zeros((len(self.ws), len(self.wis)),
+                                          dtype=complex)
+            convs[('E', n, m)] = np.zeros((len(self.ws), len(self.wis)),
+                                          dtype=bool)
+        for iwi in range(len(self.wis)):
+            for iwr in range(len(self.ws)):
+                for i in range(num_m + 1):
+                    betas[('M', n, i + 1)][iwr, iwi] = self.beta_from_beta2(
+                        xs_array[iwr, iwi][i])
+                    convs[('M', n, i + 1)][iwr, iwi] = success_array[
+                        iwr, iwi][i]
+                for i in range(num_m):
+                    betas[('E', n, i + 1)][iwr, iwi] = self.beta_from_beta2(
+                        xs_array[iwr, iwi][i + num_m + 1])
+                    convs[('E', n, i + 1)][iwr, iwi] = success_array[
+                        iwr, iwi][i + num_m + 1]
+        return betas, convs
+
     def __call__(self, n):
         """Return a dict of the roots of the characteristic equation
 
@@ -323,61 +356,68 @@ class Samples(object):
                 whose key is the same as above.
         """
         num_m = self.params['num_m']
-        xs_array = np.zeros((len(self.ws), 2 * num_m + 1), dtype=complex)
-        betas = {}
-        convs = {}
-        iwr = iwi = 0
-        wr = self.ws[iwr]
-        wi = self.wis[iwi]
-        w = wr + 1j * wi
-        e1 = self.fill(w)
-        e2 = self.clad(w)
-        xs, success = self.beta2_wmin(n)
-        xs_array[iwr] = xs
-        for pol in ['M', 'E']:
-            for m in range(1, num_m + 1):
-                betas[(pol, n, m)] = np.zeros((len(self.ws), len(self.wis)),
-                                              dtype=complex)
-                convs[(pol, n, m)] = np.zeros((len(self.ws), len(self.wis)),
-                                              dtype=bool)
-        for i in range(num_m):
-            betas[('M', n, i + 1)][iwr, iwi] = self.beta_from_beta2(xs[i])
-            convs[('M', n, i + 1)][iwr, iwi] = success[i]
-            betas[('E', n, i + 1)][iwr, iwi] = self.beta_from_beta2(
-                xs[i + num_m + 1])
-            convs[('E', n, i + 1)][iwr, iwi] = success[
-                i + num_m + 1]
-        for iwr in range(1, len(self.ws)):
+        xs_array = np.zeros((len(self.ws), len(self.wis),
+                             2 * num_m + 1), dtype=complex)
+        success_array = np.zeros((len(self.ws), len(self.wis),
+                                  2 * num_m + 1), dtype=bool)
+        if self.clad.im_factor != 1.0:
+            im_factor = self.clad.im_factor
+            self.clad.im_factor = 1.0
+            betas, convs = self.load()
+            for iwi in range(len(self.wis)):
+                for iwr in range(len(self.ws)):
+                    for i in range(num_m + 1):
+                        xs_array[iwr, iwi, i] = betas[
+                            ('M', n, i + 1)][iwr, iwi] ** 2
+                    for i in range(num_m):
+                        xs_array[iwr, iwi, i + num_m + 1] = betas[
+                            ('E', n, i + 1)][iwr, iwi] ** 2
+            while self.clad.im_factor != im_factor:
+                self.clad.im_factor = max(
+                    self.clad.im_factor - 0.015625, im_factor)
+                for iwi in range(len(self.wis)):
+                    for iwr in range(len(self.ws)):
+                        wr = self.ws[iwr]
+                        wi = self.wis[iwi]
+                        w = wr + 1j * wi
+                        e1 = self.fill(w)
+                        e2 = self.clad(w)
+                        xs, success = self.beta2(w, n, e1, e2,
+                                                 xs_array[iwr, iwi])
+                        if iwi == iwr == 0:
+                            print(self.clad.im_factor, e2)
+                            print(success)
+                            print(np.allclose(xs_array[iwr, iwi], xs))
+                        xs_array[iwr, iwi] = xs
+                        success_array[iwr, iwi] = success
+        else:
+            iwr = iwi = 0
             wr = self.ws[iwr]
             wi = self.wis[iwi]
             w = wr + 1j * wi
             e1 = self.fill(w)
             e2 = self.clad(w)
-            xs, success = self.beta2(w, n, e1, e2, xs)
-            xs_array[iwr] = xs
-            for i in range(num_m):
-                betas[('M', n, i + 1)][iwr, iwi] = self.beta_from_beta2(xs[i])
-                convs[('M', n, i + 1)][iwr, iwi] = success[i]
-                betas[('E', n, i + 1)][iwr, iwi] = self.beta_from_beta2(
-                    xs[i + num_m + 1])
-                convs[('E', n, i + 1)][iwr, iwi] = success[
-                    i + num_m + 1]
-        for iwi in range(1, len(self.wis)):
-            for iwr in range(len(self.ws)):
+            xs, success = self.beta2_wmin(n)
+            xs_array[iwr, iwi] = xs
+            success_array[iwr, iwi] = success
+            for iwr in range(1, len(self.ws)):
                 wr = self.ws[iwr]
                 wi = self.wis[iwi]
                 w = wr + 1j * wi
                 e1 = self.fill(w)
                 e2 = self.clad(w)
-                xs = xs_array[iwr]
                 xs, success = self.beta2(w, n, e1, e2, xs)
-                xs_array[iwr] = xs
-                for i in range(num_m):
-                    betas[('M', n, i + 1)][iwr, iwi] = self.beta_from_beta2(
-                        xs[i])
-                    convs[('M', n, i + 1)][iwr, iwi] = success[i]
-                    betas[('E', n, i + 1)][iwr, iwi] = (
-                        self.beta_from_beta2(xs[i + num_m + 1]))
-                    convs[('E', n, i + 1)][iwr, iwi] = success[
-                        i + num_m + 1]
-        return betas, convs
+                xs_array[iwr, iwi] = xs
+                success_array[iwr, iwi] = success
+            for iwi in range(1, len(self.wis)):
+                for iwr in range(len(self.ws)):
+                    wr = self.ws[iwr]
+                    wi = self.wis[iwi]
+                    w = wr + 1j * wi
+                    e1 = self.fill(w)
+                    e2 = self.clad(w)
+                    xs = xs_array[iwr, iwi - 1]
+                    xs, success = self.beta2(w, n, e1, e2, xs)
+                    xs_array[iwr, iwi] = xs
+                    success_array[iwr, iwi] = success
+        return self._betas_convs(n, xs_array, success_array)

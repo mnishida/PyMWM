@@ -52,8 +52,11 @@ class Cylinder(object):
         self.r = params['core']['size']
         self.fill = Material(params['core']['fill'])
         self.clad = Material(params['clad'])
+        im_factor = 1.0
+        if self.clad.im_factor != 1.0:
+            im_factor = self.clad.im_factor
+            self.clad.im_factor = 1.0
         self.samples = Samples(self.r, self.fill, self.clad, params['modes'])
-        self.bounds = params['bounds']
         try:
             betas, convs = self.samples.load()
         except:
@@ -66,6 +69,23 @@ class Cylinder(object):
             convs = {key: val for betas, convs in betas_list
                      for key, val in convs.items()}
             self.samples.save(betas, convs)
+        if im_factor != 1.0:
+            self.clad.im_factor = im_factor
+            self.samples = Samples(self.r, self.fill, self.clad,
+                                   params['modes'])
+            try:
+                betas, convs = self.samples.load()
+            except:
+                from multiprocessing import Pool
+                num_n = params['modes']['num_n']
+                p = Pool(num_n)
+                betas_list = p.map(self.samples, range(num_n))
+                betas = {key: val for betas, convs in betas_list
+                         for key, val in betas.items()}
+                convs = {key: val for betas, convs in betas_list
+                         for key, val in convs.items()}
+                self.samples.save(betas, convs)
+        self.bounds = params['bounds']
         self.beta_funcs = self.samples.interpolation(betas, convs, self.bounds)
         self.alpha_list = []
         for alpha, comp in self.beta_funcs.keys():
