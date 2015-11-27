@@ -4,7 +4,7 @@ import numpy as np
 import pymwm
 params = {'core': {'shape': 'cylinder', 'size': 0.2,
                    'fill': {'model': 'air'}},
-          'clad': {'model': 'gold_dl'},
+          'clad': {'model': 'gold_dl', 'im_factor': 0.0},
           'bounds': {'lmax': 1.2, 'lmin': 0.545, 'limag': 10.0},
           'modes': {'num_n': 6, 'num_m': 2}}
 wg = pymwm.create(params)

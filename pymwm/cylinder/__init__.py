@@ -332,8 +332,9 @@ class Cylinder(object):
         e = self.clad(w)
         return e * w / h
 
-    def efield(self, x, y, w, l, alpha, h, a, b, polar=False):
-        """Return the electric field vector for the specified mode and point
+    def fields(self, x, y, w, l, alpha, h, a, b, polar=False):
+        """Return the electromagnetic field vectors for the specified mode and
+        point
 
         Args:
             x: A float indicating the x coordinate [um]
@@ -349,7 +350,7 @@ class Cylinder(object):
             polar: A boolean being True if the vector should be represented by
                 cylindrical polar coordinates.
         Returns:
-            Evec: An array of complexes [ex, ey, ez].
+            Fvec: An array of complexes [ex, ey, ez, hx, hy, hz].
         """
         pol, n, m = alpha
         r = np.hypot(x, y)
@@ -364,81 +365,40 @@ class Cylinder(object):
         else:
             fr = np.sin(n * p)
             fp = np.cos(n * p)
+        y_te = self.y_te(w, h)
         if r <= self.r:
-            er = (a * (jv(n - 1, ur) + jv(n + 1, ur)) / 2 +
-                  b * jvp(n, ur)) * fr
-            ep = (a * jvp(n, ur) +
-                  b * (jv(n - 1, ur) + jv(n + 1, ur)) / 2) * fp
-            ez = u / (self.r * 1j * h) * b * jv(n, ur) * fr
+            y_tm = self.y_tm_inner(w, h)
+            er_te = (jv(n - 1, ur) + jv(n + 1, ur)) / 2 * fr
+            er_tm = jvp(n, ur) * fr
+            er = a * er_te + b * er_tm
+            ep_te = jvp(n, ur) * fp
+            ep_tm = (jv(n - 1, ur) + jv(n + 1, ur)) / 2 * fp
+            ep = a * ep_te + b * ep_tm
+            ez = u / (1j * h * self.r) * b * jv(n, ur) * fr
+            hr = -y_te * a * ep_te - y_tm * b * ep_tm
+            hp = y_te * a * er_te + y_tm * b * er_tm
+            hz = -u / (1j * h * self.r) * y_te * a * jv(n, ur) * fp
         else:
+            y_tm = self.y_tm_outer(w, h)
             val = - u * jv(n, u) / (v * kv(n, v))
-            er = (- a * (kv(n - 1, vr) - kv(n + 1, vr)) / 2 +
-                  b * kvp(n, vr)) * fr * val
-            ep = (a * kvp(n, vr) -
-                  b * (kv(n - 1, vr) - kv(n + 1, vr)) / 2) * fp * val
-            ez = - v / (self.r * 1j * h) * b * kv(n, vr) * fr * val
+            er_te = -(kv(n - 1, vr) - kv(n + 1, vr)) / 2 * fr * val
+            er_tm = kvp(n, vr) * fr * val
+            er = a * er_te + b * er_tm
+            ep_te = kvp(n, vr) * fp * val
+            ep_tm = -(kv(n - 1, vr) - kv(n + 1, vr)) / 2 * fp * val
+            ep = a * ep_te + b * ep_tm
+            ez = -v / (1j * h * self.r) * b * kv(n, vr) * fr * val
+            hr = -y_te * a * ep_te - y_tm * b * ep_tm
+            hp = y_te * a * er_te + y_tm * b * er_tm
+            hz = v / (1j * h * self.r) * y_te * a * kv(n, vr) * fp * val
         if polar:
-            return np.array([er, ep, ez])
+            return np.array([er, ep, ez, hr, hp, hz])
         else:
             ex = er * np.cos(p) - ep * np.sin(p)
             ey = er * np.sin(p) + ep * np.cos(p)
-            return np.array([ex, ey, ez])
-
-    def hfield(self, x, y, w, l, alpha, h, a, b, polar=False):
-        """Return the magnetic field vector for the specified mode and point
-
-        Args:
-            x: A float indicating the x coordinate [um]
-            y: A float indicating the y coordinate [um]
-            w: A complex indicating the angular frequency
-            l: "h" (horizontal polarization) or "v" (vertical polarization)
-            alpha: A tuple (pol, n, m) where pol is 'M' for TM-like mode or
-                'E' for TE-like mode, n is the order of the mode, and m is
-                the number of modes in the order and the polarization.
-            h: A complex indicating the phase constant.
-            a: A complex indicating the coefficient of TE-component
-            b: A complex indicating the coefficient of TM-component
-            polar: A boolean being True if the vector should be represented by
-                cylindrical polar coordinates.
-        Returns:
-            Hvec: An array of complexes [hx, hy, hz].
-        """
-        pol, n, m = alpha
-        r = np.hypot(x, y)
-        p = np.arctan2(y, x)
-        u = self.samples.u(h ** 2, w, self.fill(w))
-        v = self.samples.v(h ** 2, w, self.clad(w))
-        ur = u * r / self.r
-        vr = v * r / self.r
-        if l == 'h':
-            fr = np.cos(n * p)
-            fp = -np.sin(n * p)
-        else:
-            fr = np.sin(n * p)
-            fp = np.cos(n * p)
-        if r <= self.r:
-            y_te = self.y_te(w, h)
-            y_tm = self.y_tm_inner(w, h)
-            hr = -(a * y_te * jvp(n, ur) +
-                   b * y_tm * (jv(n - 1, ur) + jv(n + 1, ur)) / 2) * fp
-            hp = (a * y_te * (jv(n - 1, ur) + jv(n + 1, ur)) / 2 +
-                  b * y_tm * jvp(n, ur)) * fr
-            hz = - u / self.r * a * jv(n, ur) * fr
-        else:
-            y_te = self.y_te(w, h)
-            y_tm = self.y_tm_outer(w, h)
-            val = - u * jv(n, u) / (v * kv(n, v))
-            hr = -(a * y_te * kvp(n, vr) -
-                   b * y_tm * (kv(n - 1, vr) - kv(n + 1, vr)) / 2) * fp * val
-            hp = (- a * y_te * (kv(n - 1, vr) - kv(n + 1, vr)) / 2 +
-                  b * y_tm * kvp(n, vr)) * fr * val
-            hz = v / self.r * a * kv(n, vr) * fr * val
-        if polar:
-            return np.array([hr, hp, hz])
-        else:
             hx = hr * np.cos(p) - hp * np.sin(p)
             hy = hr * np.sin(p) + hp * np.cos(p)
-            return np.array([hx, hy, hz])
+            return np.array([ex, ey, ez, hx, hy, hz])
 
     def plot_efield(self, w, l, alpha, xmax=0.25, ymax=0.25):
         """Plot the electric field distribution in the cross section.
@@ -454,23 +414,31 @@ class Cylinder(object):
         """
         import matplotlib.pyplot as plt
         from matplotlib.patches import Circle
-        xs = np.linspace(-xmax, xmax, 128)
-        ys = np.linspace(-ymax, ymax, 128)
+        xs = np.linspace(-xmax, xmax, 129)
+        ys = np.linspace(-ymax, ymax, 129)
         X, Y = np.meshgrid(xs, ys, indexing='ij')
         h = self.beta(w, alpha)
         a, b = self.coef(h, w, alpha)
-        E = np.array(
-            [[self.efield(x, y, w, l, alpha, h, a, b, False) for y in ys]
+        F = np.array(
+            [[self.fields(x, y, w, l, alpha, h, a, b, False) for y in ys]
              for x in xs])
-        Ex = E[:, :, 0].real
-        Ey = E[:, :, 1].real
-        Ez = E[:, :, 2].real
+        Ex = F[:, :, 0]
+        Ey = F[:, :, 1]
+        Ez = F[:, :, 2]
         Es = np.sqrt(np.abs(Ex) ** 2 + np.abs(Ey) ** 2 + np.abs(Ez) ** 2)
-        Emax = Es.max()
-        Ex /= Emax
-        Ey /= Emax
-        Ez /= Emax
-        Es /= Emax
+        Emaxabs = Es.max()
+        Es /= Emaxabs
+        if l == 'h':
+            Ex_on_x = Ex[:, 64]
+            Ex_max = Ex_on_x[np.abs(Ex_on_x).argmax()]
+            Enorm = Ex_max.conjugate() / abs(Ex_max) / Emaxabs
+        else:
+            Ey_on_y = Ey[64]
+            Ey_max = Ey_on_y[np.abs(Ey_on_y).argmax()]
+            Enorm = Ey_max.conjugate() / abs(Ey_max) / Emaxabs
+        Ex = (Ex * Enorm).real
+        Ey = (Ey * Enorm).real
+        Ez = (Ez * Enorm).real
         fig = plt.figure()
         ax = fig.add_subplot(111, aspect='equal')
         pc = ax.pcolormesh(X, Y, Es, shading='gouraud')
@@ -504,23 +472,31 @@ class Cylinder(object):
         """
         import matplotlib.pyplot as plt
         from matplotlib.patches import Circle
-        xs = np.linspace(-xmax, xmax, 128)
-        ys = np.linspace(-ymax, ymax, 128)
+        xs = np.linspace(-xmax, xmax, 129)
+        ys = np.linspace(-ymax, ymax, 129)
         X, Y = np.meshgrid(xs, ys, indexing='ij')
         h = self.beta(w, alpha)
         a, b = self.coef(h, w, alpha)
-        H = np.array(
-            [[self.hfield(x, y, w, l, alpha, h, a, b, False) for y in ys]
+        F = np.array(
+            [[self.fields(x, y, w, l, alpha, h, a, b, False) for y in ys]
              for x in xs])
-        Hx = H[:, :, 0].real
-        Hy = H[:, :, 1].real
-        Hz = H[:, :, 2].real
+        Hx = F[:, :, 3]
+        Hy = F[:, :, 4]
+        Hz = F[:, :, 5]
         Hs = np.sqrt(np.abs(Hx) ** 2 + np.abs(Hy) ** 2 + np.abs(Hz) ** 2)
-        Hmax = Hs.max()
-        Hx /= Hmax
-        Hy /= Hmax
-        Hz /= Hmax
-        Hs /= Hmax
+        Hmaxabs = Hs.max()
+        Hs /= Hmaxabs
+        if l == 'h':
+            Hy_on_x = Hy[:, 64]
+            Hy_max = Hy_on_x[np.abs(Hy_on_x).argmax()]
+            Hnorm = Hy_max.conjugate() / abs(Hy_max) / Hmaxabs
+        else:
+            Hx_on_y = Hx[64]
+            Hx_max = Hx_on_y[np.abs(Hx_on_y).argmax()]
+            Hnorm = Hx_max.conjugate() / abs(Hx_max) / Hmaxabs
+        Hx = (Hx * Hnorm).real
+        Hy = (Hy * Hnorm).real
+        Hz = (Hz * Hnorm).real
         fig = plt.figure()
         ax = fig.add_subplot(111, aspect='equal')
         pc = ax.pcolormesh(X, Y, Hs, shading='gouraud')
@@ -555,21 +531,30 @@ class Cylinder(object):
                 (default: 128)
         """
         import matplotlib.pyplot as plt
-        xs = np.linspace(-xmax, xmax, nx)
+        xs = np.linspace(-xmax, xmax, nx + 1)
+        ys = np.linspace(-xmax, xmax, nx + 1)
+        X, Y = np.meshgrid(xs, ys, indexing='ij')
         h = self.beta(w, alpha)
         a, b = self.coef(h, w, alpha)
-        E = np.array(
-            [self.efield(x, 0.0, w, l, alpha, h, a, b, False)
+        F = np.array(
+            [[self.fields(x, y, w, l, alpha, h, a, b, False) for y in ys]
              for x in xs])
-        Ex = E[:, 0].real
-        Ey = E[:, 1].real
-        Ez = E[:, 2].real
+        Ex = F[:, :, 0]
+        Ey = F[:, :, 1]
+        Ez = F[:, :, 2]
         Es = np.sqrt(np.abs(Ex) ** 2 + np.abs(Ey) ** 2 + np.abs(Ez) ** 2)
-        Emax = Es.max()
-        Ex /= Emax
-        Ey /= Emax
-        Ez /= Emax
-        Es /= Emax
+        Emaxabs = Es.max()
+        if l == 'h':
+            Ex_on_x = Ex[:, 64]
+            Ex_max = Ex_on_x[np.abs(Ex_on_x).argmax()]
+            Enorm = Ex_max.conjugate() / abs(Ex_max) / Emaxabs
+        else:
+            Ey_on_y = Ey[64]
+            Ey_max = Ey_on_y[np.abs(Ey_on_y).argmax()]
+            Enorm = Ey_max.conjugate() / abs(Ey_max) / Emaxabs
+        Ex = (Ex * Enorm)[:, nx // 2].real
+        Ey = (Ey * Enorm)[:, nx // 2].real
+        Ez = (Ez * Enorm)[:, nx // 2].real
         fig = plt.figure()
         ax = fig.add_subplot(111)
         if comp == 'x':
@@ -604,21 +589,30 @@ class Cylinder(object):
                 (default: 128)
         """
         import matplotlib.pyplot as plt
-        xs = np.linspace(-xmax, xmax, nx)
+        xs = np.linspace(-xmax, xmax, nx + 1)
+        ys = np.linspace(-xmax, xmax, nx + 1)
+        X, Y = np.meshgrid(xs, ys, indexing='ij')
         h = self.beta(w, alpha)
         a, b = self.coef(h, w, alpha)
-        H = np.array(
-            [self.hfield(x, 0.0, w, l, alpha, h, a, b, False)
+        F = np.array(
+            [[self.fields(x, y, w, l, alpha, h, a, b, False) for y in ys]
              for x in xs])
-        Hx = H[:, 0].real
-        Hy = H[:, 1].real
-        Hz = H[:, 2].real
+        Hx = F[:, :, 3]
+        Hy = F[:, :, 4]
+        Hz = F[:, :, 5]
         Hs = np.sqrt(np.abs(Hx) ** 2 + np.abs(Hy) ** 2 + np.abs(Hz) ** 2)
-        Hmax = Hs.max()
-        Hx /= Hmax
-        Hy /= Hmax
-        Hz /= Hmax
-        Hs /= Hmax
+        Hmaxabs = Hs.max()
+        if l == 'h':
+            Hy_on_x = Hy[:, 64]
+            Hy_max = Hy_on_x[np.abs(Hy_on_x).argmax()]
+            Hnorm = Hy_max.conjugate() / abs(Hy_max) / Hmaxabs
+        else:
+            Hx_on_y = Hx[64]
+            Hx_max = Hx_on_y[np.abs(Hx_on_y).argmax()]
+            Hnorm = Hx_max.conjugate() / abs(Hx_max) / Hmaxabs
+        Hx = (Hx * Hnorm)[:, nx // 2].real
+        Hy = (Hy * Hnorm)[:, nx // 2].real
+        Hz = (Hz * Hnorm)[:, nx // 2].real
         fig = plt.figure()
         ax = fig.add_subplot(111)
         if comp == 'x':
