@@ -23,11 +23,3 @@ w = 2 * np.pi / lmin
 print("lambda =", lmin)
 for alpha in wg.alpha_list:
     print(alpha, np.abs(wg.coef(wg.beta(w, alpha), w, alpha)))
-
-
-
-
-
-
-
-
