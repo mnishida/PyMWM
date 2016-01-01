@@ -191,17 +191,23 @@ class Samples(object):
                 is 2*num_m+1.
         """
         w, n, e1, e2 = args
-        x = h2.real + 1j * h2.imag
-        u = self.u(x, w, e1)
-        v = self.v(x, w, e2)
+        h2comp = h2.real + 1j * h2.imag
+        u = self.u(h2comp, w, e1)
+        v = self.v(h2comp, w, e2)
         jus = jv(n, u)
         jpus = jvp(n, u)
         kvs = kv(n, v)
         kpvs = kvp(n, v)
         te = jpus / u + kpvs * jus / (v * kvs)
         tm = e1 * jpus / u + e2 * kpvs * jus / (v * kvs)
-        val = (tm * te - x * (n / w) ** 2 *
+        val = (tm * te - h2comp * (n / w) ** 2 *
                ((1 / u ** 2 + 1 / v ** 2) * jus) ** 2)
+        # x = jpus / u
+        # y = kpvs * jus / (v * kvs)
+        # val = x + (e1 + e2) / (2 * e1) * y + np.sqrt(
+        #     ((e1 - e2) / (2 * e1) * y) ** 2 +
+        #     (n * jus / w) ** 2 * h2comp / e1 * (
+        #         1 / u ** 2 + 1 / v ** 2) ** 2)
         return val
 
     def beta2(self, w, n, e1, e2, xis):
@@ -374,7 +380,7 @@ class Samples(object):
                             ('E', n, i + 1)][iwr, iwi] ** 2
             while self.clad.im_factor != im_factor:
                 self.clad.im_factor = max(
-                    self.clad.im_factor - 0.015625, im_factor)
+                    self.clad.im_factor - 0.5, im_factor)
                 for iwi in range(len(self.wis)):
                     for iwr in range(len(self.ws)):
                         wr = self.ws[iwr]

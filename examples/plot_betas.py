@@ -13,6 +13,21 @@ params = {'core': {'shape': 'cylinder', 'size': 0.2,
           'bounds': {'lmax': lmax, 'lmin': lmin, 'limag': 10.0},
           'modes': {'num_n': 6, 'num_m': 2}}
 wg = pymwm.create(params)
-w = 2 * np.pi
 wg.plot_betas(fmin, fmax, comp='real')
 wg.plot_betas(fmin, fmax, comp='imag')
+w = 2 * np.pi / lmax
+print("lambda =", lmax)
+for alpha in wg.alpha_list:
+    print(alpha, np.abs(wg.coef(wg.beta(w, alpha), w, alpha)))
+w = 2 * np.pi / lmin
+print("lambda =", lmin)
+for alpha in wg.alpha_list:
+    print(alpha, np.abs(wg.coef(wg.beta(w, alpha), w, alpha)))
+
+
+
+
+
+
+
+
