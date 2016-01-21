@@ -224,17 +224,23 @@ class Cylinder(object):
         ac = a.conjugate()
         bc = b.conjugate()
         u = self.samples.u(h ** 2, w, self.fill(w))
-        v = self.samples.v(h ** 2, w, self.clad(w))
         jnu = jv(n, u)
         jnpu = jvp(n, u)
+        v = self.samples.v(h ** 2, w, self.clad(w))
         knv = kv(n, v)
         knpv = kvp(n, v)
+        uc = u.conjugate()
+        jnuc = jnu.conjugate()
+        jnpuc = jnpu.conjugate()
+        vc = v.conjugate()
+        knvc = knv.conjugate()
+        knpvc = knpv.conjugate()
         val_u = 2 * np.pi * self.r ** 2 / en
-        val_v = val_u * np.abs((u * jnu) / (v * knv)) ** 2
-        upart_diag = self.upart_diag(n, u, jnu, jnpu)
-        vpart_diag = self.vpart_diag(n, v, knv, knpv)
-        upart_off = self.upart_off(n, u, jnu)
-        vpart_off = self.vpart_off(n, v, knv)
+        val_v = val_u * (uc * u * jnuc * jnu) / (vc * v * knvc * knv)
+        upart_diag = self.upart_diag(n, uc, jnuc, jnpuc, u, jnu, jnpu)
+        vpart_diag = self.vpart_diag(n, vc, knvc, knpvc, v, knv, knpv)
+        upart_off = self.upart_off(n, uc, jnuc, u, jnu)
+        vpart_off = self.vpart_off(n, vc, knvc, v, knv)
         return np.sqrt(np.real(
             val_u * (
                 a * (ac * upart_diag + bc * upart_off) +
@@ -243,39 +249,33 @@ class Cylinder(object):
                 a * (ac * vpart_diag + bc * vpart_off) +
                 b * (bc * vpart_diag + ac * vpart_off))))
 
-    def upart_diag(self, n, u, jnu, jnpu):
-        if abs(u.imag) < 1e-16:
+    def upart_diag(self, n, uc, jnuc, jnpuc, u, jnu, jnpu):
+        if abs(uc - u) < 1e-16:
             return (jnu * jnpu / u + (
                 jnpu ** 2 + (1 - n ** 2 / u ** 2) * jnu ** 2) / 2)
-        if abs(u.real) < 1e-16:
+        if abs(uc + u) < 1e-16:
             return (-1) ** (n - 1) * (
                 jnu * jnpu / u + (
                     jnpu ** 2 + (1 - n ** 2 / u ** 2) * jnu ** 2) / 2)
-        uc = u.conjugate()
-        jnuc = jnu.conjugate()
-        jnpuc = jnpu.conjugate()
         return (uc * jnuc * jnpu -
                 u * jnu * jnpuc) / (uc ** 2 - u ** 2)
 
-    def upart_off(self, n, u, jnu):
-        return n * np.abs(jnu / u) ** 2
+    def upart_off(self, n, uc, jnuc, u, jnu):
+        return n * (jnuc * jnu) / (uc * u)
 
-    def vpart_diag(self, n, v, knv, knpv):
-        if abs(v.imag) < 1e-16:
+    def vpart_diag(self, n, vc, knvc, knpvc, v, knv, knpv):
+        if abs(vc - v) < 1e-16:
             return (knv * knpv / v + (
                 knpv ** 2 - (1 + n ** 2 / v ** 2) * knv ** 2) / 2)
-        if abs(v.real) < 1e-16:
+        if abs(vc + v) < 1e-16:
             return (-1) ** (n - 1) * (
                 knv * knpv / v + (
                     knpv ** 2 - (1 + n ** 2 / v ** 2) * knv ** 2) / 2)
-        vc = v.conjugate()
-        knvc = knv.conjugate()
-        knpvc = knpv.conjugate()
         return (vc * knvc * knpv -
                 v * knv * knpvc) / (vc ** 2 - v ** 2)
 
-    def vpart_off(self, n, v, knv):
-        return n * np.abs(knv / v) ** 2
+    def vpart_off(self, n, vc, knvc, v, knv):
+        return n * (knvc * knv) / (vc * v)
 
     def Y(self, w, h, alpha, a, b):
         """Return the effective admittance of the waveguide mode
@@ -304,17 +304,23 @@ class Cylinder(object):
             ac = a.conjugate()
             bc = b.conjugate()
             u = self.samples.u(h ** 2, w, e1)
-            v = self.samples.v(h ** 2, w, e2)
             jnu = jv(n, u)
             jnpu = jvp(n, u)
+            v = self.samples.v(h ** 2, w, e2)
             knv = kv(n, v)
             knpv = kvp(n, v)
+            uc = u.conjugate()
+            jnuc = jnu.conjugate()
+            jnpuc = jnpu.conjugate()
+            vc = v.conjugate()
+            knvc = knv.conjugate()
+            knpvc = knpv.conjugate()
             val_u = 2 * np.pi * self.r ** 2 / en
-            val_v = val_u * np.abs((u * jnu) / (v * knv)) ** 2
-            upart_diag = self.upart_diag(n, u, jnu, jnpu)
-            vpart_diag = self.vpart_diag(n, v, knv, knpv)
-            upart_off = self.upart_off(n, u, jnu)
-            vpart_off = self.vpart_off(n, v, knv)
+            val_v = val_u * (uc * u * jnuc * jnu) / (vc * v * knvc * knv)
+            upart_diag = self.upart_diag(n, uc, jnuc, jnpuc, u, jnu, jnpu)
+            vpart_diag = self.vpart_diag(n, vc, knvc, knpvc, v, knv, knpv)
+            upart_off = self.upart_off(n, uc, jnuc, u, jnu)
+            vpart_off = self.vpart_off(n, vc, knvc, v, knv)
             val = (val_u * (h / w * a *
                             (ac * upart_diag + bc * upart_off) +
                             e1 * w / h * b *
@@ -322,6 +328,67 @@ class Cylinder(object):
                    val_v * (h / w * a *
                             (ac * vpart_diag + bc * vpart_off) +
                             e2 * w / h * b *
+                            (bc * vpart_diag + ac * vpart_off)))
+        return val
+
+    def Yab(self, w, h1, s1, l1, n1, m1, a1, b1,
+            h2, s2, l2, n2, m2, a2, b2):
+        """Return the admittance matrix element of the waveguide modes
+
+        Args:
+            w: A complex indicating the angular frequency
+            h1, h2: A complex indicating the phase constant.
+            s1, s2: 0 for TE-like mode or 1 for TM-like mode
+            l1, l2: 0 for h mode or 1 for v mode
+            n1, n2: the order of the mode
+            m1, m2: the number of modes in the order and the polarization
+            a1, a2: A complex indicating the coefficient of TE-component
+            b1, b2: A complex indicating the coefficient of TM-component
+        Returns:
+            y: A complex indicating the effective admittance
+        """
+        if n1 != n2 or l1 != l2:
+            return 0.0
+        n = n1
+        e1 = self.fill(w)
+        e2 = self.clad(w)
+        en = 1 if n == 0 else 2
+        if e2.real < -1e6:
+            if s1 != s2 or m1 != m2:
+                return 0.0
+            if s1 == 0:
+                val = h1 / w
+            else:
+                val = e1 * w / h1
+        else:
+            ac = a1.conjugate()
+            bc = b1.conjugate()
+            a, b = a2, b2
+            uc = self.samples.u(h1 ** 2, w, e1).conjugate()
+            vc = self.samples.v(h1 ** 2, w, e2).conjugate()
+            u = self.samples.u(h2 ** 2, w, e1)
+            v = self.samples.v(h2 ** 2, w, e2)
+            jnuc = jv(n, uc)
+            jnpuc = jvp(n, uc)
+            knvc = kv(n, vc)
+            knpvc = kvp(n, vc)
+            jnu = jv(n, u)
+            jnpu = jvp(n, u)
+            knv = kv(n, v)
+            knpv = kvp(n, v)
+            val_u = 2 * np.pi * self.r ** 2 / en
+            val_v = val_u * (uc * u * jnuc * jnu) / (vc * v * knvc * knv)
+            upart_diag = self.upart_diag(n, uc, jnuc, jnpuc, u, jnu, jnpu)
+            vpart_diag = self.vpart_diag(n, vc, knvc, knpvc, v, knv, knpv)
+            upart_off = self.upart_off(n, uc, jnuc, u, jnu)
+            vpart_off = self.vpart_off(n, vc, knvc, v, knv)
+            val = (val_u * (h2 / w * a *
+                            (ac * upart_diag + bc * upart_off) +
+                            e1 * w / h2 * b *
+                            (bc * upart_diag + ac * upart_off)) -
+                   val_v * (h2 / w * a *
+                            (ac * vpart_diag + bc * vpart_off) +
+                            e2 * w / h2 * b *
                             (bc * vpart_diag + ac * vpart_off)))
         return val
 
