@@ -285,9 +285,9 @@ class Slit(object):
             if n1 != n2:
                 return 0.0
             if s1 == 0:
-                return h2 / w
+                return y_te
             else:
-                return e1 * w / h2
+                return y_tm_in
         ac = a1.conjugate()
         a = a2
         bc = b1.conjugate()
@@ -298,7 +298,7 @@ class Slit(object):
         v = self.samples.v(h2 ** 2, w, e2)
         if s1 == 0:
             y_in = y_out = y_te
-            val = ac * a
+            val = ac * a * self.r
         else:
             y_in = y_tm_in
             y_out = y_tm_out
@@ -606,7 +606,7 @@ class Slit(object):
         ax.set_xlabel(r"$x\ [\mu\mathrm{m}]$", size=20)
         ax.set_ylabel(r"$y\ [\mu\mathrm{m}]$", size=20)
         plt.tick_params(labelsize=18)
-        cbar = plt.colorbar(pc)
+        cbar = plt.colorbar(pc, shrink=0.5)
         cbar.ax.tick_params(labelsize=14)
         plt.tight_layout()
         plt.show()
@@ -662,7 +662,7 @@ class Slit(object):
         ax.set_xlabel(r"$x\ [\mu\mathrm{m}]$", size=20)
         ax.set_ylabel(r"$y\ [\mu\mathrm{m}]$", size=20)
         plt.tick_params(labelsize=18)
-        cbar = plt.colorbar(pc)
+        cbar = plt.colorbar(pc, shrink=0.5)
         cbar.ax.tick_params(labelsize=14)
         plt.tight_layout()
         plt.show()
