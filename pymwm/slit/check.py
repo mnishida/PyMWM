@@ -1,18 +1,15 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from pyoptmat import Material
-from pymwm.cylinder.samples import Samples
+from pymwm.waveguide import create
 from multiprocessing import Pool
 params = {'core': {'shape': 'cylinder', 'size': 0.15,
                    'fill': {'model': 'air'}},
           'clad': {'model': 'gold_dl'},
-          'modes': {'lmax': 1.2, 'lmin': 0.545, 'limag': 10.0,
-                    'num_n': 6, 'num_m': 2}}
-r = params['core']['size']
-fill = Material(params['core']['fill'])
-clad = Material(params['clad'])
+          'modes': {'lmax': 5.0, 'lmin': 0.55, 'limag': 5.0,
+                    'nwr': 512, 'nwi': 64, 'num_n': 6,
+                    'num_m': 2}}
 num_n = params['modes']['num_n']
-wg = Samples(r, fill, clad, params['modes'])
+wg = create(params)
 p = Pool(num_n)
 betas_list = p.map(wg, range(num_n))
 betas = {key: val for betas, convs in betas_list

@@ -1,12 +1,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from pyoptmat import Material
-from pymwm.cylinder.samples import Samples
+from pymwm.slit.samples import Samples
 from multiprocessing import Pool
-params = {'core': {'shape': 'cylinder', 'size': 0.15,
+params = {'core': {'shape': 'slit', 'size': 0.3,
                    'fill': {'model': 'air'}},
           'clad': {'model': 'gold_dl'},
-          'modes': {'lmax': 1.2, 'lmin': 0.545, 'limag': 10.0,
+          'modes': {'lmax': 1.2, 'lmin': 0.545, 'limag': 5.0,
+                    'dw': 1.0 / 64,
                     'num_n': 6, 'num_m': 2}}
 r = params['core']['size']
 fill = Material(params['core']['fill'])
