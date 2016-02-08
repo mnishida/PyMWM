@@ -57,7 +57,7 @@ def test_Yab_pec():
                h2, s2, l2, n2, m2, a2, b2), 0.0, decimal=10)
 
 
-def test_Yab():
+def test_Yab_no_loss():
     import numpy as np
     import numpy.testing as npt
     import pymwm
@@ -96,7 +96,7 @@ def test_Yab():
                h2, s2, l2, n2, m2, a2, b2), 0.0, decimal=10)
 
 
-def test_Y_orthogonal():
+def test_Yab_with_loss():
     import numpy as np
     import numpy.testing as npt
     import pymwm
@@ -120,8 +120,7 @@ def test_Y_orthogonal():
     m1 = m2 = 1
     npt.assert_almost_equal(wg.norm(w, h1, alpha1, a1, b1), 1.0, decimal=10)
     npt.assert_almost_equal(wg.norm(w, h2, alpha2, a2, b2), 1.0, decimal=10)
-    print(wg.Y_orthogonal(w, h1, s1, l1, n1, m1, a1, b1,
-                          h2, s2, l2, n2, m2, a2, b2))
+    print(wg.Yab(w, h1, s1, l1, n1, m1, a1, b1, h2, s2, l2, n2, m2, a2, b2))
     npt.assert_almost_equal(
-        wg.Y_orthogonal(w, h1, s1, l1, n1, m1, a1, b1,
-                        h2, s2, l2, n2, m2, a2, b2), 0.0, decimal=10)
+        wg.Yab(w, h1, s1, l1, n1, m1, a1, b1,
+               h2, s2, l2, n2, m2, a2, b2), 0.0, decimal=10)

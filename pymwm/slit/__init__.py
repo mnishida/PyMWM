@@ -237,21 +237,17 @@ class Slit(object):
             return y_tm_in
         e1 = self.fill(w)
         y_tm_out = self.y_tm_outer(w, h)
-        bc = b.conjugate()
         u = self.samples.u(h ** 2, w, e1)
         v = self.samples.v(h ** 2, w, e2)
-        uc = u.conjugate()
-        vc = v.conjugate()
         if n % 2 == 0:
             B_A = u / v * np.exp(v) * np.sin(u)
             parity = 1
         else:
             B_A = - u / v * np.exp(v) * np.cos(u)
             parity = -1
-        val = np.real(bc * b * self.r * (
-            self.f(v + vc) * y_tm_out * np.abs(B_A) ** 2 +
-            (self.sinc(u - uc) +
-             parity * self.sinc(u + uc)) * y_tm_in / 2))
+        val = b ** 2 * self.r * (
+            self.f(2 * v) * y_tm_out * np.abs(B_A) ** 2 +
+            (1.0 + parity * self.sinc(2 * u)) * y_tm_in / 2)
         return val
 
     def Yab(self, w, h1, s1, l1, n1, m1, a1, b1,
