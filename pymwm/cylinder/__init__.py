@@ -56,10 +56,23 @@ class Cylinder(object):
         if self.clad.im_factor != 1.0:
             im_factor = self.clad.im_factor
             self.clad.im_factor = 1.0
-        self.samples = Samples(self.r, self.fill, self.clad, params['modes'])
-        try:
-            betas, convs = self.samples.load()
-        except:
+        pmodes = params['modes'].copy()
+        num_n_0 = pmodes['num_n']
+        num_m_0 = pmodes['num_m']
+        success = False
+        for num_n, num_m in [(n, m) for n in range(num_n_0, 17)
+                             for m in range(num_m_0, 5)]:
+            pmodes['num_n'] = num_n
+            pmodes['num_m'] = num_m
+            self.samples = Samples(
+                self.r, self.fill, self.clad, pmodes)
+            try:
+                betas, convs = self.samples.load()
+                success = True
+                break
+            except:
+                continue
+        if not success:
             from multiprocessing import Pool
             num_n = params['modes']['num_n']
             p = Pool(num_n)
@@ -71,20 +84,28 @@ class Cylinder(object):
             self.samples.save(betas, convs)
         if im_factor != 1.0:
             self.clad.im_factor = im_factor
-            self.samples = Samples(self.r, self.fill, self.clad,
-                                   params['modes'])
-            try:
-                betas, convs = self.samples.load()
-            except:
-                from multiprocessing import Pool
-                num_n = params['modes']['num_n']
-                p = Pool(num_n)
-                betas_list = p.map(self.samples, range(num_n))
-                betas = {key: val for betas, convs in betas_list
-                         for key, val in betas.items()}
-                convs = {key: val for betas, convs in betas_list
-                         for key, val in convs.items()}
-                self.samples.save(betas, convs)
+            for num_n, num_m in [(n, m) for n in range(num_n_0, 17)
+                                 for m in range(num_m_0, 5)]:
+                pmodes['num_n'] = num_n
+                pmodes['num_m'] = num_m
+                self.samples = Samples(
+                    self.r, self.fill, self.clad, pmodes)
+                try:
+                    betas, convs = self.samples.load()
+                    success = True
+                    break
+                except:
+                    continue
+                if not success:
+                    from multiprocessing import Pool
+                    num_n = params['modes']['num_n']
+                    p = Pool(num_n)
+                    betas_list = p.map(self.samples, range(num_n))
+                    betas = {key: val for betas, convs in betas_list
+                             for key, val in betas.items()}
+                    convs = {key: val for betas, convs in betas_list
+                             for key, val in convs.items()}
+                    self.samples.save(betas, convs)
         self.bounds = params['bounds']
         self.beta_funcs = self.samples.interpolation(betas, convs, self.bounds)
         self.alpha_list = []
