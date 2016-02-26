@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+from pymwm.slit.utils import coefs_cython, ABY_cython
 
 
 class Slit(object):
@@ -42,8 +43,10 @@ class Slit(object):
                         (default: 1 / 64).
                     'num_n': An integer indicating the number of orders of
                         modes.
-                    'num_m': An integer indicating the number of modes in each
-                        order and polarization.
+                    'ls': A list of characters chosen from "h" (horizontal
+                        polarization) and "v" (vertical polarization).
+                        In the slit case, "h" ("v") corresponds to TE (TM)
+                        polarization.
         """
         from pyoptmat import Material
         from pymwm.slit.samples import Samples
@@ -54,10 +57,23 @@ class Slit(object):
         if self.clad.im_factor != 1.0:
             im_factor = self.clad.im_factor
             self.clad.im_factor = 1.0
-        self.samples = Samples(self.r, self.fill, self.clad, params['modes'])
-        try:
-            betas, convs = self.samples.load()
-        except:
+        pmodes = params['modes'].copy()
+        num_n_0 = pmodes['num_n']
+        success = False
+        for num_n in [n for n in range(num_n_0, 25)]:
+            pmodes['num_n'] = num_n
+            self.samples = Samples(
+                self.r, self.fill, self.clad, pmodes)
+            try:
+                betas, convs = self.samples.load()
+                success = True
+                break
+            except:
+                continue
+        if not success:
+            pmodes['num_n'] = num_n_0
+            self.samples = Samples(
+                self.r, self.fill, self.clad, pmodes)
             from multiprocessing import Pool
             num_n = params['modes']['num_n']
             p = Pool(num_n)
@@ -69,11 +85,25 @@ class Slit(object):
             self.samples.save(betas, convs)
         if im_factor != 1.0:
             self.clad.im_factor = im_factor
-            self.samples = Samples(self.r, self.fill, self.clad,
-                                   params['modes'])
-            try:
-                betas, convs = self.samples.load()
-            except:
+            pmodes['num_n'] = num_n_0
+            self.samples = Samples(
+                self.r, self.fill, self.clad, pmodes)
+            success = False
+            for num_n in [n for n in range(num_n_0, 25)]:
+                pmodes['num_n'] = num_n
+                self.samples = Samples(
+                    self.r, self.fill, self.clad, pmodes)
+                try:
+                    betas, convs = self.samples.load()
+                    success = True
+                    break
+                except:
+                    continue
+            if not success:
+                self.clad.im_factor = im_factor
+                pmodes['num_n'] = num_n_0
+                self.samples = Samples(
+                    self.r, self.fill, self.clad, pmodes)
                 from multiprocessing import Pool
                 num_n = params['modes']['num_n']
                 p = Pool(num_n)
@@ -99,6 +129,27 @@ class Slit(object):
             else:
                 self.labels[alpha] = (
                     r'TM$_{' + r'{0}'.format(n) + r'}$')
+        self.num_n = num_n_0
+        self.alphas = {'h': [], 'v': []}
+        for alpha in [('E', n, 1) for n in range(1, self.num_n)]:
+            if alpha in self.alpha_list:
+                self.alphas['h'].append(alpha)
+        for alpha in [('M', n, 1) for n in range(self.num_n)]:
+            if alpha in self.alpha_list:
+                self.alphas['v'].append(alpha)
+        self.ls = pmodes.get('ls', ['h', 'v'])
+        self.alpha_all = [alpha for l in self.ls for alpha in self.alphas[l]]
+        self.l_all = np.array(
+                [0 if l == 'h' else 1
+                 for l in self.ls for alpha in self.alphas[l]])
+        self.s_all = np.array(
+                [0 if pol == 'E' else 1
+                 for l in self.ls for pol, n, m in self.alphas[l]])
+        self.n_all = np.array(
+                [n for l in self.ls for pol, n, m in self.alphas[l]])
+        self.m_all = np.array(
+                [m for l in self.ls for pol, n, m in self.alphas[l]])
+        self.num_n_all = self.n_all.shape[0]
 
     def beta(self, w, alpha):
         """Return phase constant
@@ -166,10 +217,10 @@ class Slit(object):
         w = w.real + 1j * w.imag
         h = h.real + 1j * h.imag
         if pol == 'E':
-            norm = self.norm(w, h, alpha)
+            norm = self.norm(w, h, alpha, 1.0 + 0.0j, 0.0j)
             ai, bi = 1.0 / norm, 0.0
         else:
-            norm = self.norm(w, h, alpha)
+            norm = self.norm(w, h, alpha, 0.0j, 1.0 + 0.0j)
             ai, bi = 0.0, 1.0 / norm
         return ai, bi
 
@@ -180,15 +231,16 @@ class Slit(object):
         x1 = x / np.pi
         return np.sinc(x1)
 
-    def norm(self, w, h, alpha):
+    def norm(self, w, h, alpha, a, b):
+        a2_b2 = np.abs(a) ** 2 + np.abs(b) ** 2
         e1 = self.fill(w)
         e2 = self.clad(w)
         pol, n, m = alpha
         if self.clad(w).real < -1e6:
             if pol == 'M' and n == 0:
-                return self.r
+                return np.sqrt(a2_b2 * self.r)
             else:
-                return self.r / 2
+                return np.sqrt(a2_b2 * self.r / 2)
         u = self.samples.u(h ** 2, w, e1)
         uc = u.conjugate()
         v = self.samples.v(h ** 2, w, e2)
@@ -207,9 +259,9 @@ class Slit(object):
             else:
                 B_A = - u / v * np.exp(v) * np.cos(u)
                 parity = -1
-        val = np.real(self.r * (
+        val = np.sqrt(np.real(a2_b2 * self.r * (
             np.abs(B_A) ** 2 * self.f(v + vc) +
-            (self.sinc(u - uc) + parity * self.sinc(u + uc)) / 2))
+            (self.sinc(u - uc) + parity * self.sinc(u + uc)) / 2)))
         return val
 
     def Y(self, w, h, alpha, a, b):
@@ -246,7 +298,7 @@ class Slit(object):
             B_A = - u / v * np.exp(v) * np.cos(u)
             parity = -1
         val = b ** 2 * self.r * (
-            self.f(2 * v) * y_tm_out * np.abs(B_A) ** 2 +
+            self.f(2 * v) * y_tm_out * B_A ** 2 +
             (1.0 + parity * self.sinc(2 * u)) * y_tm_in / 2)
         return val
 
@@ -284,13 +336,13 @@ class Slit(object):
                 return y_te
             else:
                 return y_tm_in
-        ac = a1.conjugate()
+        ac = a1
         a = a2
-        bc = b1.conjugate()
+        bc = b1
         b = b2
-        uc = self.samples.u(h1 ** 2, w, e1).conjugate()
+        uc = self.samples.u(h1 ** 2, w, e1)
         u = self.samples.u(h2 ** 2, w, e1)
-        vc = self.samples.v(h1 ** 2, w, e2).conjugate()
+        vc = self.samples.v(h1 ** 2, w, e2)
         v = self.samples.v(h2 ** 2, w, e2)
         if s1 == 0:
             y_in = y_out = y_te
@@ -881,3 +933,44 @@ class Slit(object):
         plt.legend(bbox_to_anchor=(1.02, 1), loc=2, borderaxespad=0.)
         fig.subplots_adjust(left=0.11, right=0.83, bottom=0.12, top=0.97)
         plt.show()
+
+    def coefs_numpy(self, hs, w):
+        As = []
+        Bs = []
+        for h, s, n, m in zip(hs, self.s_all, self.n_all, self.m_all):
+            pol = 'E' if s == 0 else 'M'
+            ai, bi = self.coef(h, w, (pol, n, m))
+            As.append(ai)
+            Bs.append(bi)
+        return np.ascontiguousarray(As), np.ascontiguousarray(Bs)
+
+    def coefs(self, hs, w):
+        return coefs_cython(self, hs, w)
+
+    def Ys(self, w, hs, As, Bs):
+        vals = []
+        for h, s, n, a, b in zip(hs, self.s_all, self.n_all, As, Bs):
+            pol = 'E' if s == 0 else 'M'
+            vals.append(self.Y(w, h, (pol, n, 1), a, b))
+        return np.array(vals)
+
+    def hAB(self, w):
+        hs = np.array([self.beta(w, alpha)
+                       for alpha in self.alpha_all])
+        As, Bs = self.coefs(hs, w)
+        return hs, As, Bs
+
+    def ABY(self, w, hs):
+        e1 = self.fill(w)
+        e2 = self.clad(w)
+        return ABY_cython(
+            w, self.r, self.s_all, self.n_all, hs, e1, e2)
+
+    def hABY(self, w):
+        e1 = self.fill(w)
+        e2 = self.clad(w)
+        hs = np.array([self.beta(w, alpha)
+                       for alpha in self.alpha_all])
+        As, Bs, Y = ABY_cython(
+            w, self.r, self.s_all, self.n_all, hs, e1, e2)
+        return hs, As, Bs, Y

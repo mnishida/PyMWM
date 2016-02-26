@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from nose.tools import assert_equal, assert_true
+from nose.tools import assert_equal
+import numpy as np
+import numpy.testing as npt
 
 
 def test_attributes():
-    import numpy as np
-    import numpy.testing as npt
     import pymwm
-    params = {'core': {'shape': 'cylinder', 'size': 0.15,
+    params = {'core': {'shape': 'slit', 'size': 0.15,
                        'fill': {'model': 'air'}},
               'clad': {'model': 'gold_dl'},
               'bounds': {'lmax': 5.0, 'lmin': 0.575, 'limag': 10.0},
@@ -24,7 +24,7 @@ def test_Yab_pec():
     import numpy as np
     import numpy.testing as npt
     import pymwm
-    params = {'core': {'shape': 'cylinder', 'size': 0.15,
+    params = {'core': {'shape': 'slit', 'size': 0.15,
                        'fill': {'model': 'air'}},
               'clad': {'model': 'pec', 'im_factor': 0.0},
               'bounds': {'lmax': 5.0, 'lmin': 0.575, 'limag': 10.0},
@@ -61,7 +61,7 @@ def test_Yab_no_loss():
     import numpy as np
     import numpy.testing as npt
     import pymwm
-    params = {'core': {'shape': 'cylinder', 'size': 0.15,
+    params = {'core': {'shape': 'slit', 'size': 0.15,
                        'fill': {'model': 'air'}},
               'clad': {'model': 'gold_dl', 'im_factor': 0.0},
               'bounds': {'lmax': 3.0, 'lmin': 0.575, 'limag': 10.0},
@@ -79,6 +79,7 @@ def test_Yab_no_loss():
     l1 = l2 = 0
     n1 = n2 = 1
     m1 = m2 = 1
+    print(a1, b1, a2, b2)
     npt.assert_almost_equal(wg.norm(w, h1, alpha1, a1, b1), 1.0, decimal=10)
     npt.assert_almost_equal(wg.norm(w, h2, alpha2, a2, b2), 1.0, decimal=10)
     npt.assert_almost_equal(
@@ -100,7 +101,7 @@ def test_Yab_with_loss():
     import numpy as np
     import numpy.testing as npt
     import pymwm
-    params = {'core': {'shape': 'cylinder', 'size': 0.15,
+    params = {'core': {'shape': 'slit', 'size': 0.15,
                        'fill': {'model': 'air'}},
               'clad': {'model': 'gold_dl', 'im_factor': 1.0},
               'bounds': {'lmax': 3.0, 'lmin': 0.575, 'limag': 10.0},

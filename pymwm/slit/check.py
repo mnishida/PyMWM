@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pymwm.waveguide import create
 from multiprocessing import Pool
-params = {'core': {'shape': 'cylinder', 'size': 0.15,
+params = {'core': {'shape': 'slit', 'size': 0.15,
                    'fill': {'model': 'air'}},
           'clad': {'model': 'gold_dl'},
           'modes': {'lmax': 5.0, 'lmin': 0.55, 'limag': 5.0,

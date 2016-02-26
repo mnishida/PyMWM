@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from scipy.special import jv, jvp, kv, kvp, jn_zeros, jnp_zeros
+from pymwm.cylinder.utils import coefs_cython, ABY_cython
 
 
 class Cylinder(object):
@@ -46,6 +47,8 @@ class Cylinder(object):
                         modes.
                     'num_m': An integer indicating the number of modes in each
                         order and polarization.
+                    'ls': A list of characters chosen from "h" (horizontal
+                        polarization) and "v" (vertical polarization).
         """
         from pyoptmat import Material
         from pymwm.cylinder.samples import Samples
@@ -73,6 +76,10 @@ class Cylinder(object):
             except:
                 continue
         if not success:
+            pmodes['num_n'] = num_n_0
+            pmodes['num_m'] = num_m_0
+            self.samples = Samples(
+                self.r, self.fill, self.clad, pmodes)
             from multiprocessing import Pool
             num_n = params['modes']['num_n']
             p = Pool(num_n)
@@ -84,6 +91,11 @@ class Cylinder(object):
             self.samples.save(betas, convs)
         if im_factor != 1.0:
             self.clad.im_factor = im_factor
+            pmodes['num_n'] = num_n_0
+            pmodes['num_m'] = num_m_0
+            self.samples = Samples(
+                self.r, self.fill, self.clad, pmodes)
+            success = False
             for num_n, num_m in [(n, m) for n in range(num_n_0, 17)
                                  for m in range(num_m_0, 5)]:
                 pmodes['num_n'] = num_n
@@ -96,16 +108,21 @@ class Cylinder(object):
                     break
                 except:
                     continue
-                if not success:
-                    from multiprocessing import Pool
-                    num_n = params['modes']['num_n']
-                    p = Pool(num_n)
-                    betas_list = p.map(self.samples, range(num_n))
-                    betas = {key: val for betas, convs in betas_list
-                             for key, val in betas.items()}
-                    convs = {key: val for betas, convs in betas_list
-                             for key, val in convs.items()}
-                    self.samples.save(betas, convs)
+            if not success:
+                self.clad.im_factor = im_factor
+                pmodes['num_n'] = num_n_0
+                pmodes['num_m'] = num_m_0
+                self.samples = Samples(
+                    self.r, self.fill, self.clad, pmodes)
+                from multiprocessing import Pool
+                num_n = params['modes']['num_n']
+                p = Pool(num_n)
+                betas_list = p.map(self.samples, range(num_n))
+                betas = {key: val for betas, convs in betas_list
+                         for key, val in betas.items()}
+                convs = {key: val for betas, convs in betas_list
+                         for key, val in convs.items()}
+                self.samples.save(betas, convs)
         self.bounds = params['bounds']
         self.beta_funcs = self.samples.interpolation(betas, convs, self.bounds)
         self.alpha_list = []
@@ -130,6 +147,37 @@ class Cylinder(object):
                 else:
                     self.labels[alpha] = (
                         r'EH$_{' + r'{0}{1}'.format(n, m) + r'}$')
+        self.num_n = num_n_0
+        self.num_m = num_m_0
+        self.alphas = {'h': [], 'v': []}
+        for alpha in [('E', n, m) for n in range(1, self.num_n)
+                      for m in range(1, self.num_m + 1)]:
+            if alpha in self.alpha_list:
+                self.alphas['h'].append(alpha)
+                self.alphas['v'].append(alpha)
+        for alpha in [('M', 0, m) for m in range(1, self.num_m + 1)]:
+            if alpha in self.alpha_list:
+                self.alphas['h'].append(alpha)
+        for alpha in [('M', n, m) for n in range(1, self.num_n)
+                      for m in range(1, self.num_m + 1)]:
+            if alpha in self.alpha_list:
+                self.alphas['h'].append(alpha)
+                self.alphas['v'].append(alpha)
+        self.u_pec, self.jnu_pec, self.jnpu_pec = self.u_jnu_jnpu_pec(
+            self.num_n, self.num_m)
+        self.ls = pmodes.get('ls', ['h', 'v'])
+        self.alpha_all = [alpha for l in self.ls for alpha in self.alphas[l]]
+        self.l_all = np.array(
+                [0 if l == 'h' else 1
+                 for l in self.ls for alpha in self.alphas[l]])
+        self.s_all = np.array(
+                [0 if pol == 'E' else 1
+                 for l in self.ls for pol, n, m in self.alphas[l]])
+        self.n_all = np.array(
+                [n for l in self.ls for pol, n, m in self.alphas[l]])
+        self.m_all = np.array(
+                [m for l in self.ls for pol, n, m in self.alphas[l]])
+        self.num_n_all = self.n_all.shape[0]
 
     def beta(self, w, alpha):
         """Return phase constant
@@ -343,67 +391,6 @@ class Cylinder(object):
                             e2 * w / h * b *
                             (b * vpart_diag + a * vpart_off)))
         return val
-
-    # def Yab(self, w, h1, s1, l1, n1, m1, a1, b1,
-    #         h2, s2, l2, n2, m2, a2, b2):
-    #     """Return the admittance matrix element of the waveguide modes
-
-    #     Args:
-    #         w: A complex indicating the angular frequency
-    #         h1, h2: A complex indicating the phase constant.
-    #         s1, s2: 0 for TE-like mode or 1 for TM-like mode
-    #         l1, l2: 0 for h mode or 1 for v mode
-    #         n1, n2: the order of the mode
-    #         m1, m2: the number of modes in the order and the polarization
-    #         a1, a2: A complex indicating the coefficient of TE-component
-    #         b1, b2: A complex indicating the coefficient of TM-component
-    #     Returns:
-    #         y: A complex indicating the effective admittance
-    #     """
-    #     if n1 != n2 or l1 != l2:
-    #         return 0.0
-    #     n = n1
-    #     e1 = self.fill(w)
-    #     e2 = self.clad(w)
-    #     en = 1 if n == 0 else 2
-    #     if e2.real < -1e6:
-    #         if s1 != s2 or m1 != m2:
-    #             return 0.0
-    #         if s1 == 0:
-    #             val = h2 / w
-    #         else:
-    #             val = e1 * w / h2
-    #     else:
-    #         ac = a1.conjugate()
-    #         bc = b1.conjugate()
-    #         a, b = a2, b2
-    #         uc = self.samples.u(h1 ** 2, w, e1).conjugate()
-    #         vc = self.samples.v(h1 ** 2, w, e2).conjugate()
-    #         u = self.samples.u(h2 ** 2, w, e1)
-    #         v = self.samples.v(h2 ** 2, w, e2)
-    #         jnuc = jv(n, uc)
-    #         jnpuc = jvp(n, uc)
-    #         knvc = kv(n, vc)
-    #         knpvc = kvp(n, vc)
-    #         jnu = jv(n, u)
-    #         jnpu = jvp(n, u)
-    #         knv = kv(n, v)
-    #         knpv = kvp(n, v)
-    #         val_u = 2 * np.pi * self.r ** 2 / en
-    #         val_v = val_u * (uc * u * jnuc * jnu) / (vc * v * knvc * knv)
-    #         upart_diag = self.upart_diag(n, uc, jnuc, jnpuc, u, jnu, jnpu)
-    #         vpart_diag = self.vpart_diag(n, vc, knvc, knpvc, v, knv, knpv)
-    #         upart_off = self.upart_off(n, uc, jnuc, u, jnu)
-    #         vpart_off = self.vpart_off(n, vc, knvc, v, knv)
-    #         val = (val_u * (h2 / w * a *
-    #                         (ac * upart_diag + bc * upart_off) +
-    #                         e1 * w / h2 * b *
-    #                         (bc * upart_diag + ac * upart_off)) -
-    #                val_v * (h2 / w * a *
-    #                         (ac * vpart_diag + bc * vpart_off) +
-    #                         e2 * w / h2 * b *
-    #                         (bc * vpart_diag + ac * vpart_off)))
-    #     return val
 
     def Yab(self, w, h1, s1, l1, n1, m1, a1, b1, h2, s2, l2, n2, m2, a2, b2):
         """Return the admittance matrix element of the waveguide modes using
@@ -956,3 +943,92 @@ class Cylinder(object):
         plt.legend(bbox_to_anchor=(1.02, 1), loc=2, borderaxespad=0.)
         fig.subplots_adjust(left=0.11, right=0.83, bottom=0.12, top=0.97)
         plt.show()
+
+    def u_jnu_jnpu_pec(self, num_n, num_m):
+        us = np.empty((2, num_n, num_m))
+        jnus = np.empty((2, num_n, num_m))
+        jnpus = np.empty((2, num_n, num_m))
+        for n in range(num_n):
+            us[0, n] = jnp_zeros(n, num_m)
+            us[1, n] = jn_zeros(n, num_m)
+            jnus[0, n] = jv(n, us[0, n])
+            jnus[1, n] = np.zeros(num_m)
+            jnpus[0, n] = np.zeros(num_m)
+            jnpus[1, n] = jvp(n, us[1, n])
+        return us, jnus, jnpus
+
+    def coefs_numpy(self, hs, w):
+        As = []
+        Bs = []
+        for h, s, n, m in zip(hs, self.s_all, self.n_all, self.m_all):
+            pol = 'E' if s == 0 else 'M'
+            ai, bi = self.coef(h, w, (pol, n, m))
+            As.append(ai)
+            Bs.append(bi)
+        return np.ascontiguousarray(As), np.ascontiguousarray(Bs)
+
+    def coefs(self, hs, w):
+        return coefs_cython(self, hs, w)
+
+    def Ys(self, w, hs, As, Bs):
+        vals = []
+        for h, s, n, a, b in zip(hs, self.s_all, self.n_all, As, Bs):
+            pol = 'E' if s == 0 else 'M'
+            vals.append(self.Y(w, h, (pol, n, 1), a, b))
+        return np.array(vals)
+
+    # def Ymat(self, w, hs, As, Bs):
+    #     mat = []
+    #     for h1, s1, l1, n1, m1, a1, b1 in zip(
+    #             hs, self.s_all, self.l_all, self.n_all, self.m_all, As, Bs):
+    #         row = []
+    #         for h2, s2, l2, n2, m2, a2, b2 in zip(
+    #                 hs, self.s_all, self.l_all, self.n_all, self.m_all,
+    #                 As, Bs):
+    #             row.append(self.modes.Y_orthogonal(
+    #                 w, h1, s1, l1, n1, m1, a1, b1,
+    #                 h2, s2, l2, n2, m2, a2, b2))
+    #         mat.append(row)
+    #     return np.array(mat)
+
+    def hAB(self, w):
+        hs = np.array([self.beta(w, alpha)
+                       for alpha in self.alpha_all])
+        As, Bs = self.coefs(hs, w)
+        return hs, As, Bs
+
+    def ABY(self, w, hs):
+        e1 = self.fill(w)
+        e2 = self.clad(w)
+        return ABY_cython(
+            w, self.r, self.s_all, self.n_all, self.m_all, hs, e1, e2,
+            self.u_pec, self.jnu_pec, self.jnpu_pec)
+
+    # def ABYmat(self, w, hs):
+    #     e1 = self.fill(w)
+    #     e2 = hoself.clad(w)
+    #     return ABYmat_cython(
+    #         w, self.r, self.s_all, self.l_all,
+    #         self.n_all, self.m_all, hs, e1, e2, self.u_pec, self.jnu_pec,
+    #         self.jnpu_pec)
+
+    def hABY(self, w):
+        e1 = self.fill(w)
+        e2 = self.clad(w)
+        hs = np.array([self.beta(w, alpha)
+                       for alpha in self.alpha_all])
+        As, Bs, Y = ABY_cython(
+            w, self.r, self.s_all, self.n_all,
+            self.m_all, hs, e1, e2, self.u_pec, self.jnu_pec, self.jnpu_pec)
+        return hs, As, Bs, Y
+
+    # def hABYmat(self, w):
+    #     e1 = self.fill(w)
+    #     e2 = self.clad(w)
+    #     hs = np.array([self.beta(w, alpha)
+    #                    for alpha in self.alpha_all])
+    #     As, Bs, Ymat = ABYmat_cython(
+    #         w, self.r, self.s_all, self.l_all,
+    #         self.n_all, self.m_all, hs, e1, e2, self.u_pec, self.jnu_pec,
+    #         self.jnpu_pec)
+    #     return hs, As, Bs, Ymat
