@@ -369,7 +369,10 @@ class Samples(object):
         if self.clad.im_factor != 1.0:
             im_factor = self.clad.im_factor
             self.clad.im_factor = 1.0
-            betas, convs = self.load()
+            try:
+                betas, convs = self.load()
+            except:
+                betas, convs = self.__call__(n)
             for iwi in range(len(self.wis)):
                 for iwr in range(len(self.ws)):
                     for i in range(num_m + 1):

@@ -120,7 +120,7 @@ def ABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
         int num_n_all = n_all.shape[0]
         double sqrt_r = sqrt(r)
         double sqrt_2 = sqrt(2.0)
-        cdouble h, u, v
+        cdouble h, u, v, y_in, y_out, B_A
     As_array = np.empty(num_n_all)
     Bs_array = np.empty(num_n_all)
     Ys_array = np.empty(num_n_all, dtype=np.complex)
@@ -137,23 +137,32 @@ def ABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
     for i in range(num_n_all):
         h = hs[i]
         n = n_all[i]
-        if s_all[i] == 0:
-            Ys[i] = h / w
+        s = s_all[i]
+        if s == 0:
+            y_in = y_out = h / w
         else:
-            y_tm_in = e1 * w / h
-            y_tm_out = e2 * w / h
-            if creal(e2) < -1e6:
-                Ys[i] = y_tm_in
-            else:
-                u = csqrt(e1 * w ** 2 - h ** 2) * r / 2
-                v = csqrt(- e2 * w ** 2 + h ** 2) * r / 2
-                if n % 2 == 0:
+            y_in = e1 * w / h
+            y_out = e2 * w / h
+        if creal(e2) < -1e6:
+            Ys[i] = y_in
+        else:
+            u = csqrt(e1 * w ** 2 - h ** 2) * r / 2
+            v = csqrt(- e2 * w ** 2 + h ** 2) * r / 2
+            if n % 2 == 0:
+                if s == 0:
+                    B_A = cexp(v) * csin(u)
+                    parity = -1
+                else:
                     B_A = u / v * cexp(v) * csin(u)
+                    parity = 1
+            else:
+                if s == 0:
+                    B_A = cexp(v) * ccos(u)
                     parity = 1
                 else:
                     B_A = - u / v * cexp(v) * ccos(u)
                     parity = -1
-                Ys[i] = Bs[i] ** 2 * r * (
-                    cexp(- 2 * v) / (2 * v) * y_tm_out * B_A ** 2 +
-                    (1.0 + parity * csinc(2 * u)) * y_tm_in / 2)
+            Ys[i] = (As[i] ** 2 + Bs[i] ** 2) * r * (
+                cexp(- 2 * v) / (2 * v) * y_out * B_A ** 2 +
+                (1.0 + parity * csinc(2 * u)) * y_in / 2)
     return As_array, Bs_array, Ys_array

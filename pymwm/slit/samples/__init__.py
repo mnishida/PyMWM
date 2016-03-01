@@ -178,14 +178,14 @@ class Samples(object):
         v = self.v(h2comp, w, e2)
         if pol == 'E':
             if n % 2 == 0:
-                return u / np.tan(u) + v
+                return np.tan(u) + u / v
             else:
-                return u * np.tan(u) - v
+                return 1 / np.tan(u) - u / v
         else:
             if n % 2 == 0:
-                return u * np.tan(u) / e1 - v / e2
+                return u * np.tan(u) - (e1 * v) / e2
             else:
-                return u / np.tan(u) / e1 + v / e2
+                return u / np.tan(u) + (e1 * v) / e2
 
     def beta2(self, w, n, e1, e2, xis):
         """Return roots and convergences of the characteristic equation
@@ -268,6 +268,41 @@ class Samples(object):
             xs, success = self.beta2(w, n, e1, e2, xs)
         return xs, success
 
+    def beta2_wmax(self, n):
+        """Return roots and convergences of the characteristic equation at
+            the highest angular frequency, ws[-1].
+
+        Args:
+            n: A integer indicating the order of the mode
+        Returns:
+            xs: A 1D array indicating the roots, whose length is 2.
+            success: A 1D array indicating the convergence information for xs.
+        """
+        w_0 = self.ws[-1]
+        if self.clad.model == 'pec':
+            xs = self.beta2_pec(w_0, n)
+            if n == 0:
+                success = np.array([True, False])
+            else:
+                success = np.array([True, True])
+            return xs, success
+        xs = self.beta2_pec(w_0, n)
+        e1 = self.fill(w_0)
+        e2 = self.clad(w_0)
+        e2_1 = -1.0e8 + self.clad(w_0).imag * 1j
+        for j in range(10):
+            e2_0 = e2_1
+            de = (e2 - e2_0) / 100
+            for i in range(100):
+                e2_1 = e2_0 + de * i
+                xs, success = self.beta2(w_0, n, e1, e2_1, xs)
+        e2_0 = e2_1
+        de = (e2 - e2_0) / 100
+        for i in range(101):
+            e2_1 = e2_0 + de * i
+            xs, success = self.beta2(w_0, n, e1, e2_1, xs)
+        return xs, success
+
     def beta_from_beta2(self, x):
         val = np.sqrt(x)
         if ((abs(val.real) > abs(val.imag) and val.real < 0) or
@@ -337,14 +372,18 @@ class Samples(object):
             convs: A dict containing the convergence information for betas,
                 whose key is the same as above.
         """
-        xs_array = np.zeros((len(self.ws), len(self.wis), 2), dtype=complex)
-        success_array = np.zeros((len(self.ws), len(self.wis), 2), dtype=bool)
+        num_ws = len(self.ws)
+        xs_array = np.zeros((num_ws, len(self.wis), 2), dtype=complex)
+        success_array = np.zeros((num_ws, len(self.wis), 2), dtype=bool)
         if self.clad.im_factor != 1.0:
             im_factor = self.clad.im_factor
             self.clad.im_factor = 1.0
-            betas, convs = self.load()
+            try:
+                betas, convs = self.load()
+            except:
+                betas, convs = self.__call__(n)
             for iwi in range(len(self.wis)):
-                for iwr in range(len(self.ws)):
+                for iwr in range(num_ws):
                     xs_array[iwr, iwi, 0] = betas[
                         ('M', n, 1)][iwr, iwi] ** 2
                     xs_array[iwr, iwi, 1] = betas[
@@ -377,7 +416,7 @@ class Samples(object):
             xs, success = self.beta2_wmin(n)
             xs_array[iwr, iwi] = xs
             success_array[iwr, iwi] = success
-            for iwr in range(1, len(self.ws)):
+            for iwr in range(1, num_ws):
                 wr = self.ws[iwr]
                 wi = self.wis[iwi]
                 w = wr + 1j * wi

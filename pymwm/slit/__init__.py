@@ -133,10 +133,10 @@ class Slit(object):
         self.alphas = {'h': [], 'v': []}
         for alpha in [('E', n, 1) for n in range(1, self.num_n)]:
             if alpha in self.alpha_list:
-                self.alphas['h'].append(alpha)
+                self.alphas['v'].append(alpha)
         for alpha in [('M', n, 1) for n in range(self.num_n)]:
             if alpha in self.alpha_list:
-                self.alphas['v'].append(alpha)
+                self.alphas['h'].append(alpha)
         self.ls = pmodes.get('ls', ['h', 'v'])
         self.alpha_all = [alpha for l in self.ls for alpha in self.alphas[l]]
         self.l_all = np.array(
@@ -280,26 +280,40 @@ class Slit(object):
             y: A complex indicating the effective admittance
         """
         pol, n, m = alpha
-        y_te = self.y_te(w, h)
-        if pol == 'E':
-            return y_te
-        e2 = self.clad(w)
-        y_tm_in = self.y_tm_inner(w, h)
-        if e2.real < -1e6:
-            return y_tm_in
         e1 = self.fill(w)
+        e2 = self.clad(w)
+        y_te = self.y_te(w, h)
+        y_tm_in = self.y_tm_inner(w, h)
         y_tm_out = self.y_tm_outer(w, h)
+        if e2.real < -1e6:
+            if pol == 'E':
+                return y_te
+            else:
+                return y_tm_in
         u = self.samples.u(h ** 2, w, e1)
         v = self.samples.v(h ** 2, w, e2)
-        if n % 2 == 0:
-            B_A = u / v * np.exp(v) * np.sin(u)
-            parity = 1
+        if pol == 'E':
+            y_in = y_out = y_te
         else:
-            B_A = - u / v * np.exp(v) * np.cos(u)
-            parity = -1
-        val = b ** 2 * self.r * (
-            self.f(2 * v) * y_tm_out * B_A ** 2 +
-            (1.0 + parity * self.sinc(2 * u)) * y_tm_in / 2)
+            y_in = y_tm_in
+            y_out = y_tm_out
+        if n % 2 == 0:
+            if pol == 'E':
+                B_A = np.exp(v) * np.sin(u)
+                parity = -1
+            else:
+                B_A = u / v * np.exp(v) * np.sin(u)
+                parity = 1
+        else:
+            if pol == 'E':
+                B_A = np.exp(v) * np.cos(u)
+                parity = 1
+            else:
+                B_A = - u / v * np.exp(v) * np.cos(u)
+                parity = -1
+        val = (a ** 2 + b ** 2) * self.r * (
+            self.f(2 * v) * y_out * B_A ** 2 +
+            (1.0 + parity * self.sinc(2 * u)) * y_in / 2)
         return val
 
     def Yab(self, w, h1, s1, l1, n1, m1, a1, b1,
