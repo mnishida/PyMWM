@@ -247,13 +247,13 @@ class Samples(object):
             result = root(func, (xi.real, xi.imag), method='hybr',
                           options={'xtol': 1.0e-10})
             x = result.x[0] + result.x[1] * 1j
-            v = self.v(x, w, e2)
+            # v = self.v(x, w, e2)
             if result.success:
                 roots.append(x)
-            if abs(v.real) > abs(v.imag):
-                success.append(result.success)
-            else:
-                success.append(False)
+            # if abs(v.real) > abs(v.imag):
+            success.append(result.success)
+            # else:
+            #     success.append(False)
             vals.append(x)
         return np.array(vals), success
 

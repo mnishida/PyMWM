@@ -116,10 +116,17 @@ class Slit(object):
         self.bounds = params['bounds']
         self.beta_funcs = self.samples.interpolation(betas, convs, self.bounds)
         self.alpha_list = []
+        alpha_M_list = []
+        alpha_E_list = []
         for alpha, comp in self.beta_funcs.keys():
             if comp == 'real':
-                self.alpha_list.append(alpha)
-        self.alpha_list.sort()
+                if alpha[0] == 'M':
+                    alpha_M_list.append(alpha)
+                else:
+                    alpha_E_list.append(alpha)
+        alpha_M_list.sort()
+        alpha_E_list.sort()
+        self.alpha_list = alpha_M_list + alpha_E_list
         self.labels = {}
         for alpha in self.alpha_list:
             pol, n, m = alpha
@@ -224,9 +231,6 @@ class Slit(object):
             ai, bi = 0.0, 1.0 / norm
         return ai, bi
 
-    def f(self, x):
-        return np.exp(-x) / x
-
     def sinc(self, x):
         x1 = x / np.pi
         return np.sinc(x1)
@@ -247,20 +251,20 @@ class Slit(object):
         vc = v.conjugate()
         if n % 2 == 0:
             if pol == 'E':
-                B_A = np.exp(v) * np.sin(u)
+                B_A = np.sin(u)
                 parity = -1
             else:
-                B_A = u / v * np.exp(v) * np.sin(u)
+                B_A = u / v * np.sin(u)
                 parity = 1
         else:
             if pol == 'E':
-                B_A = np.exp(v) * np.cos(u)
+                B_A = np.cos(u)
                 parity = 1
             else:
-                B_A = - u / v * np.exp(v) * np.cos(u)
+                B_A = - u / v * np.cos(u)
                 parity = -1
         val = np.sqrt(np.real(a2_b2 * self.r * (
-            np.abs(B_A) ** 2 * self.f(v + vc) +
+            np.abs(B_A) ** 2 / (v + vc) +
             (self.sinc(u - uc) + parity * self.sinc(u + uc)) / 2)))
         return val
 
@@ -299,20 +303,20 @@ class Slit(object):
             y_out = y_tm_out
         if n % 2 == 0:
             if pol == 'E':
-                B_A = np.exp(v) * np.sin(u)
+                B_A = np.sin(u)
                 parity = -1
             else:
-                B_A = u / v * np.exp(v) * np.sin(u)
+                B_A = u / v * np.sin(u)
                 parity = 1
         else:
             if pol == 'E':
-                B_A = np.exp(v) * np.cos(u)
+                B_A = np.cos(u)
                 parity = 1
             else:
-                B_A = - u / v * np.exp(v) * np.cos(u)
+                B_A = - u / v * np.cos(u)
                 parity = -1
         val = (a ** 2 + b ** 2) * self.r * (
-            self.f(2 * v) * y_out * B_A ** 2 +
+            y_out * B_A ** 2 / (2 * v) +
             (1.0 + parity * self.sinc(2 * u)) * y_in / 2)
         return val
 
@@ -367,23 +371,23 @@ class Slit(object):
             val = bc * b * self.r
         if n1 % 2 == 0:
             if s1 == 0:
-                B_Ac = np.exp(vc) * np.sin(uc)
-                B_A = np.exp(v) * np.sin(u)
+                B_Ac = np.sin(uc)
+                B_A = np.sin(u)
                 parity = -1
             else:
-                B_Ac = uc / vc * np.exp(vc) * np.sin(uc)
-                B_A = u / v * np.exp(v) * np.sin(u)
+                B_Ac = uc / vc * np.sin(uc)
+                B_A = u / v * np.sin(u)
                 parity = 1
         else:
             if s1 == 0:
-                B_Ac = np.exp(vc) * np.cos(uc)
-                B_A = np.exp(v) * np.cos(u)
+                B_Ac = np.cos(uc)
+                B_A = np.cos(u)
                 parity = 1
             else:
-                B_Ac = - uc / vc * np.exp(vc) * np.cos(uc)
-                B_A = - u / v * np.exp(v) * np.cos(u)
+                B_Ac = - uc / vc * np.cos(uc)
+                B_A = - u / v * np.cos(u)
                 parity = -1
-        val *= (y_out * B_Ac * B_A * self.f(v + vc) +
+        val *= (y_out * B_Ac * B_A / (v + vc) +
                 y_in * (self.sinc(u - uc) +
                         parity * self.sinc(u + uc)) / 2)
         return val

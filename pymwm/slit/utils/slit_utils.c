@@ -2743,7 +2743,7 @@ static void __pyx_f_5pymwm_4slit_5utils_10slit_utils_coefs_C(__pyx_t_double_comp
  *         vc = v.conjugate()
  *         if n % 2 == 0:             # <<<<<<<<<<<<<<
  *             if s == 0:
- *                 B_A = cexp(v) * csin(u)
+ *                 B_A = csin(u)
  */
     __pyx_t_3 = (((__pyx_v_n % 2) == 0) != 0);
     if (__pyx_t_3) {
@@ -2752,7 +2752,7 @@ static void __pyx_f_5pymwm_4slit_5utils_10slit_utils_coefs_C(__pyx_t_double_comp
  *         vc = v.conjugate()
  *         if n % 2 == 0:
  *             if s == 0:             # <<<<<<<<<<<<<<
- *                 B_A = cexp(v) * csin(u)
+ *                 B_A = csin(u)
  *                 parity = -1
  */
       __pyx_t_3 = ((__pyx_v_s == 0) != 0);
@@ -2761,15 +2761,15 @@ static void __pyx_f_5pymwm_4slit_5utils_10slit_utils_coefs_C(__pyx_t_double_comp
         /* "pymwm/slit/utils/slit_utils.pyx":87
  *         if n % 2 == 0:
  *             if s == 0:
- *                 B_A = cexp(v) * csin(u)             # <<<<<<<<<<<<<<
+ *                 B_A = csin(u)             # <<<<<<<<<<<<<<
  *                 parity = -1
  *                 a = 1.0
  */
-        __pyx_v_B_A = __Pyx_c_prod(cexp(__pyx_v_v), csin(__pyx_v_u));
+        __pyx_v_B_A = csin(__pyx_v_u);
 
         /* "pymwm/slit/utils/slit_utils.pyx":88
  *             if s == 0:
- *                 B_A = cexp(v) * csin(u)
+ *                 B_A = csin(u)
  *                 parity = -1             # <<<<<<<<<<<<<<
  *                 a = 1.0
  *                 b = 0.0
@@ -2777,7 +2777,7 @@ static void __pyx_f_5pymwm_4slit_5utils_10slit_utils_coefs_C(__pyx_t_double_comp
         __pyx_v_parity = -1;
 
         /* "pymwm/slit/utils/slit_utils.pyx":89
- *                 B_A = cexp(v) * csin(u)
+ *                 B_A = csin(u)
  *                 parity = -1
  *                 a = 1.0             # <<<<<<<<<<<<<<
  *                 b = 0.0
@@ -2790,7 +2790,7 @@ static void __pyx_f_5pymwm_4slit_5utils_10slit_utils_coefs_C(__pyx_t_double_comp
  *                 a = 1.0
  *                 b = 0.0             # <<<<<<<<<<<<<<
  *             else:
- *                 B_A = u / v * cexp(v) * csin(u)
+ *                 B_A = u / v * csin(u)
  */
         __pyx_v_b = 0.0;
 
@@ -2798,7 +2798,7 @@ static void __pyx_f_5pymwm_4slit_5utils_10slit_utils_coefs_C(__pyx_t_double_comp
  *         vc = v.conjugate()
  *         if n % 2 == 0:
  *             if s == 0:             # <<<<<<<<<<<<<<
- *                 B_A = cexp(v) * csin(u)
+ *                 B_A = csin(u)
  *                 parity = -1
  */
         goto __pyx_L6;
@@ -2807,16 +2807,16 @@ static void __pyx_f_5pymwm_4slit_5utils_10slit_utils_coefs_C(__pyx_t_double_comp
       /* "pymwm/slit/utils/slit_utils.pyx":92
  *                 b = 0.0
  *             else:
- *                 B_A = u / v * cexp(v) * csin(u)             # <<<<<<<<<<<<<<
+ *                 B_A = u / v * csin(u)             # <<<<<<<<<<<<<<
  *                 parity = 1
  *                 a = 0.0
  */
       /*else*/ {
-        __pyx_v_B_A = __Pyx_c_prod(__Pyx_c_prod(__Pyx_c_quot(__pyx_v_u, __pyx_v_v), cexp(__pyx_v_v)), csin(__pyx_v_u));
+        __pyx_v_B_A = __Pyx_c_prod(__Pyx_c_quot(__pyx_v_u, __pyx_v_v), csin(__pyx_v_u));
 
         /* "pymwm/slit/utils/slit_utils.pyx":93
  *             else:
- *                 B_A = u / v * cexp(v) * csin(u)
+ *                 B_A = u / v * csin(u)
  *                 parity = 1             # <<<<<<<<<<<<<<
  *                 a = 0.0
  *                 b = 1.0
@@ -2824,7 +2824,7 @@ static void __pyx_f_5pymwm_4slit_5utils_10slit_utils_coefs_C(__pyx_t_double_comp
         __pyx_v_parity = 1;
 
         /* "pymwm/slit/utils/slit_utils.pyx":94
- *                 B_A = u / v * cexp(v) * csin(u)
+ *                 B_A = u / v * csin(u)
  *                 parity = 1
  *                 a = 0.0             # <<<<<<<<<<<<<<
  *                 b = 1.0
@@ -2848,7 +2848,7 @@ static void __pyx_f_5pymwm_4slit_5utils_10slit_utils_coefs_C(__pyx_t_double_comp
  *         vc = v.conjugate()
  *         if n % 2 == 0:             # <<<<<<<<<<<<<<
  *             if s == 0:
- *                 B_A = cexp(v) * csin(u)
+ *                 B_A = csin(u)
  */
       goto __pyx_L5;
     }
@@ -2857,7 +2857,7 @@ static void __pyx_f_5pymwm_4slit_5utils_10slit_utils_coefs_C(__pyx_t_double_comp
  *                 b = 1.0
  *         else:
  *             if s == 0:             # <<<<<<<<<<<<<<
- *                 B_A = cexp(v) * ccos(u)
+ *                 B_A = ccos(u)
  *                 parity = 1
  */
     /*else*/ {
@@ -2867,15 +2867,15 @@ static void __pyx_f_5pymwm_4slit_5utils_10slit_utils_coefs_C(__pyx_t_double_comp
         /* "pymwm/slit/utils/slit_utils.pyx":98
  *         else:
  *             if s == 0:
- *                 B_A = cexp(v) * ccos(u)             # <<<<<<<<<<<<<<
+ *                 B_A = ccos(u)             # <<<<<<<<<<<<<<
  *                 parity = 1
  *                 a = 1.0
  */
-        __pyx_v_B_A = __Pyx_c_prod(cexp(__pyx_v_v), ccos(__pyx_v_u));
+        __pyx_v_B_A = ccos(__pyx_v_u);
 
         /* "pymwm/slit/utils/slit_utils.pyx":99
  *             if s == 0:
- *                 B_A = cexp(v) * ccos(u)
+ *                 B_A = ccos(u)
  *                 parity = 1             # <<<<<<<<<<<<<<
  *                 a = 1.0
  *                 b = 0.0
@@ -2883,7 +2883,7 @@ static void __pyx_f_5pymwm_4slit_5utils_10slit_utils_coefs_C(__pyx_t_double_comp
         __pyx_v_parity = 1;
 
         /* "pymwm/slit/utils/slit_utils.pyx":100
- *                 B_A = cexp(v) * ccos(u)
+ *                 B_A = ccos(u)
  *                 parity = 1
  *                 a = 1.0             # <<<<<<<<<<<<<<
  *                 b = 0.0
@@ -2896,7 +2896,7 @@ static void __pyx_f_5pymwm_4slit_5utils_10slit_utils_coefs_C(__pyx_t_double_comp
  *                 a = 1.0
  *                 b = 0.0             # <<<<<<<<<<<<<<
  *             else:
- *                 B_A = - u / v * cexp(v) * ccos(u)
+ *                 B_A = - u / v * ccos(u)
  */
         __pyx_v_b = 0.0;
 
@@ -2904,7 +2904,7 @@ static void __pyx_f_5pymwm_4slit_5utils_10slit_utils_coefs_C(__pyx_t_double_comp
  *                 b = 1.0
  *         else:
  *             if s == 0:             # <<<<<<<<<<<<<<
- *                 B_A = cexp(v) * ccos(u)
+ *                 B_A = ccos(u)
  *                 parity = 1
  */
         goto __pyx_L7;
@@ -2913,16 +2913,16 @@ static void __pyx_f_5pymwm_4slit_5utils_10slit_utils_coefs_C(__pyx_t_double_comp
       /* "pymwm/slit/utils/slit_utils.pyx":103
  *                 b = 0.0
  *             else:
- *                 B_A = - u / v * cexp(v) * ccos(u)             # <<<<<<<<<<<<<<
+ *                 B_A = - u / v * ccos(u)             # <<<<<<<<<<<<<<
  *                 parity = -1
  *                 a = 0.0
  */
       /*else*/ {
-        __pyx_v_B_A = __Pyx_c_prod(__Pyx_c_prod(__Pyx_c_quot(__Pyx_c_neg(__pyx_v_u), __pyx_v_v), cexp(__pyx_v_v)), ccos(__pyx_v_u));
+        __pyx_v_B_A = __Pyx_c_prod(__Pyx_c_quot(__Pyx_c_neg(__pyx_v_u), __pyx_v_v), ccos(__pyx_v_u));
 
         /* "pymwm/slit/utils/slit_utils.pyx":104
  *             else:
- *                 B_A = - u / v * cexp(v) * ccos(u)
+ *                 B_A = - u / v * ccos(u)
  *                 parity = -1             # <<<<<<<<<<<<<<
  *                 a = 0.0
  *                 b = 1.0
@@ -2930,11 +2930,11 @@ static void __pyx_f_5pymwm_4slit_5utils_10slit_utils_coefs_C(__pyx_t_double_comp
         __pyx_v_parity = -1;
 
         /* "pymwm/slit/utils/slit_utils.pyx":105
- *                 B_A = - u / v * cexp(v) * ccos(u)
+ *                 B_A = - u / v * ccos(u)
  *                 parity = -1
  *                 a = 0.0             # <<<<<<<<<<<<<<
  *                 b = 1.0
- *         norm = sqrt(creal(r * (cabs(B_A) ** 2 * cexp(- (v + vc)) / (v + vc) +
+ *         norm = sqrt(creal(r * (cabs(B_A) ** 2  / (v + vc) +
  */
         __pyx_v_a = 0.0;
 
@@ -2942,7 +2942,7 @@ static void __pyx_f_5pymwm_4slit_5utils_10slit_utils_coefs_C(__pyx_t_double_comp
  *                 parity = -1
  *                 a = 0.0
  *                 b = 1.0             # <<<<<<<<<<<<<<
- *         norm = sqrt(creal(r * (cabs(B_A) ** 2 * cexp(- (v + vc)) / (v + vc) +
+ *         norm = sqrt(creal(r * (cabs(B_A) ** 2  / (v + vc) +
  *                           (csinc(u - uc) + parity * csinc(u + uc)) / 2)))
  */
         __pyx_v_b = 1.0;
@@ -2954,14 +2954,14 @@ static void __pyx_f_5pymwm_4slit_5utils_10slit_utils_coefs_C(__pyx_t_double_comp
     /* "pymwm/slit/utils/slit_utils.pyx":107
  *                 a = 0.0
  *                 b = 1.0
- *         norm = sqrt(creal(r * (cabs(B_A) ** 2 * cexp(- (v + vc)) / (v + vc) +             # <<<<<<<<<<<<<<
+ *         norm = sqrt(creal(r * (cabs(B_A) ** 2  / (v + vc) +             # <<<<<<<<<<<<<<
  *                           (csinc(u - uc) + parity * csinc(u + uc)) / 2)))
  *         As[i] = a / norm
  */
-    __pyx_v_norm = sqrt(creal(__Pyx_c_prod(__pyx_t_double_complex_from_parts(__pyx_v_r, 0), __Pyx_c_sum(__Pyx_c_quot(__Pyx_c_prod(__pyx_t_double_complex_from_parts(pow(cabs(__pyx_v_B_A), 2.0), 0), cexp(__Pyx_c_neg(__Pyx_c_sum(__pyx_v_v, __pyx_v_vc)))), __Pyx_c_sum(__pyx_v_v, __pyx_v_vc)), __Pyx_c_quot(__Pyx_c_sum(__pyx_f_5pymwm_4slit_5utils_10slit_utils_csinc(__Pyx_c_diff(__pyx_v_u, __pyx_v_uc)), __Pyx_c_prod(__pyx_t_double_complex_from_parts(__pyx_v_parity, 0), __pyx_f_5pymwm_4slit_5utils_10slit_utils_csinc(__Pyx_c_sum(__pyx_v_u, __pyx_v_uc)))), __pyx_t_double_complex_from_parts(2, 0))))));
+    __pyx_v_norm = sqrt(creal(__Pyx_c_prod(__pyx_t_double_complex_from_parts(__pyx_v_r, 0), __Pyx_c_sum(__Pyx_c_quot(__pyx_t_double_complex_from_parts(pow(cabs(__pyx_v_B_A), 2.0), 0), __Pyx_c_sum(__pyx_v_v, __pyx_v_vc)), __Pyx_c_quot(__Pyx_c_sum(__pyx_f_5pymwm_4slit_5utils_10slit_utils_csinc(__Pyx_c_diff(__pyx_v_u, __pyx_v_uc)), __Pyx_c_prod(__pyx_t_double_complex_from_parts(__pyx_v_parity, 0), __pyx_f_5pymwm_4slit_5utils_10slit_utils_csinc(__Pyx_c_sum(__pyx_v_u, __pyx_v_uc)))), __pyx_t_double_complex_from_parts(2, 0))))));
 
     /* "pymwm/slit/utils/slit_utils.pyx":109
- *         norm = sqrt(creal(r * (cabs(B_A) ** 2 * cexp(- (v + vc)) / (v + vc) +
+ *         norm = sqrt(creal(r * (cabs(B_A) ** 2  / (v + vc) +
  *                           (csinc(u - uc) + parity * csinc(u + uc)) / 2)))
  *         As[i] = a / norm             # <<<<<<<<<<<<<<
  *         Bs[i] = b / norm
@@ -3570,7 +3570,7 @@ static PyObject *__pyx_pf_5pymwm_4slit_5utils_10slit_utils_2ABY_cython(CYTHON_UN
  *             v = csqrt(- e2 * w ** 2 + h ** 2) * r / 2
  *             if n % 2 == 0:             # <<<<<<<<<<<<<<
  *                 if s == 0:
- *                     B_A = cexp(v) * csin(u)
+ *                     B_A = csin(u)
  */
       __pyx_t_8 = (((__pyx_v_n % 2) == 0) != 0);
       if (__pyx_t_8) {
@@ -3579,7 +3579,7 @@ static PyObject *__pyx_pf_5pymwm_4slit_5utils_10slit_utils_2ABY_cython(CYTHON_UN
  *             v = csqrt(- e2 * w ** 2 + h ** 2) * r / 2
  *             if n % 2 == 0:
  *                 if s == 0:             # <<<<<<<<<<<<<<
- *                     B_A = cexp(v) * csin(u)
+ *                     B_A = csin(u)
  *                     parity = -1
  */
         __pyx_t_8 = ((__pyx_v_s == 0) != 0);
@@ -3588,18 +3588,18 @@ static PyObject *__pyx_pf_5pymwm_4slit_5utils_10slit_utils_2ABY_cython(CYTHON_UN
           /* "pymwm/slit/utils/slit_utils.pyx":153
  *             if n % 2 == 0:
  *                 if s == 0:
- *                     B_A = cexp(v) * csin(u)             # <<<<<<<<<<<<<<
+ *                     B_A = csin(u)             # <<<<<<<<<<<<<<
  *                     parity = -1
  *                 else:
  */
-          __pyx_v_B_A = __Pyx_c_prod(cexp(__pyx_v_v), csin(__pyx_v_u));
+          __pyx_v_B_A = csin(__pyx_v_u);
 
           /* "pymwm/slit/utils/slit_utils.pyx":154
  *                 if s == 0:
- *                     B_A = cexp(v) * csin(u)
+ *                     B_A = csin(u)
  *                     parity = -1             # <<<<<<<<<<<<<<
  *                 else:
- *                     B_A = u / v * cexp(v) * csin(u)
+ *                     B_A = u / v * csin(u)
  */
           __pyx_v_parity = -1;
 
@@ -3607,7 +3607,7 @@ static PyObject *__pyx_pf_5pymwm_4slit_5utils_10slit_utils_2ABY_cython(CYTHON_UN
  *             v = csqrt(- e2 * w ** 2 + h ** 2) * r / 2
  *             if n % 2 == 0:
  *                 if s == 0:             # <<<<<<<<<<<<<<
- *                     B_A = cexp(v) * csin(u)
+ *                     B_A = csin(u)
  *                     parity = -1
  */
           goto __pyx_L9;
@@ -3616,16 +3616,16 @@ static PyObject *__pyx_pf_5pymwm_4slit_5utils_10slit_utils_2ABY_cython(CYTHON_UN
         /* "pymwm/slit/utils/slit_utils.pyx":156
  *                     parity = -1
  *                 else:
- *                     B_A = u / v * cexp(v) * csin(u)             # <<<<<<<<<<<<<<
+ *                     B_A = u / v * csin(u)             # <<<<<<<<<<<<<<
  *                     parity = 1
  *             else:
  */
         /*else*/ {
-          __pyx_v_B_A = __Pyx_c_prod(__Pyx_c_prod(__Pyx_c_quot(__pyx_v_u, __pyx_v_v), cexp(__pyx_v_v)), csin(__pyx_v_u));
+          __pyx_v_B_A = __Pyx_c_prod(__Pyx_c_quot(__pyx_v_u, __pyx_v_v), csin(__pyx_v_u));
 
           /* "pymwm/slit/utils/slit_utils.pyx":157
  *                 else:
- *                     B_A = u / v * cexp(v) * csin(u)
+ *                     B_A = u / v * csin(u)
  *                     parity = 1             # <<<<<<<<<<<<<<
  *             else:
  *                 if s == 0:
@@ -3639,7 +3639,7 @@ static PyObject *__pyx_pf_5pymwm_4slit_5utils_10slit_utils_2ABY_cython(CYTHON_UN
  *             v = csqrt(- e2 * w ** 2 + h ** 2) * r / 2
  *             if n % 2 == 0:             # <<<<<<<<<<<<<<
  *                 if s == 0:
- *                     B_A = cexp(v) * csin(u)
+ *                     B_A = csin(u)
  */
         goto __pyx_L8;
       }
@@ -3648,7 +3648,7 @@ static PyObject *__pyx_pf_5pymwm_4slit_5utils_10slit_utils_2ABY_cython(CYTHON_UN
  *                     parity = 1
  *             else:
  *                 if s == 0:             # <<<<<<<<<<<<<<
- *                     B_A = cexp(v) * ccos(u)
+ *                     B_A = ccos(u)
  *                     parity = 1
  */
       /*else*/ {
@@ -3658,18 +3658,18 @@ static PyObject *__pyx_pf_5pymwm_4slit_5utils_10slit_utils_2ABY_cython(CYTHON_UN
           /* "pymwm/slit/utils/slit_utils.pyx":160
  *             else:
  *                 if s == 0:
- *                     B_A = cexp(v) * ccos(u)             # <<<<<<<<<<<<<<
+ *                     B_A = ccos(u)             # <<<<<<<<<<<<<<
  *                     parity = 1
  *                 else:
  */
-          __pyx_v_B_A = __Pyx_c_prod(cexp(__pyx_v_v), ccos(__pyx_v_u));
+          __pyx_v_B_A = ccos(__pyx_v_u);
 
           /* "pymwm/slit/utils/slit_utils.pyx":161
  *                 if s == 0:
- *                     B_A = cexp(v) * ccos(u)
+ *                     B_A = ccos(u)
  *                     parity = 1             # <<<<<<<<<<<<<<
  *                 else:
- *                     B_A = - u / v * cexp(v) * ccos(u)
+ *                     B_A = - u / v * ccos(u)
  */
           __pyx_v_parity = 1;
 
@@ -3677,7 +3677,7 @@ static PyObject *__pyx_pf_5pymwm_4slit_5utils_10slit_utils_2ABY_cython(CYTHON_UN
  *                     parity = 1
  *             else:
  *                 if s == 0:             # <<<<<<<<<<<<<<
- *                     B_A = cexp(v) * ccos(u)
+ *                     B_A = ccos(u)
  *                     parity = 1
  */
           goto __pyx_L10;
@@ -3686,19 +3686,19 @@ static PyObject *__pyx_pf_5pymwm_4slit_5utils_10slit_utils_2ABY_cython(CYTHON_UN
         /* "pymwm/slit/utils/slit_utils.pyx":163
  *                     parity = 1
  *                 else:
- *                     B_A = - u / v * cexp(v) * ccos(u)             # <<<<<<<<<<<<<<
+ *                     B_A = - u / v * ccos(u)             # <<<<<<<<<<<<<<
  *                     parity = -1
  *             Ys[i] = (As[i] ** 2 + Bs[i] ** 2) * r * (
  */
         /*else*/ {
-          __pyx_v_B_A = __Pyx_c_prod(__Pyx_c_prod(__Pyx_c_quot(__Pyx_c_neg(__pyx_v_u), __pyx_v_v), cexp(__pyx_v_v)), ccos(__pyx_v_u));
+          __pyx_v_B_A = __Pyx_c_prod(__Pyx_c_quot(__Pyx_c_neg(__pyx_v_u), __pyx_v_v), ccos(__pyx_v_u));
 
           /* "pymwm/slit/utils/slit_utils.pyx":164
  *                 else:
- *                     B_A = - u / v * cexp(v) * ccos(u)
+ *                     B_A = - u / v * ccos(u)
  *                     parity = -1             # <<<<<<<<<<<<<<
  *             Ys[i] = (As[i] ** 2 + Bs[i] ** 2) * r * (
- *                 cexp(- 2 * v) / (2 * v) * y_out * B_A ** 2 +
+ *                 y_out * B_A ** 2 / (2 * v) +
  */
           __pyx_v_parity = -1;
         }
@@ -3707,10 +3707,10 @@ static PyObject *__pyx_pf_5pymwm_4slit_5utils_10slit_utils_2ABY_cython(CYTHON_UN
       __pyx_L8:;
 
       /* "pymwm/slit/utils/slit_utils.pyx":165
- *                     B_A = - u / v * cexp(v) * ccos(u)
+ *                     B_A = - u / v * ccos(u)
  *                     parity = -1
  *             Ys[i] = (As[i] ** 2 + Bs[i] ** 2) * r * (             # <<<<<<<<<<<<<<
- *                 cexp(- 2 * v) / (2 * v) * y_out * B_A ** 2 +
+ *                 y_out * B_A ** 2 / (2 * v) +
  *                 (1.0 + parity * csinc(2 * u)) * y_in / 2)
  */
       __pyx_t_25 = __pyx_v_i;
@@ -3719,18 +3719,18 @@ static PyObject *__pyx_pf_5pymwm_4slit_5utils_10slit_utils_2ABY_cython(CYTHON_UN
       /* "pymwm/slit/utils/slit_utils.pyx":166
  *                     parity = -1
  *             Ys[i] = (As[i] ** 2 + Bs[i] ** 2) * r * (
- *                 cexp(- 2 * v) / (2 * v) * y_out * B_A ** 2 +             # <<<<<<<<<<<<<<
+ *                 y_out * B_A ** 2 / (2 * v) +             # <<<<<<<<<<<<<<
  *                 (1.0 + parity * csinc(2 * u)) * y_in / 2)
  *     return As_array, Bs_array, Ys_array
  */
       __pyx_t_27 = __pyx_v_i;
-      *((__pyx_t_double_complex *) ( /* dim=0 */ (__pyx_v_Ys.data + __pyx_t_27 * __pyx_v_Ys.strides[0]) )) = __Pyx_c_prod(__pyx_t_double_complex_from_parts(((pow((*((double *) ( /* dim=0 */ (__pyx_v_As.data + __pyx_t_25 * __pyx_v_As.strides[0]) ))), 2.0) + pow((*((double *) ( /* dim=0 */ (__pyx_v_Bs.data + __pyx_t_26 * __pyx_v_Bs.strides[0]) ))), 2.0)) * __pyx_v_r), 0), __Pyx_c_sum(__Pyx_c_prod(__Pyx_c_prod(__Pyx_c_quot(cexp(__Pyx_c_prod(__pyx_t_double_complex_from_parts(-2L, 0), __pyx_v_v)), __Pyx_c_prod(__pyx_t_double_complex_from_parts(2, 0), __pyx_v_v)), __pyx_v_y_out), __Pyx_c_pow(__pyx_v_B_A, __pyx_t_double_complex_from_parts(2, 0))), __Pyx_c_quot(__Pyx_c_prod(__Pyx_c_sum(__pyx_t_double_complex_from_parts(1.0, 0), __Pyx_c_prod(__pyx_t_double_complex_from_parts(__pyx_v_parity, 0), __pyx_f_5pymwm_4slit_5utils_10slit_utils_csinc(__Pyx_c_prod(__pyx_t_double_complex_from_parts(2, 0), __pyx_v_u)))), __pyx_v_y_in), __pyx_t_double_complex_from_parts(2, 0))));
+      *((__pyx_t_double_complex *) ( /* dim=0 */ (__pyx_v_Ys.data + __pyx_t_27 * __pyx_v_Ys.strides[0]) )) = __Pyx_c_prod(__pyx_t_double_complex_from_parts(((pow((*((double *) ( /* dim=0 */ (__pyx_v_As.data + __pyx_t_25 * __pyx_v_As.strides[0]) ))), 2.0) + pow((*((double *) ( /* dim=0 */ (__pyx_v_Bs.data + __pyx_t_26 * __pyx_v_Bs.strides[0]) ))), 2.0)) * __pyx_v_r), 0), __Pyx_c_sum(__Pyx_c_quot(__Pyx_c_prod(__pyx_v_y_out, __Pyx_c_pow(__pyx_v_B_A, __pyx_t_double_complex_from_parts(2, 0))), __Pyx_c_prod(__pyx_t_double_complex_from_parts(2, 0), __pyx_v_v)), __Pyx_c_quot(__Pyx_c_prod(__Pyx_c_sum(__pyx_t_double_complex_from_parts(1.0, 0), __Pyx_c_prod(__pyx_t_double_complex_from_parts(__pyx_v_parity, 0), __pyx_f_5pymwm_4slit_5utils_10slit_utils_csinc(__Pyx_c_prod(__pyx_t_double_complex_from_parts(2, 0), __pyx_v_u)))), __pyx_v_y_in), __pyx_t_double_complex_from_parts(2, 0))));
     }
     __pyx_L7:;
   }
 
   /* "pymwm/slit/utils/slit_utils.pyx":168
- *                 cexp(- 2 * v) / (2 * v) * y_out * B_A ** 2 +
+ *                 y_out * B_A ** 2 / (2 * v) +
  *                 (1.0 + parity * csinc(2 * u)) * y_in / 2)
  *     return As_array, Bs_array, Ys_array             # <<<<<<<<<<<<<<
  */

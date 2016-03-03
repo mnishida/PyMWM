@@ -84,27 +84,27 @@ cdef void coefs_C(
         vc = v.conjugate()
         if n % 2 == 0:
             if s == 0:
-                B_A = cexp(v) * csin(u)
+                B_A = csin(u)
                 parity = -1
                 a = 1.0
                 b = 0.0
             else:
-                B_A = u / v * cexp(v) * csin(u)
+                B_A = u / v * csin(u)
                 parity = 1
                 a = 0.0
                 b = 1.0
         else:
             if s == 0:
-                B_A = cexp(v) * ccos(u)
+                B_A = ccos(u)
                 parity = 1
                 a = 1.0
                 b = 0.0
             else:
-                B_A = - u / v * cexp(v) * ccos(u)
+                B_A = - u / v * ccos(u)
                 parity = -1
                 a = 0.0
                 b = 1.0
-        norm = sqrt(creal(r * (cabs(B_A) ** 2 * cexp(- (v + vc)) / (v + vc) +
+        norm = sqrt(creal(r * (cabs(B_A) ** 2  / (v + vc) +
                           (csinc(u - uc) + parity * csinc(u + uc)) / 2)))
         As[i] = a / norm
         Bs[i] = b / norm
@@ -150,19 +150,19 @@ def ABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
             v = csqrt(- e2 * w ** 2 + h ** 2) * r / 2
             if n % 2 == 0:
                 if s == 0:
-                    B_A = cexp(v) * csin(u)
+                    B_A = csin(u)
                     parity = -1
                 else:
-                    B_A = u / v * cexp(v) * csin(u)
+                    B_A = u / v * csin(u)
                     parity = 1
             else:
                 if s == 0:
-                    B_A = cexp(v) * ccos(u)
+                    B_A = ccos(u)
                     parity = 1
                 else:
-                    B_A = - u / v * cexp(v) * ccos(u)
+                    B_A = - u / v * ccos(u)
                     parity = -1
             Ys[i] = (As[i] ** 2 + Bs[i] ** 2) * r * (
-                cexp(- 2 * v) / (2 * v) * y_out * B_A ** 2 +
+                y_out * B_A ** 2 / (2 * v) +
                 (1.0 + parity * csinc(2 * u)) * y_in / 2)
     return As_array, Bs_array, Ys_array
