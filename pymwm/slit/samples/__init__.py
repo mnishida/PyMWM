@@ -187,6 +187,37 @@ class Samples(object):
             else:
                 return u / np.tan(u) + (e1 * v) / e2
 
+    def func(self, uv, args):
+        """Return the values of characteristic equations.
+
+        Args:
+            uv: A 1D array of 4 floats indicating (Re[u], Im[u], Re[v], Im[v]).
+            args: A tuple (w, pol, n, e1, e2), where w indicates the angular
+                frequency, pol indicates the polarization, n indicates
+                the order of the modes, e1 indicates the permittivity of
+                the core, and e2 indicates the permittivity of the clad.
+        Returns:
+            vals: A 1D array of 4 floats indicating the left-hand value of the
+        characteristic equations.
+        """
+        w, pol, n, e1, e2 = args
+        w2 = (self.r * w / 2) ** 2 * (e2 - e1)
+        ur, ui, vr, vi = uv
+        u = ur + 1j * ui
+        v = vr + 1j * vi
+        val2 = u ** 2 + v ** 2 - w2
+        if pol == 'E':
+            if n % 2 == 0:
+                val = np.tan(u) + u / v
+            else:
+                val = 1 / np.tan(u) - u / v
+        else:
+            if n % 2 == 0:
+                val = u * np.tan(u) - (e1 * v) / e2
+            else:
+                val = u / np.tan(u) + (e1 * v) / e2
+        return np.array([val.real, val.imag, val2.real, val2.imag])
+
     def beta2(self, w, n, e1, e2, xis):
         """Return roots and convergences of the characteristic equation
 

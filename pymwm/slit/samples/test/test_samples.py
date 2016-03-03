@@ -18,7 +18,7 @@ CONVS.append([True, True])
 CONVS.append([True, True])
 CONVS.append([True, True])
 CONVS.append([True, True])
-CONVS.append([False, True])
+CONVS.append([True, True])
 
 
 def func(args):

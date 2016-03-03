@@ -126,10 +126,17 @@ class Cylinder(object):
         self.bounds = params['bounds']
         self.beta_funcs = self.samples.interpolation(betas, convs, self.bounds)
         self.alpha_list = []
+        alpha_M_list = []
+        alpha_E_list = []
         for alpha, comp in self.beta_funcs.keys():
             if comp == 'real':
-                self.alpha_list.append(alpha)
-        self.alpha_list.sort()
+                if alpha[0] == 'M':
+                    alpha_M_list.append(alpha)
+                else:
+                    alpha_E_list.append(alpha)
+        alpha_M_list.sort()
+        alpha_E_list.sort()
+        self.alpha_list = alpha_M_list + alpha_E_list
         self.labels = {}
         for alpha in self.alpha_list:
             pol, n, m = alpha
