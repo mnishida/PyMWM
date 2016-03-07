@@ -431,10 +431,6 @@ class Samples(object):
                         e2 = self.clad(w)
                         xs, success = self.beta2(w, n, e1, e2,
                                                  xs_array[iwr, iwi])
-                        if iwi == iwr == 0:
-                            print(self.clad.im_factor, e2)
-                            print(success)
-                            print(np.allclose(xs_array[iwr, iwi], xs))
                         xs_array[iwr, iwi] = xs
                         success_array[iwr, iwi] = success
         else:

@@ -166,3 +166,67 @@ def ABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
                 y_out * B_A ** 2 / (2 * v) +
                 (1.0 + parity * csinc(2 * u)) * y_in / 2)
     return As_array, Bs_array, Ys_array
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def uvABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
+                 cdouble[::1] hs, cdouble e1, cdouble e2):
+    cdef:
+        int i, s, n, parity
+        int num_n_all = n_all.shape[0]
+        double sqrt_r = sqrt(r)
+        double sqrt_2 = sqrt(2.0)
+        cdouble h, u, v, y_in, y_out, B_A
+    us_array = np.empty(num_n_all, dtype=np.complex)
+    vs_array = np.empty(num_n_all, dtype=np.complex)
+    As_array = np.empty(num_n_all)
+    Bs_array = np.empty(num_n_all)
+    Ys_array = np.empty(num_n_all, dtype=np.complex)
+    cdef:
+        cdouble[:] us = us_array
+        cdouble[:] vs = vs_array
+        double[:] As = As_array
+        double[:] Bs = Bs_array
+        cdouble[:] Ys = Ys_array
+    if creal(e2) < -1e6:
+        coefs_pec_C(&s_all[0], &n_all[0], num_n_all, r, &As[0], &Bs[0])
+    else:
+        coefs_C(
+            &hs[0], w, &s_all[0], &n_all[0], num_n_all,
+            r, e1, e2, &As[0], &Bs[0])
+    for i in range(num_n_all):
+        h = hs[i]
+        u = csqrt(e1 * w ** 2 - h ** 2) * r / 2
+        v = csqrt(- e2 * w ** 2 + h ** 2) * r / 2
+        n = n_all[i]
+        s = s_all[i]
+        if s == 0:
+            y_in = y_out = h / w
+        else:
+            y_in = e1 * w / h
+            y_out = e2 * w / h
+        if creal(e2) < -1e6:
+            Ys[i] = y_in
+        else:
+            if n % 2 == 0:
+                if s == 0:
+                    B_A = csin(u)
+                    parity = -1
+                else:
+                    B_A = u / v * csin(u)
+                    parity = 1
+            else:
+                if s == 0:
+                    B_A = ccos(u)
+                    parity = 1
+                else:
+                    B_A = - u / v * ccos(u)
+                    parity = -1
+            Ys[i] = (As[i] ** 2 + Bs[i] ** 2) * r * (
+                y_out * B_A ** 2 / (2 * v) +
+                (1.0 + parity * csinc(2 * u)) * y_in / 2)
+        us[i] = u
+        vs[i] = v
+    return us_array, vs_array, As_array, Bs_array, Ys_array

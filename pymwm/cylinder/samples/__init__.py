@@ -273,18 +273,21 @@ class Samples(object):
             return xs, success
         w_0 = 0.1
         xs = self.beta2_pec(w_0, n)
+        print(xs)
         e1 = self.fill(w_0)
         e2_0 = -1.0e7 + self.clad(w_0).imag * 1j
         de2 = (self.clad(w_0) - e2_0) / 1000
         for i in range(1001):
             e2 = e2_0 + de2 * i
             xs, success = self.beta2(w_0, n, e1, e2, xs)
+            print(i, xs, success)
         dw = (self.ws[0] - w_0) / 1000
         for i in range(1001):
             w = w_0 + dw * i
             e1 = self.fill(w)
             e2 = self.clad(w)
             xs, success = self.beta2(w, n, e1, e2, xs)
+            print(i, xs, success)
         return xs, success
 
     def beta_from_beta2(self, x):
@@ -393,10 +396,6 @@ class Samples(object):
                         e2 = self.clad(w)
                         xs, success = self.beta2(w, n, e1, e2,
                                                  xs_array[iwr, iwi])
-                        if iwi == iwr == 0:
-                            print(self.clad.im_factor, e2)
-                            print(success)
-                            print(np.allclose(xs_array[iwr, iwi], xs))
                         xs_array[iwr, iwi] = xs
                         success_array[iwr, iwi] = success
         else:

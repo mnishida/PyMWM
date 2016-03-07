@@ -270,3 +270,83 @@ def ABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
                  val_v * (h / w * a * (a * vd + b * vod) +
                           e2 * w / h * b * (b * vd + a * vod)))
     return As_array, Bs_array, Ys_array
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def uvABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
+                 long[::1] m_all, cdouble[::1] hs, cdouble e1, cdouble e2,
+                 double[:, :, ::1] u_pec, double[:, :, ::1] jnu_pec,
+                 double[:, :, ::1] jnpu_pec):
+    cdef:
+        int i, s, n, m, en
+        int num_n_all = n_all.shape[0]
+        double up, norm, jnup, jnpup
+        cdouble h, u, v, jnu, jnpu, knv, knpv, a, b
+        cdouble uc, vc, jnuc, jnpuc, knvc, knpvc, ac, bc
+        cdouble ab[2]
+        cdouble val_u, val_v, ud, uod, vd, vod
+    us_array = np.empty(num_n_all, dtype=np.complex)
+    vs_array = np.empty(num_n_all, dtype=np.complex)
+    As_array = np.empty(num_n_all, dtype=np.complex)
+    Bs_array = np.empty(num_n_all, dtype=np.complex)
+    Ys_array = np.empty(num_n_all, dtype=np.complex)
+    cdef:
+        cdouble[:] us = us_array
+        cdouble[:] vs = vs_array
+        cdouble[:] As = As_array
+        cdouble[:] Bs = Bs_array
+        cdouble[:] Ys = Ys_array
+    if creal(e2) < -1e6:
+        for i in range(num_n_all):
+            s = s_all[i]
+            n = n_all[i]
+            m = m_all[i]
+            en = 1 if n == 0 else 2
+            up = u_pec[s, n, m - 1]
+            jnup = jnu_pec[s, n, m - 1]
+            jnpup = jnpu_pec[s, n, m - 1]
+            if s_all[i] == 0:
+                norm = sqrt(M_PI * r * r / en  *
+                             (1 - n * n / (up * up)) * jnup * jnup)
+                As[i] = 1.0 / norm
+                Bs[i] = 0.0
+                Ys[i] = hs[i] / w
+            else:
+                norm = sqrt(M_PI * r * r / en * jnpup * jnpup)
+                As[i] = 0.0
+                Bs[i] = 1.0 / norm
+                Ys[i] = e1 * w / hs[i]
+            us[i] = up
+            vs[i] = csqrt(- e2 * w * w + hs[i] * hs[i]) * r
+        return us_array, vs_array, As_array, Bs_array, Ys_array
+    coefs_C(
+        &hs[0], w, &s_all[0], &n_all[0], &m_all[0], num_n_all,
+        r, e1, e2, &As[0], &Bs[0])
+    for i in range(num_n_all):
+        s = s_all[i]
+        n = n_all[i]
+        en = 1 if n == 0 else 2
+        h = hs[i]
+        u = csqrt(e1 * w * w - h * h) * r
+        jnu = c_besselJ(n, u)
+        jnpu = c_besselJp(n, u)
+        v = csqrt(- e2 * w * w + h * h) * r
+        knv = c_besselK(n, v)
+        knpv = c_besselKp(n, v)
+        val_u = 2 * M_PI * r * r / en
+        val_v = val_u * ((u * jnu) / (v * knv)) ** 2
+        ud = upart_diag(n, u, jnu, jnpu, u, jnu, jnpu)
+        vd = vpart_diag(n, v, knv, knpv, v, knv, knpv)
+        uod = upart_off(n, u, jnu, u, jnu)
+        vod = vpart_off(n, v, knv, v, knv)
+        a = As[i]
+        b = Bs[i]
+        Ys[i] = (val_u * (h / w * a * (a * ud + b * uod) +
+                          e1 * w / h * b * (b * ud + a * uod)) -
+                 val_v * (h / w * a * (a * vd + b * vod) +
+                          e2 * w / h * b * (b * vd + a * vod)))
+        us[i] = u
+        vs[i] = v
+    return us_array, vs_array, As_array, Bs_array, Ys_array

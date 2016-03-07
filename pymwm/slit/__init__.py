@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-from pymwm.slit.utils import coefs_cython, ABY_cython
+from pymwm.slit.utils import coefs_cython, ABY_cython, uvABY_cython
 
 
 class Slit(object):
@@ -116,17 +116,14 @@ class Slit(object):
         self.bounds = params['bounds']
         self.beta_funcs = self.samples.interpolation(betas, convs, self.bounds)
         self.alpha_list = []
-        alpha_M_list = []
-        alpha_E_list = []
+        alpha_candidates = pmodes.get('alphas', None)
         for alpha, comp in self.beta_funcs.keys():
             if comp == 'real':
-                if alpha[0] == 'M':
-                    alpha_M_list.append(alpha)
+                if alpha_candidates is not None:
+                    if alpha in alpha_candidates:
+                        self.alpha_list.append(alpha)
                 else:
-                    alpha_E_list.append(alpha)
-        alpha_M_list.sort()
-        alpha_E_list.sort()
-        self.alpha_list = alpha_M_list + alpha_E_list
+                    self.alpha_list.append(alpha)
         self.labels = {}
         for alpha in self.alpha_list:
             pol, n, m = alpha
@@ -174,10 +171,10 @@ class Slit(object):
         wi = w.imag
         hr = self.beta_funcs[(alpha, 'real')](wr, wi)[0, 0]
         hi = self.beta_funcs[(alpha, 'imag')](wr, wi)[0, 0]
-        if hr < 0:
-            hr = 1e-16
-        if hi < 0:
-            hi = 1e-16
+        # if hr < 0:
+        #     hr = 1e-16
+        # if hi < 0:
+        #     hi = 1e-16
         return hr + 1j * hi
 
     def beta_pec(self, w, alpha):
@@ -992,3 +989,12 @@ class Slit(object):
         As, Bs, Y = ABY_cython(
             w, self.r, self.s_all, self.n_all, hs, e1, e2)
         return hs, As, Bs, Y
+
+    def huvABY(self, w):
+        e1 = self.fill(w)
+        e2 = self.clad(w)
+        hs = np.array([self.beta(w, alpha)
+                       for alpha in self.alpha_all])
+        us, vs, As, Bs, Y = uvABY_cython(
+            w, self.r, self.s_all, self.n_all, hs, e1, e2)
+        return hs, us, vs, As, Bs, Y
