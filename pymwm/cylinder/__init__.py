@@ -29,7 +29,7 @@ class Cylinder(object):
                     its keys and values are as follows:
                     'lmax': A float indicating the maximum wavelength [um]
                     'lmin': A float indicating the minimum wavelength [um]
-                    'limag': A float indicating the minimum value of
+                    'limag': A float indicating the maximum value of
                         abs(c / fimag) [um] where fimag is the imaginary part
                         of the frequency.
                 'modes': A dict of the settings for calculating modes:
@@ -37,7 +37,7 @@ class Cylinder(object):
                         (defulat: 5.0)
                     'lmin': A float indicating the minimum wavelength [um]
                         (defulat: 0.4)
-                    'limag': A float indicating the minimum value of
+                    'limag': A float indicating the maximum value of
                         abs(c / fimag) [um] where fimag is the imaginary part
                         of the frequency. (default: 5.0)
                     'dw': A float indicating frequency interval
