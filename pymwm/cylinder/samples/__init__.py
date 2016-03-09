@@ -171,13 +171,13 @@ class Samples(object):
         return h2s
 
     def u(self, h2, w, e1):
-        # return np.sqrt(e1 * w ** 2 - h2) * self.r
-        return (1 + 1j) * np.sqrt(-0.5j * (e1 * w ** 2 - h2)) * self.r
+        return np.sqrt(e1 * w ** 2 - h2) * self.r
+        # return (1 + 1j) * np.sqrt(-0.5j * (e1 * w ** 2 - h2)) * self.r
 
     def v(self, h2, w, e2):
         # return np.sqrt(- e2 * w ** 2 + h2) * self.r
-        # return (1 + 1j) * np.sqrt(-0.5j * (- e2 * w ** 2 + h2)) * self.r
-        return -1j * np.sqrt(e2 * w ** 2 - h2) * self.r
+        return (1 - 1j) * np.sqrt(0.5j * (- e2 * w ** 2 + h2)) * self.r
+        # return -1j * np.sqrt(e2 * w ** 2 - h2) * self.r
 
     def eigeq(self, h2, args):
         """Return the value of the characteristic equation
