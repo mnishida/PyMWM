@@ -252,8 +252,8 @@ class Samples(object):
             v = self.v(x, w, e2)
             if result.success:
                 roots.append(x)
-            # if abs(v.real) > abs(v.imag):
-            if v.real > 0.0:
+            # if v.real > 0.0:
+            if abs(v.real) > abs(v.imag):
                 success.append(result.success)
             else:
                 success.append(False)
@@ -291,7 +291,7 @@ class Samples(object):
         return xs, success
 
     def beta_from_beta2(self, x):
-        return (1 - 1j) * np.sqrt(0.5j * x)
+        return (1 + 1j) * np.sqrt(-0.5j * x)
         # val = np.sqrt(x)
         # if ((abs(val.real) > abs(val.imag) and val.real < 0) or
         #    (abs(val.real) < abs(val.imag) and val.imag < 0)):
