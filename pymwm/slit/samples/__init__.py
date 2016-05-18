@@ -157,8 +157,8 @@ class Samples(object):
         # return (1 + 1j) * np.sqrt(-0.5j * (e1 * w ** 2 - h2)) * self.r / 2
 
     def v(self, h2, w, e2):
-        # return np.sqrt(- e2 * w ** 2 + h2) * self.r / 2
-        return (1 - 1j) * np.sqrt(0.5j * (- e2 * w ** 2 + h2)) * self.r / 2
+        return np.sqrt(- e2 * w ** 2 + h2) * self.r / 2
+        # return (1 + 1j) * np.sqrt(-0.5j * (- e2 * w ** 2 + h2)) * self.r / 2
         # return -1j * np.sqrt(e2 * w ** 2 - h2) * self.r / 2
 
     def eigeq(self, h2, args):
@@ -258,7 +258,7 @@ class Samples(object):
                 return np.array([val.real, val.imag])
 
             result = root(func, (xi.real, xi.imag), method='hybr',
-                          options={'xtol': 1.0e-10})
+                          options={'xtol': 1.0e-9})
             x = result.x[0] + result.x[1] * 1j
             v = self.v(x, w, e2)
             # if v.real > 0.0:
