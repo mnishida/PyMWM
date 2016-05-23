@@ -76,8 +76,10 @@ class Slit(object):
                 self.r, self.fill, self.clad, pmodes)
             from multiprocessing import Pool
             num_n = params['modes']['num_n']
-            p = Pool(num_n)
-            betas_list = p.map(self.samples, range(num_n))
+            p = Pool(2)
+            betas_list = p.map(self.samples, [('M', num_n), ('E', num_n)])
+            # betas_list = list(map(self.samples,
+            #                       [('M', num_n), ('E', num_n)]))
             betas = {key: val for betas, convs in betas_list
                      for key, val in betas.items()}
             convs = {key: val for betas, convs in betas_list
@@ -106,8 +108,10 @@ class Slit(object):
                     self.r, self.fill, self.clad, pmodes)
                 from multiprocessing import Pool
                 num_n = params['modes']['num_n']
-                p = Pool(num_n)
-                betas_list = p.map(self.samples, range(num_n))
+                p = Pool(2)
+                betas_list = p.map(self.samples, [('M', num_n), ('E', num_n)])
+                # betas_list = list(map(self.samples,
+                #                       [('M', num_n), ('E', num_n)]))
                 betas = {key: val for betas, convs in betas_list
                          for key, val in betas.items()}
                 convs = {key: val for betas, convs in betas_list
@@ -124,6 +128,7 @@ class Slit(object):
                         self.alpha_list.append(alpha)
                 else:
                     self.alpha_list.append(alpha)
+        self.alpha_list.sort()
         self.labels = {}
         for alpha in self.alpha_list:
             pol, n, m = alpha
@@ -871,7 +876,8 @@ class Slit(object):
         ax = fig.add_subplot(111)
         fs = np.linspace(fmin, fmax, nw + 1)
         ws = fs * 2 * np.pi / (c * 1e-8)
-        markers = ["o", "s", "^", "v", "d", "p", "*"]
+        markers = ['o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H',
+                   'D', 'd']
         for alpha in self.alpha_list:
             pol, n, m = alpha
             label = self.labels[alpha]

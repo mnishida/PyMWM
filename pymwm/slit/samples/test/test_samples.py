@@ -6,24 +6,27 @@ import numpy.testing as npt
 from scipy.constants import c
 
 BETAS = [
-    np.array([1.33761261+0.01156405j, 0.1]),
-    np.array([0.00274425+10.37584126j, 0.16144428+9.05251986j]),
-    np.array([0.00097855+20.89689765j, 0.33827986+18.18637903j]),
-    np.array([1.15739193e-04+31.38561413j, 0.56259232+27.18042727j]),
-    np.array([-8.73807985e-04+41.86642304j, 9.11172765e-01+35.94543976j]),
-    np.array([-2.39724110e-03+52.34332833j, 1.73210379e+00+44.29031772j])]
-CONVS = []
-CONVS.append([True, False])
-CONVS.append([True, True])
-CONVS.append([True, True])
-CONVS.append([True, True])
-CONVS.append([True, True])
-CONVS.append([False, True])
+    np.array([
+        1.33761261+0.01156405j,
+        0.00274425+10.37584126j,
+        0.00097855+20.89689765j,
+        1.15739193e-04+31.38561413j,
+        -8.73807985e-04+41.86642304j,
+        -2.39724110e-03+52.34332833j]),
+    np.array([
+        0.1,
+        0.16144428+9.05251986j,
+        0.33827986+18.18637903j,
+        0.56259232+27.18042727j,
+        9.11172765e-01+35.94543976j,
+        1.73210379e+00+44.29031772j])]
+CONVS = [[True, True, True, True, True, True],
+         [False, True, True, True, True, True]]
 
 
 def func(args):
-    wg, n = args
-    return wg.beta2_wmin(n)
+    wg, pol, num_n = args
+    return wg.beta2_wmin(pol, num_n)
 
 
 def test_attributes():
@@ -56,7 +59,7 @@ def test_attributes():
 
 def beta2_pec(w, n, e1, r):
     h2 = e1 * w ** 2 - (n * np.pi / r) ** 2
-    return np.array([h2, h2])
+    return h2
 
 
 def test_beta2_pec():
@@ -71,18 +74,8 @@ def test_beta2_pec():
     clad = Material(params['clad'])
     wg = Samples(r, fill, clad, params['modes'])
     w = 2 * np.pi / 5.0
-    pec0 = beta2_pec(w, 0, fill(w), 0.3)
-    npt.assert_almost_equal(wg.beta2_pec(w, 0), pec0, decimal=8)
-    pec1 = beta2_pec(w, 1, fill(w), 0.3)
-    npt.assert_almost_equal(wg.beta2_pec(w, 1), pec1, decimal=8)
-    pec2 = beta2_pec(w, 2, fill(w), 0.3)
-    npt.assert_almost_equal(wg.beta2_pec(w, 2), pec2, decimal=8)
-    pec3 = beta2_pec(w, 3, fill(w), 0.3)
-    npt.assert_almost_equal(wg.beta2_pec(w, 3), pec3, decimal=8)
-    pec4 = beta2_pec(w, 4, fill(w), 0.3)
-    npt.assert_almost_equal(wg.beta2_pec(w, 4), pec4, decimal=8)
-    pec5 = beta2_pec(w, 5, fill(w), 0.3)
-    npt.assert_almost_equal(wg.beta2_pec(w, 5), pec5, decimal=8)
+    pec = beta2_pec(w, np.arange(6), fill(w), 0.3)
+    npt.assert_almost_equal(wg.beta2_pec(w, 6), pec, decimal=8)
 
 
 def test_beta2_wmin():
@@ -99,13 +92,13 @@ def test_beta2_wmin():
     wg = Samples(r, fill, clad, params['modes'])
     assert_equal(wg.ws[0], 1.25)
     num_n = params['modes']['num_n']
-    p = Pool(num_n)
-    args = [(wg, n) for n in range(num_n)]
+    p = Pool(2)
+    args = [(wg, 'M', num_n), (wg, 'E', num_n)]
     vals = p.map(func, args)
-    for n in range(6):
-        h2s, success = vals[n]
-        npt.assert_almost_equal(h2s, BETAS[n] ** 2, decimal=6)
-        assert_equal(success, CONVS[n])
+    for i in range(2):
+        h2s, success = vals[i]
+        npt.assert_almost_equal(h2s, BETAS[i] ** 2, decimal=6)
+        assert_equal(success, CONVS[i])
 
 
 def test_db():
@@ -124,8 +117,8 @@ def test_db():
         betas, convs = wg.load()
     except:
         num_n = params['modes']['num_n']
-        p = Pool(num_n)
-        betas_list = p.map(wg, range(num_n))
+        p = Pool(2)
+        betas_list = p.map(wg, [('M', num_n), ('E', num_n)])
         betas = {key: val for betas, convs in betas_list
                  for key, val in betas.items()}
         convs = {key: val for betas, convs in betas_list
@@ -134,10 +127,10 @@ def test_db():
     for n in range(6):
         npt.assert_almost_equal(
             [betas[('M', n, 1)][0, 0], betas[('E', n, 1)][0, 0]],
-            [BETAS[n][0], BETAS[n][1]], decimal=8)
+            [BETAS[0][n], BETAS[1][n]], decimal=8)
         assert_equal(
             [convs[('M', n, 1)][0, 0], convs[('E', n, 1)][0, 0]],
-            [CONVS[n][0], CONVS[n][1]])
+            [CONVS[0][n], CONVS[1][n]])
 
 
 def test_interpolation():

@@ -138,19 +138,20 @@ class Samples(object):
         finally:
             s.close()
 
-    def beta2_pec(self, w, n):
+    def beta2_pec(self, w, num_n):
         """Return squares of phase constants for a PEC waveguide
 
         Args:
             w: A complex indicating the angular frequency
-            n: A integer indicating the order of the modes.
+            num_n: A integer indicating the number of the modes.
         Returns:
             h2s: A 1D array indicating squares of phase constants, whose first
                 element is for TM mode and the rest is for TE mode.
         """
         wcomp = w.real + 1j * w.imag
-        h2 = self.fill(wcomp) * wcomp ** 2 - (n * np.pi / self.r) ** 2
-        return np.array([h2, h2])
+        ns = np.arange(num_n)
+        h2 = self.fill(wcomp) * wcomp ** 2 - (ns * np.pi / self.r) ** 2
+        return h2
 
     def u(self, h2, w, e1):
         return np.sqrt(e1 * w ** 2 - h2) * self.r / 2
@@ -158,7 +159,7 @@ class Samples(object):
 
     def v(self, h2, w, e2):
         return np.sqrt(- e2 * w ** 2 + h2) * self.r / 2
-        # return (1 + 1j) * np.sqrt(-0.5j * (- e2 * w ** 2 + h2)) * self.r / 2
+        # return (1 - 1j) * np.sqrt(0.5j * (- e2 * w ** 2 + h2)) * self.r / 2
         # return -1j * np.sqrt(e2 * w ** 2 - h2) * self.r / 2
 
     def eigeq(self, h2, args):
@@ -180,9 +181,9 @@ class Samples(object):
         v = self.v(h2comp, w, e2)
         if pol == 'E':
             if n % 2 == 0:
-                return np.tan(u) + u / v
+                return u / v + np.tan(u)
             else:
-                return 1 / np.tan(u) - u / v
+                return u / v - 1 / np.tan(u)
         else:
             if n % 2 == 0:
                 return u * np.tan(u) - (e1 * v) / e2
@@ -200,32 +201,122 @@ class Samples(object):
                 the core, and e2 indicates the permittivity of the clad.
         Returns:
             vals: A 1D array of 4 floats indicating the left-hand value of the
-        characteristic equations.
+                characteristic equations.
         """
         w, pol, n, e1, e2 = args
-        w2 = (self.r * w / 2) ** 2 * (e2 - e1)
+        w2 = (self.r * w / 2) ** 2 * (e1 - e2)
         ur, ui, vr, vi = uv
         u = ur + 1j * ui
         v = vr + 1j * vi
         val2 = u ** 2 + v ** 2 - w2
         if pol == 'E':
             if n % 2 == 0:
-                val = np.tan(u) + u / v
+                val = u / np.tan(u) + v
             else:
-                val = 1 / np.tan(u) - u / v
+                val = u * np.tan(u) - v
         else:
             if n % 2 == 0:
-                val = u * np.tan(u) - (e1 * v) / e2
+                val = u * np.tan(u) - e1 * (v / e2)
             else:
-                val = u / np.tan(u) + (e1 * v) / e2
+                val = u / np.tan(u) + e1 * (v / e2)
         return np.array([val.real, val.imag, val2.real, val2.imag])
 
-    def beta2(self, w, n, e1, e2, xis):
+    def jac(self, uv, args):
+        """Return the Jacobian of characteristic equations.
+
+        Args:
+            uv: A 1D array of 4 floats indicating (Re[u], Im[u], Re[v], Im[v]).
+            args: A tuple (w, pol, n, e1, e2), where w indicates the angular
+                frequency, pol indicates the polarization, n indicates
+                the order of the modes, e1 indicates the permittivity of
+                the core, and e2 indicates the permittivity of the clad.
+        Returns:
+            vals: A 2D array of 4X4 floats indicating the Jacobian of the
+                characteristic equations.
+        """
+        w, pol, n, e1, e2 = args
+        ur, ui, vr, vi = uv
+        u = ur + 1j * ui
+        v = vr + 1j * vi
+        sin = np.sin(u)
+        cos = np.cos(u)
+        if pol == 'E':
+            if n % 2 == 0:
+                dv_du = (cos - u / sin) / sin
+                dv_dv = 1.0
+            else:
+                dv_du = (sin + u / cos) / cos
+                dv_dv = - 1.0
+        else:
+            if n % 2 == 0:
+                dv_du = (sin + u / cos) / cos
+                dv_dv = - e1 / e2
+            else:
+                dv_du = (cos - u / sin) / sin
+                dv_dv = e1 / e2
+        vals = [[dv_du.real, dv_du.imag, dv_dv.real, dv_dv.imag],
+                [dv_du.imag, dv_du.real, dv_dv.imag, dv_dv.real],
+                [2 * u.real, 2 * u.imag, 2 * v.real, 2 * v.imag],
+                [2 * u.imag, 2 * u.real, 2 * v.imag, 2 * v.real]]
+        return np.array(vals)
+
+    def func_jac(self, uv, args):
+        """Return the values and Jacobian of characteristic equations.
+
+        Args:
+            uv: A 1D array of 4 floats indicating (Re[u], Im[u], Re[v], Im[v]).
+            args: A tuple (w, pol, n, e1, e2), where w indicates the angular
+                frequency, pol indicates the polarization, n indicates
+                the order of the modes, e1 indicates the permittivity of
+                the core, and e2 indicates the permittivity of the clad.
+        Returns:
+            fs: A 1D array of 4 floats indicating the left-hand value of the
+                characteristic equations.
+            jas: A 2D array of 4X4 floats indicating the Jacobian of the
+                characteristic equations.
+        """
+        w, pol, n, e1, e2 = args
+        w2 = (self.r * w / 2) ** 2 * (e1 - e2)
+        ur, ui, vr, vi = uv
+        u = ur + 1j * ui
+        v = vr + 1j * vi
+        f2 = u ** 2 + v ** 2 - w2
+        sin = np.sin(u)
+        cos = np.cos(u)
+        tan = np.tan(u)
+        if pol == 'E':
+            if n % 2 == 0:
+                f1 = u / tan + v
+                dv_du = (cos - u / sin) / sin
+                dv_dv = 1.0
+            else:
+                f1 = u * tan - v
+                dv_du = (sin + u / cos) / cos
+                dv_dv = - 1.0
+        else:
+            if n % 2 == 0:
+                f1 = u * tan - e1 * (v / e2)
+                dv_du = (sin + u / cos) / cos
+                dv_dv = - e1 / e2
+            else:
+                f1 = u / tan + e1 * (v / e2)
+                dv_du = (cos - u / sin) / sin
+                dv_dv = e1 / e2
+        fs = np.array([f1.real, f1.imag, f2.real, f2.imag])
+        jas = np.array(
+            [[dv_du.real, dv_du.imag, dv_dv.real, dv_dv.imag],
+             [dv_du.imag, dv_du.real, dv_dv.imag, dv_dv.real],
+             [2 * u.real, 2 * u.imag, 2 * v.real, 2 * v.imag],
+             [2 * u.imag, 2 * u.real, 2 * v.imag, 2 * v.real]])
+        return fs, jas
+
+    def beta2(self, w, pol, num_n, e1, e2, xis):
         """Return roots and convergences of the characteristic equation
 
         Args:
             w: A complex indicating the angular frequency.
-            n: A integer indicating the order of the mode
+            pol: 'E' or 'M' indicating the polarization.
+            num_n: An integer indicating the number of modes.
             e1: A complex indicating the permittivity of tha core.
             e2: A complex indicating the permittivity of tha clad.
             xis: A complex indicating the initial approximations for the roots
@@ -235,92 +326,119 @@ class Samples(object):
             success: A 1D array indicating the convergence information for xs.
         """
         if self.clad.model == 'pec':
-            xs = self.beta2_pec(w, n)
-            if n == 0:
-                success = np.array([True, False])
-            else:
-                success = np.array([True, True])
+            xs = self.beta2_pec(w, num_n)
+            success = np.ones(num_n, dtype=bool)
+            if pol == 'E':
+                success[0] = False
             return xs, success
         from scipy.optimize import root
+        roots = []
         vals = []
         success = []
-        for i in range(2):
-            xi = xis[i]
-            pol = 'M' if i == 0 else 'E'
+        for n in range(num_n):
+            xi = xis[n]
             if pol == 'E' and n == 0:
                 vals.append(xi)
                 success.append(False)
                 continue
 
+            args = (w, pol, n, e1, e2)
+
+            # def func(h2vec):
+            #     h2 = h2vec[0] + h2vec[1] * 1j
+            #     val = self.eigeq(h2, args)
+            #     return np.array([val.real, val.imag])
+
             def func(h2vec):
                 h2 = h2vec[0] + h2vec[1] * 1j
-                val = self.eigeq(h2, (w, pol, n, e1, e2))
-                return np.array([val.real, val.imag])
+                f = self.eigeq(h2, args)
+                prod_denom = 1.0
+                for h2_0 in roots:
+                    denom = h2 - h2_0
+                    while (abs(denom) < 1e-9):
+                        denom += 1.0e-9
+                    prod_denom *= 1.0 / denom
+                f *= prod_denom
+                f_array = np.array([f.real, f.imag])
+                return f_array
 
             result = root(func, (xi.real, xi.imag), method='hybr',
                           options={'xtol': 1.0e-9})
             x = result.x[0] + result.x[1] * 1j
+            if result.success:
+                roots.append(x)
+
+            # ui = self.u(xi, w, e1)
+            # vi = self.v(xi, w, e2)
+
+            # def func(uv):
+            #     return self.func_jac(uv, args)
+
+            # result = root(func, (ui.real, ui.imag, vi.real, vi.imag),
+            #               jac=True, method='hybr', options={'xtol': 1.0e-9})
+            # u = result.x[0] + result.x[1] * 1j
+            # v = result.x[2] + result.x[3] * 1j
+            # x = e1 * w ** 2 - (2 * u / self.r) ** 2
             v = self.v(x, w, e2)
-            # if v.real > 0.0:
-            if abs(v.real) > abs(v.imag):
-                success.append(result.success)
-            else:
+            if pol == 'E' and abs(v.real) < abs(v.imag):
                 success.append(False)
+            else:
+                success.append(result.success)
             vals.append(x)
         return np.array(vals), success
 
-    def beta2_wmin(self, n):
+    def beta2_wmin(self, pol, num_n):
         """Return roots and convergences of the characteristic equation at
             the lowest angular frequency, ws[0].
 
         Args:
-            n: A integer indicating the order of the mode
+            pol: 'E' or 'M' indicating the polarization.
+            num_n: An integer indicating the number of modes.
         Returns:
             xs: A 1D array indicating the roots, whose length is 2.
             success: A 1D array indicating the convergence information for xs.
         """
         if self.clad.model == 'pec':
-            xs = self.beta2_pec(self.ws[0], n)
-            if n == 0:
-                success = np.array([True, False])
-            else:
-                success = np.array([True, True])
+            xs = self.beta2_pec(self.ws[0], num_n)
+            success = np.ones(num_n, dtype=bool)
+            if pol == 'E':
+                success[0] = False
             return xs, success
         w_0 = 0.1
-        xs = self.beta2_pec(w_0, n)
         e1 = self.fill(w_0)
         e2_0 = -1.0e7 + self.clad(w_0).imag * 1j
+        xs = self.beta2_pec(w_0, num_n)
         de2 = (self.clad(w_0) - e2_0) / 1000
         for i in range(1001):
             e2 = e2_0 + de2 * i
-            xs, success = self.beta2(w_0, n, e1, e2, xs)
+            xs, success = self.beta2(w_0, pol, num_n, e1, e2, xs)
         dw = (self.ws[0] - w_0) / 1000
         for i in range(1001):
             w = w_0 + dw * i
             e1 = self.fill(w)
             e2 = self.clad(w)
-            xs, success = self.beta2(w, n, e1, e2, xs)
+            xs, success = self.beta2(w, pol, num_n, e1, e2, xs)
         return xs, success
 
-    def beta2_wmax(self, n):
+    def beta2_wmax(self, pol, num_n):
         """Return roots and convergences of the characteristic equation at
             the highest angular frequency, ws[-1].
 
         Args:
-            n: A integer indicating the order of the mode
+            pol: 'E' or 'M' indicating the polarization.
+            num_n: An integer indicating the number of modes.
         Returns:
             xs: A 1D array indicating the roots, whose length is 2.
             success: A 1D array indicating the convergence information for xs.
         """
         w_0 = self.ws[-1]
         if self.clad.model == 'pec':
-            xs = self.beta2_pec(w_0, n)
-            if n == 0:
-                success = np.array([True, False])
-            else:
-                success = np.array([True, True])
+            xs = self.beta2_pec(w_0, num_n)
+            success = np.ones(num_n, dtype=bool)
+            if pol == 'E':
+                success[0] = False
             return xs, success
-        xs = self.beta2_pec(w_0, n)
+        xs = self.beta2_pec(w_0, num_n)
         e1 = self.fill(w_0)
         e2 = self.clad(w_0)
         e2_1 = -1.0e8 + self.clad(w_0).imag * 1j
@@ -329,12 +447,12 @@ class Samples(object):
             de = (e2 - e2_0) / 100
             for i in range(100):
                 e2_1 = e2_0 + de * i
-                xs, success = self.beta2(w_0, n, e1, e2_1, xs)
+                xs, success = self.beta2(w_0, pol, num_n, e1, e2_1, xs)
         e2_0 = e2_1
         de = (e2 - e2_0) / 100
         for i in range(101):
             e2_1 = e2_0 + de * i
-            xs, success = self.beta2(w_0, n, e1, e2_1, xs)
+            xs, success = self.beta2(w_0, pol, num_n, e1, e2_1, xs)
         return xs, success
 
     def beta_from_beta2(self, x):
@@ -369,60 +487,57 @@ class Samples(object):
         plt.colorbar()
         plt.show()
 
-    def _betas_convs(self, n, xs_array, success_array):
+    def _betas_convs(self, pol, xs_array, success_array):
         betas = {}
         convs = {}
-        betas[('M', n, 1)] = np.zeros((len(self.ws), len(self.wis)),
-                                      dtype=complex)
-        convs[('M', n, 1)] = np.zeros((len(self.ws), len(self.wis)),
-                                      dtype=bool)
-        betas[('E', n, 1)] = np.zeros((len(self.ws), len(self.wis)),
-                                      dtype=complex)
-        convs[('E', n, 1)] = np.zeros((len(self.ws), len(self.wis)),
-                                      dtype=bool)
+        num_n = xs_array.shape[2]
+        for n in range(num_n):
+            betas[(pol, n, 1)] = np.zeros((len(self.ws), len(self.wis)),
+                                          dtype=complex)
+            convs[(pol, n, 1)] = np.zeros((len(self.ws), len(self.wis)),
+                                          dtype=bool)
         for iwi in range(len(self.wis)):
             for iwr in range(len(self.ws)):
-                betas[('M', n, 1)][iwr, iwi] = self.beta_from_beta2(
-                    xs_array[iwr, iwi][0])
-                convs[('M', n, 1)][iwr, iwi] = success_array[
-                    iwr, iwi][0]
-                betas[('E', n, 1)][iwr, iwi] = self.beta_from_beta2(
-                    xs_array[iwr, iwi][1])
-                convs[('E', n, 1)][iwr, iwi] = success_array[
-                    iwr, iwi][1]
+                for n in range(num_n):
+                    betas[(pol, n, 1)][iwr, iwi] = self.beta_from_beta2(
+                        xs_array[iwr, iwi][n])
+                    convs[(pol, n, 1)][iwr, iwi] = success_array[
+                        iwr, iwi][n]
         return betas, convs
 
-    def __call__(self, n):
+    def __call__(self, pol_num_n):
         """Return a dict of the roots of the characteristic equation
 
         Args:
-            n: A integer indicating the order of the mode
+            pol_num_n: (pol, num_n):
+                pol: 'E' or 'M' indicating the polarization.
+                num_n: An integer indicating the number of modes.
         Returns:
             betas: A dict containing arrays of roots, whose key is as follows:
                 (pol, n, m):
                     pol: 'E' or 'M' indicating the polarization.
-                    n: A integer indicating the order of the mode.
-                    m: A integer indicating the ordinal of the mode in the same
-                        order.
+                    n: An integer indicating the order of the mode.
+                    m: An integer indicating the ordinal of the mode in the
+                        same order.
             convs: A dict containing the convergence information for betas,
                 whose key is the same as above.
         """
+        pol, num_n = pol_num_n
         num_ws = len(self.ws)
-        xs_array = np.zeros((num_ws, len(self.wis), 2), dtype=complex)
-        success_array = np.zeros((num_ws, len(self.wis), 2), dtype=bool)
+        xs_array = np.zeros((num_ws, len(self.wis), num_n), dtype=complex)
+        success_array = np.zeros((num_ws, len(self.wis), num_n), dtype=bool)
         if self.clad.im_factor != 1.0:
             im_factor = self.clad.im_factor
             self.clad.im_factor = 1.0
             try:
                 betas, convs = self.load()
             except:
-                betas, convs = self.__call__(n)
+                betas, convs = self.__call__(pol_num_n)
             for iwi in range(len(self.wis)):
                 for iwr in range(num_ws):
-                    xs_array[iwr, iwi, 0] = betas[
-                        ('M', n, 1)][iwr, iwi] ** 2
-                    xs_array[iwr, iwi, 1] = betas[
-                        ('E', n, 1)][iwr, iwi] ** 2
+                    for n in range(num_n):
+                        xs_array[iwr, iwi, n] = betas[
+                            (pol, n, 1)][iwr, iwi] ** 2
             while self.clad.im_factor != im_factor:
                 self.clad.im_factor = max(
                     self.clad.im_factor - 0.5, im_factor)
@@ -433,27 +548,22 @@ class Samples(object):
                         w = wr + 1j * wi
                         e1 = self.fill(w)
                         e2 = self.clad(w)
-                        xs, success = self.beta2(w, n, e1, e2,
+                        xs, success = self.beta2(w, pol, num_n, e1, e2,
                                                  xs_array[iwr, iwi])
                         xs_array[iwr, iwi] = xs
                         success_array[iwr, iwi] = success
         else:
-            iwr = iwi = 0
-            wr = self.ws[iwr]
-            wi = self.wis[iwi]
-            w = wr + 1j * wi
-            e1 = self.fill(w)
-            e2 = self.clad(w)
-            xs, success = self.beta2_wmin(n)
-            xs_array[iwr, iwi] = xs
-            success_array[iwr, iwi] = success
+            iwi = 0
+            xs, success = self.beta2_wmin(pol, num_n)
+            xs_array[0, iwi] = xs
+            success_array[0, iwi] = success
             for iwr in range(1, num_ws):
                 wr = self.ws[iwr]
                 wi = self.wis[iwi]
                 w = wr + 1j * wi
                 e1 = self.fill(w)
                 e2 = self.clad(w)
-                xs, success = self.beta2(w, n, e1, e2, xs)
+                xs, success = self.beta2(w, pol, num_n, e1, e2, xs)
                 xs_array[iwr, iwi] = xs
                 success_array[iwr, iwi] = success
             for iwi in range(1, len(self.wis)):
@@ -464,7 +574,7 @@ class Samples(object):
                     e1 = self.fill(w)
                     e2 = self.clad(w)
                     xs = xs_array[iwr, iwi - 1]
-                    xs, success = self.beta2(w, n, e1, e2, xs)
+                    xs, success = self.beta2(w, pol, num_n, e1, e2, xs)
                     xs_array[iwr, iwi] = xs
                     success_array[iwr, iwi] = success
-        return self._betas_convs(n, xs_array, success_array)
+        return self._betas_convs(pol, xs_array, success_array)

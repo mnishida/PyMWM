@@ -204,6 +204,10 @@ class Samples(object):
         tm = e1 * jpus / u + e2 * kpvs * jus / (v * kvs)
         val = (tm * te - h2comp * (n / w) ** 2 *
                ((1 / u ** 2 + 1 / v ** 2) * jus) ** 2)
+        # te = jpus / (u * jus) + kpvs / (v * kvs)
+        # tm = e1 * jpus / (u * jus) + e2 * kpvs / (v * kvs)
+        # val = (tm * te - h2comp * (n / w) ** 2 *
+        #        (1 / u ** 2 + 1 / v ** 2) ** 2)
         # x = jpus / u
         # y = kpvs * jus / (v * kvs)
         # val = x + (e1 + e2) / (2 * e1) * y + np.sqrt(
@@ -211,6 +215,97 @@ class Samples(object):
         #     (n * jus / w) ** 2 * h2comp / e1 * (
         #         1 / u ** 2 + 1 / v ** 2) ** 2)
         return val
+
+    def jac(self, h2, args):
+        """Return Jacobian of the characteristic equation
+
+        Args:
+            h2: A complex indicating the square of the phase constant.
+            args: A tuple (w, n, e1, e2), where w indicates the angular
+                frequency, n indicates  the order of the modes, e1 indicates
+                the permittivity of the core, and e2 indicates the permittivity
+                of the clad.
+        Returns:
+            val: A complex indicating the Jacobian of the characteristic
+                equation.
+        """
+        w, n, e1, e2 = args
+        h2comp = h2.real + 1j * h2.imag
+        u = self.u(h2comp, w, e1)
+        v = self.v(h2comp, w, e2)
+        jus = jv(n, u)
+        jpus = jvp(n, u)
+        kvs = kv(n, v)
+        kpvs = kvp(n, v)
+        te = jpus / u + kpvs * jus / (v * kvs)
+        tm = e1 * jpus / u + e2 * kpvs * jus / (v * kvs)
+        du_dh2 = - self.r / (2 * u)
+        dv_dh2 = self.r / (2 * v)
+        dte_du = (-(u * (1 - n ** 2 / u ** 2) * jus + 2 * jpus) / u ** 2 +
+                  jpus * kpvs / (v * kvs))
+        dte_dv = jus * (n ** 2 * kvs ** 2 / v + v * (kvs ** 2 - kpvs ** 2) -
+                        2 * kvs * kpvs) / (v ** 2 * kvs ** 2)
+        # dte_du = (n ** 2 * jus ** 2 / u - u * (jus ** 2 + jpus ** 2) -
+        #           2 * jus * jpus) / (u ** 2 * jus ** 2)
+        # dte_dv = (n ** 2 * kvs ** 2 / v + v * (kvs ** 2 - kpvs ** 2) -
+        #           2 * kvs * kpvs) / (v ** 2 * kvs ** 2)
+        # dre_dh2 = (- n ** 2 / w ** 2 * (
+        #            (1 / u ** 2 + 1 / v ** 2) -
+        #            self.r ** 2 * h2comp * (1 / u ** 4 - 1 / v ** 4)))
+        dtm_du = e1 * dte_du
+        dtm_dv = e2 * dte_dv
+        dre_dh2 = -(n / w) ** 2 * jus * (
+            jus * (
+                (1 / u ** 2 + 1 / v ** 2) ** 2 -
+                self.r * h2comp * (1 / u ** 4 - 1 / v ** 4)) +
+            jpus * 2 * h2comp * (1 / u ** 2 + 1 / v ** 2) ** 2)
+        val = ((dte_du * du_dh2 + dte_dv * dv_dh2) * tm +
+               (dtm_du * du_dh2 + dtm_dv * dv_dh2) * te +
+               dre_dh2)
+        return val
+
+    def func_jac(self, h2, args):
+        """Return the value and Jacobian of the characteristic equation
+
+        Args:
+            h2: A complex indicating the square of the phase constant.
+            args: A tuple (w, n, e1, e2), where w indicates the angular
+                frequency, n indicates  the order of the modes, e1 indicates
+                the permittivity of the core, and e2 indicates the permittivity
+                of the clad.
+        Returns:
+            val: 2 complexes indicating the left-hand value and Jacobian
+                of the characteristic equation.
+        """
+        w, n, e1, e2 = args
+        h2comp = h2.real + 1j * h2.imag
+        u = self.u(h2comp, w, e1)
+        v = self.v(h2comp, w, e2)
+        jus = jv(n, u)
+        jpus = jvp(n, u)
+        kvs = kv(n, v)
+        kpvs = kvp(n, v)
+        te = jpus / u + kpvs * jus / (v * kvs)
+        tm = e1 * jpus / u + e2 * kpvs * jus / (v * kvs)
+        f = (tm * te - h2comp * (n / w) ** 2 *
+             ((1 / u ** 2 + 1 / v ** 2) * jus) ** 2)
+        du_dh2 = - self.r / (2 * u)
+        dv_dh2 = self.r / (2 * v)
+        dte_du = (-(u * (1 - n ** 2 / u ** 2) * jus + 2 * jpus) / u ** 2 +
+                  jpus * kpvs / (v * kvs))
+        dte_dv = jus * (n ** 2 * kvs ** 2 / v + v * (kvs ** 2 - kpvs ** 2) -
+                        2 * kvs * kpvs) / (v ** 2 * kvs ** 2)
+        dtm_du = e1 * dte_du
+        dtm_dv = e2 * dte_dv
+        dre_dh2 = -(n / w) ** 2 * jus * (
+            jus * (
+                (1 / u ** 2 + 1 / v ** 2) ** 2 -
+                self.r * h2comp * (1 / u ** 4 - 1 / v ** 4)) +
+            jpus * 2 * h2comp * (1 / u ** 2 + 1 / v ** 2) ** 2)
+        val = ((dte_du * du_dh2 + dte_dv * dv_dh2) * tm +
+               (dtm_du * du_dh2 + dtm_dv * dv_dh2) * te +
+               dre_dh2)
+        return f, val
 
     def beta2(self, w, n, e1, e2, xis):
         """Return roots and convergences of the characteristic equation
@@ -234,29 +329,52 @@ class Samples(object):
         roots = []
         vals = []
         success = []
+
+        # def func(h2vec):
+        #     h2 = h2vec[0] + h2vec[1] * 1j
+        #     f, ja = self.func_jac(h2, (w, n, e1, e2))
+        #     prod_denom = 1.0
+        #     sum_denom = 0.0
+        #     for h2_0 in roots:
+        #         denom = h2 - h2_0
+        #         while (abs(denom) < 1e-9):
+        #             denom += 1.0e-9
+        #         prod_denom *= 1.0 / denom
+        #         sum_denom += 1.0 / denom
+        #     f *= prod_denom
+        #     ja = ja * prod_denom - f * sum_denom
+        #     f_array = np.array([f.real, f.imag])
+        #     ja_array = np.array([[ja.real, ja.imag],
+        #                          [ja.imag, ja.real]])
+        #     return f_array, ja_array
+
+        def func(h2vec):
+            h2 = h2vec[0] + h2vec[1] * 1j
+            f = self.eigeq(h2, (w, n, e1, e2))
+            prod_denom = 1.0
+            for h2_0 in roots:
+                denom = h2 - h2_0
+                while (abs(denom) < 1e-9):
+                    denom += 1.0e-9
+                prod_denom *= 1.0 / denom
+            f *= prod_denom
+            f_array = np.array([f.real, f.imag])
+            return f_array
+
         for xi in xis:
-
-            def func(h2vec):
-                h2 = h2vec[0] + h2vec[1] * 1j
-                val = self.eigeq(h2, (w, n, e1, e2))
-                for h2_0 in roots:
-                    denom = h2 - h2_0
-                    while (abs(denom) < 1e-9):
-                        denom += 1.0e-9
-                    val /= denom
-                return np.array([val.real, val.imag])
-
-            result = root(func, (xi.real, xi.imag), method='hybr',
+            # result = root(func, (xi.real, xi.imag), jac=True, method='hybr',
+            #               options={'xtol': 1.0e-9})
+            result = root(func, (xi.real, xi.imag), jac=False, method='hybr',
                           options={'xtol': 1.0e-9})
             x = result.x[0] + result.x[1] * 1j
-            v = self.v(x, w, e2)
+            # v = self.v(x, w, e2)
             if result.success:
                 roots.append(x)
             # if v.real > 0.0:
-            if abs(v.real) > abs(v.imag):
-                success.append(result.success)
-            else:
-                success.append(False)
+            # if abs(v.real) > abs(v.imag):
+            success.append(result.success)
+            # else:
+            #     success.append(False)
             vals.append(x)
         return np.array(vals), success
 

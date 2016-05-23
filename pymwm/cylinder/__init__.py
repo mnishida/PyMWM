@@ -906,7 +906,8 @@ class Cylinder(object):
         ax = fig.add_subplot(111)
         fs = np.linspace(fmin, fmax, nw + 1)
         ws = fs * 2 * np.pi / (c * 1e-8)
-        markers = ["o", "s", "^", "v", "d", "p", "*"]
+        markers = ['o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H',
+                   'D', 'd']
         for alpha in self.alpha_list:
             pol, n, m = alpha
             label = self.labels[alpha]
@@ -939,6 +940,40 @@ class Cylinder(object):
                     markerfacecolor=mfc,
                     linestyle="None", color="k", markersize=8,
                     markeredgewidth=2, linewidth=2)
+        for alpha in self.alpha_list:
+            pol, n, m = alpha
+            label = self.labels[alpha]
+            if pol == 'E':
+                if m == 1:
+                    mfc = "k"
+                else:
+                    mfc = "0.3"
+            else:
+                if m == 1:
+                    mfc = "w"
+                else:
+                    mfc = "0.7"
+            marker = markers[n]
+            if comp == 'real':
+                hs_pec = [self.beta_pec(wr + 1j * wi, alpha).real for wr in ws]
+            elif comp == 'imag':
+                hs_pec = [self.beta_pec(wr + 1j * wi, alpha).imag for wr in ws]
+            elif comp == 'gamma2':
+                hs_pec = []
+                for wr in ws:
+                    w = wr + 1j * wi
+                    hs_pec.append(
+                        (self.beta_pec(w, alpha).real -
+                         self.clad(w) * w ** 2).real)
+            else:
+                raise ValueError("comp must be 'real', 'imag' or 'gamma2'.")
+            if pol == 'M' and m == 1:
+                ax.plot(fs, hs_pec, "b-", linewidth=2)
+                ax.plot(fs[::4], hs_pec[::4], label="PEC{0}".format(n),
+                        marker=marker,
+                        markerfacecolor='b',
+                        linestyle="None", color="b", markersize=8,
+                        markeredgewidth=2, linewidth=2)
         ax.set_xlim(fs[0], fs[-1])
         ax.set_xlabel(r'$\nu$ $[\mathrm{100THz}]$', size=20)
         if comp == 'imag':
