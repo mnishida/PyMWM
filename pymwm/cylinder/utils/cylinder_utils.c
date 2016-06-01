@@ -3458,7 +3458,7 @@ static void __pyx_f_5pymwm_8cylinder_5utils_14cylinder_utils_coefs_C(__pyx_t_dou
  *         en = 1 if n == 0 else 2
  *         h = hs[i]             # <<<<<<<<<<<<<<
  *         s = s_all[i]
- *         u = csqrt(e1 * w * w - h * h) * r
+ *         u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r
  */
     __pyx_v_h = (__pyx_v_hs[__pyx_v_i]);
 
@@ -3466,7 +3466,7 @@ static void __pyx_f_5pymwm_8cylinder_5utils_14cylinder_utils_coefs_C(__pyx_t_dou
  *         en = 1 if n == 0 else 2
  *         h = hs[i]
  *         s = s_all[i]             # <<<<<<<<<<<<<<
- *         u = csqrt(e1 * w * w - h * h) * r
+ *         u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r
  *         jnu = c_besselJ(n, u)
  */
     __pyx_v_s = (__pyx_v_s_all[__pyx_v_i]);
@@ -3474,15 +3474,15 @@ static void __pyx_f_5pymwm_8cylinder_5utils_14cylinder_utils_coefs_C(__pyx_t_dou
     /* "pymwm/cylinder/utils/cylinder_utils.pyx":169
  *         h = hs[i]
  *         s = s_all[i]
- *         u = csqrt(e1 * w * w - h * h) * r             # <<<<<<<<<<<<<<
+ *         u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r             # <<<<<<<<<<<<<<
  *         jnu = c_besselJ(n, u)
  *         jnpu = c_besselJp(n, u)
  */
-    __pyx_v_u = __Pyx_c_prod(csqrt(__Pyx_c_diff(__Pyx_c_prod(__Pyx_c_prod(__pyx_v_e1, __pyx_v_w), __pyx_v_w), __Pyx_c_prod(__pyx_v_h, __pyx_v_h))), __pyx_t_double_complex_from_parts(__pyx_v_r, 0));
+    __pyx_v_u = __Pyx_c_prod(__Pyx_c_prod(__Pyx_c_sum(__pyx_t_double_complex_from_parts(1, 0), __pyx_t_double_complex_from_parts(0, 1.0)), csqrt(__Pyx_c_prod(__Pyx_c_neg(__pyx_t_double_complex_from_parts(0, 0.5)), __Pyx_c_diff(__Pyx_c_prod(__Pyx_c_prod(__pyx_v_e1, __pyx_v_w), __pyx_v_w), __Pyx_c_prod(__pyx_v_h, __pyx_v_h))))), __pyx_t_double_complex_from_parts(__pyx_v_r, 0));
 
     /* "pymwm/cylinder/utils/cylinder_utils.pyx":170
  *         s = s_all[i]
- *         u = csqrt(e1 * w * w - h * h) * r
+ *         u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r
  *         jnu = c_besselJ(n, u)             # <<<<<<<<<<<<<<
  *         jnpu = c_besselJp(n, u)
  *         v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r
@@ -3490,7 +3490,7 @@ static void __pyx_f_5pymwm_8cylinder_5utils_14cylinder_utils_coefs_C(__pyx_t_dou
     __pyx_v_jnu = c_besselJ(__pyx_v_n, __pyx_v_u);
 
     /* "pymwm/cylinder/utils/cylinder_utils.pyx":171
- *         u = csqrt(e1 * w * w - h * h) * r
+ *         u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r
  *         jnu = c_besselJ(n, u)
  *         jnpu = c_besselJp(n, u)             # <<<<<<<<<<<<<<
  *         v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r
@@ -4420,7 +4420,7 @@ static PyObject *__pyx_pf_5pymwm_8cylinder_5utils_14cylinder_utils_2ABY_cython(C
  *         n = n_all[i]
  *         en = 1 if n == 0 else 2             # <<<<<<<<<<<<<<
  *         h = hs[i]
- *         u = csqrt(e1 * w * w - h * h) * r
+ *         u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r
  */
     if (((__pyx_v_n == 0) != 0)) {
       __pyx_t_13 = 1;
@@ -4433,7 +4433,7 @@ static PyObject *__pyx_pf_5pymwm_8cylinder_5utils_14cylinder_utils_2ABY_cython(C
  *         n = n_all[i]
  *         en = 1 if n == 0 else 2
  *         h = hs[i]             # <<<<<<<<<<<<<<
- *         u = csqrt(e1 * w * w - h * h) * r
+ *         u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r
  *         jnu = c_besselJ(n, u)
  */
     __pyx_t_40 = __pyx_v_i;
@@ -4442,15 +4442,15 @@ static PyObject *__pyx_pf_5pymwm_8cylinder_5utils_14cylinder_utils_2ABY_cython(C
     /* "pymwm/cylinder/utils/cylinder_utils.pyx":254
  *         en = 1 if n == 0 else 2
  *         h = hs[i]
- *         u = csqrt(e1 * w * w - h * h) * r             # <<<<<<<<<<<<<<
+ *         u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r             # <<<<<<<<<<<<<<
  *         jnu = c_besselJ(n, u)
  *         jnpu = c_besselJp(n, u)
  */
-    __pyx_v_u = __Pyx_c_prod(csqrt(__Pyx_c_diff(__Pyx_c_prod(__Pyx_c_prod(__pyx_v_e1, __pyx_v_w), __pyx_v_w), __Pyx_c_prod(__pyx_v_h, __pyx_v_h))), __pyx_t_double_complex_from_parts(__pyx_v_r, 0));
+    __pyx_v_u = __Pyx_c_prod(__Pyx_c_prod(__Pyx_c_sum(__pyx_t_double_complex_from_parts(1, 0), __pyx_t_double_complex_from_parts(0, 1.0)), csqrt(__Pyx_c_prod(__Pyx_c_neg(__pyx_t_double_complex_from_parts(0, 0.5)), __Pyx_c_diff(__Pyx_c_prod(__Pyx_c_prod(__pyx_v_e1, __pyx_v_w), __pyx_v_w), __Pyx_c_prod(__pyx_v_h, __pyx_v_h))))), __pyx_t_double_complex_from_parts(__pyx_v_r, 0));
 
     /* "pymwm/cylinder/utils/cylinder_utils.pyx":255
  *         h = hs[i]
- *         u = csqrt(e1 * w * w - h * h) * r
+ *         u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r
  *         jnu = c_besselJ(n, u)             # <<<<<<<<<<<<<<
  *         jnpu = c_besselJp(n, u)
  *         v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r
@@ -4458,7 +4458,7 @@ static PyObject *__pyx_pf_5pymwm_8cylinder_5utils_14cylinder_utils_2ABY_cython(C
     __pyx_v_jnu = c_besselJ(__pyx_v_n, __pyx_v_u);
 
     /* "pymwm/cylinder/utils/cylinder_utils.pyx":256
- *         u = csqrt(e1 * w * w - h * h) * r
+ *         u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r
  *         jnu = c_besselJ(n, u)
  *         jnpu = c_besselJp(n, u)             # <<<<<<<<<<<<<<
  *         v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r
@@ -5468,7 +5468,7 @@ static PyObject *__pyx_pf_5pymwm_8cylinder_5utils_14cylinder_utils_4uvABY_cython
  *         n = n_all[i]
  *         en = 1 if n == 0 else 2             # <<<<<<<<<<<<<<
  *         h = hs[i]
- *         u = csqrt(e1 * w * w - h * h) * r
+ *         u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r
  */
     if (((__pyx_v_n == 0) != 0)) {
       __pyx_t_13 = 1;
@@ -5481,7 +5481,7 @@ static PyObject *__pyx_pf_5pymwm_8cylinder_5utils_14cylinder_utils_4uvABY_cython
  *         n = n_all[i]
  *         en = 1 if n == 0 else 2
  *         h = hs[i]             # <<<<<<<<<<<<<<
- *         u = csqrt(e1 * w * w - h * h) * r
+ *         u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r
  *         jnu = c_besselJ(n, u)
  */
     __pyx_t_44 = __pyx_v_i;
@@ -5490,15 +5490,15 @@ static PyObject *__pyx_pf_5pymwm_8cylinder_5utils_14cylinder_utils_4uvABY_cython
     /* "pymwm/cylinder/utils/cylinder_utils.pyx":332
  *         en = 1 if n == 0 else 2
  *         h = hs[i]
- *         u = csqrt(e1 * w * w - h * h) * r             # <<<<<<<<<<<<<<
+ *         u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r             # <<<<<<<<<<<<<<
  *         jnu = c_besselJ(n, u)
  *         jnpu = c_besselJp(n, u)
  */
-    __pyx_v_u = __Pyx_c_prod(csqrt(__Pyx_c_diff(__Pyx_c_prod(__Pyx_c_prod(__pyx_v_e1, __pyx_v_w), __pyx_v_w), __Pyx_c_prod(__pyx_v_h, __pyx_v_h))), __pyx_t_double_complex_from_parts(__pyx_v_r, 0));
+    __pyx_v_u = __Pyx_c_prod(__Pyx_c_prod(__Pyx_c_sum(__pyx_t_double_complex_from_parts(1, 0), __pyx_t_double_complex_from_parts(0, 1.0)), csqrt(__Pyx_c_prod(__Pyx_c_neg(__pyx_t_double_complex_from_parts(0, 0.5)), __Pyx_c_diff(__Pyx_c_prod(__Pyx_c_prod(__pyx_v_e1, __pyx_v_w), __pyx_v_w), __Pyx_c_prod(__pyx_v_h, __pyx_v_h))))), __pyx_t_double_complex_from_parts(__pyx_v_r, 0));
 
     /* "pymwm/cylinder/utils/cylinder_utils.pyx":333
  *         h = hs[i]
- *         u = csqrt(e1 * w * w - h * h) * r
+ *         u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r
  *         jnu = c_besselJ(n, u)             # <<<<<<<<<<<<<<
  *         jnpu = c_besselJp(n, u)
  *         v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r
@@ -5506,7 +5506,7 @@ static PyObject *__pyx_pf_5pymwm_8cylinder_5utils_14cylinder_utils_4uvABY_cython
     __pyx_v_jnu = c_besselJ(__pyx_v_n, __pyx_v_u);
 
     /* "pymwm/cylinder/utils/cylinder_utils.pyx":334
- *         u = csqrt(e1 * w * w - h * h) * r
+ *         u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r
  *         jnu = c_besselJ(n, u)
  *         jnpu = c_besselJp(n, u)             # <<<<<<<<<<<<<<
  *         v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r

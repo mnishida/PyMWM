@@ -2702,7 +2702,7 @@ static void __pyx_f_5pymwm_4slit_5utils_10slit_utils_coefs_C(__pyx_t_double_comp
  *         n = n_all[i]
  *         h = hs[i]             # <<<<<<<<<<<<<<
  *         s = s_all[i]
- *         u = csqrt(e1 * w * w - h * h) * r / 2
+ *         u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r / 2
  */
     __pyx_v_h = (__pyx_v_hs[__pyx_v_i]);
 
@@ -2710,7 +2710,7 @@ static void __pyx_f_5pymwm_4slit_5utils_10slit_utils_coefs_C(__pyx_t_double_comp
  *         n = n_all[i]
  *         h = hs[i]
  *         s = s_all[i]             # <<<<<<<<<<<<<<
- *         u = csqrt(e1 * w * w - h * h) * r / 2
+ *         u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r / 2
  *         v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r / 2
  */
     __pyx_v_s = (__pyx_v_s_all[__pyx_v_i]);
@@ -2718,15 +2718,15 @@ static void __pyx_f_5pymwm_4slit_5utils_10slit_utils_coefs_C(__pyx_t_double_comp
     /* "pymwm/slit/utils/slit_utils.pyx":81
  *         h = hs[i]
  *         s = s_all[i]
- *         u = csqrt(e1 * w * w - h * h) * r / 2             # <<<<<<<<<<<<<<
+ *         u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r / 2             # <<<<<<<<<<<<<<
  *         v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r / 2
  *         uc = u.conjugate()
  */
-    __pyx_v_u = __Pyx_c_quot(__Pyx_c_prod(csqrt(__Pyx_c_diff(__Pyx_c_prod(__Pyx_c_prod(__pyx_v_e1, __pyx_v_w), __pyx_v_w), __Pyx_c_prod(__pyx_v_h, __pyx_v_h))), __pyx_t_double_complex_from_parts(__pyx_v_r, 0)), __pyx_t_double_complex_from_parts(2, 0));
+    __pyx_v_u = __Pyx_c_quot(__Pyx_c_prod(__Pyx_c_prod(__Pyx_c_sum(__pyx_t_double_complex_from_parts(1, 0), __pyx_t_double_complex_from_parts(0, 1.0)), csqrt(__Pyx_c_prod(__Pyx_c_neg(__pyx_t_double_complex_from_parts(0, 0.5)), __Pyx_c_diff(__Pyx_c_prod(__Pyx_c_prod(__pyx_v_e1, __pyx_v_w), __pyx_v_w), __Pyx_c_prod(__pyx_v_h, __pyx_v_h))))), __pyx_t_double_complex_from_parts(__pyx_v_r, 0)), __pyx_t_double_complex_from_parts(2, 0));
 
     /* "pymwm/slit/utils/slit_utils.pyx":82
  *         s = s_all[i]
- *         u = csqrt(e1 * w * w - h * h) * r / 2
+ *         u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r / 2
  *         v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r / 2             # <<<<<<<<<<<<<<
  *         uc = u.conjugate()
  *         vc = v.conjugate()
@@ -2734,7 +2734,7 @@ static void __pyx_f_5pymwm_4slit_5utils_10slit_utils_coefs_C(__pyx_t_double_comp
     __pyx_v_v = __Pyx_c_quot(__Pyx_c_prod(__Pyx_c_prod(__Pyx_c_diff(__pyx_t_double_complex_from_parts(1, 0), __pyx_t_double_complex_from_parts(0, 1.0)), csqrt(__Pyx_c_prod(__pyx_t_double_complex_from_parts(0, 0.5), __Pyx_c_sum(__Pyx_c_prod(__Pyx_c_prod(__Pyx_c_neg(__pyx_v_e2), __pyx_v_w), __pyx_v_w), __Pyx_c_prod(__pyx_v_h, __pyx_v_h))))), __pyx_t_double_complex_from_parts(__pyx_v_r, 0)), __pyx_t_double_complex_from_parts(2, 0));
 
     /* "pymwm/slit/utils/slit_utils.pyx":83
- *         u = csqrt(e1 * w * w - h * h) * r / 2
+ *         u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r / 2
  *         v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r / 2
  *         uc = u.conjugate()             # <<<<<<<<<<<<<<
  *         vc = v.conjugate()
@@ -3544,7 +3544,7 @@ static PyObject *__pyx_pf_5pymwm_4slit_5utils_10slit_utils_2ABY_cython(CYTHON_UN
  *         if creal(e2) < -1e6:
  *             Ys[i] = y_in             # <<<<<<<<<<<<<<
  *         else:
- *             u = csqrt(e1 * w ** 2 - h ** 2) * r / 2
+ *             u = (1 + 1j) * csqrt(-0.5j * (e1 * w ** 2 - h ** 2)) * r / 2
  */
       __pyx_t_24 = __pyx_v_i;
       *((__pyx_t_double_complex *) ( /* dim=0 */ (__pyx_v_Ys.data + __pyx_t_24 * __pyx_v_Ys.strides[0]) )) = __pyx_v_y_in;
@@ -3562,16 +3562,16 @@ static PyObject *__pyx_pf_5pymwm_4slit_5utils_10slit_utils_2ABY_cython(CYTHON_UN
     /* "pymwm/slit/utils/slit_utils.pyx":149
  *             Ys[i] = y_in
  *         else:
- *             u = csqrt(e1 * w ** 2 - h ** 2) * r / 2             # <<<<<<<<<<<<<<
+ *             u = (1 + 1j) * csqrt(-0.5j * (e1 * w ** 2 - h ** 2)) * r / 2             # <<<<<<<<<<<<<<
  *             v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r / 2
  *             if n % 2 == 0:
  */
     /*else*/ {
-      __pyx_v_u = __Pyx_c_quot(__Pyx_c_prod(csqrt(__Pyx_c_diff(__Pyx_c_prod(__pyx_v_e1, __Pyx_c_pow(__pyx_v_w, __pyx_t_double_complex_from_parts(2, 0))), __Pyx_c_pow(__pyx_v_h, __pyx_t_double_complex_from_parts(2, 0)))), __pyx_t_double_complex_from_parts(__pyx_v_r, 0)), __pyx_t_double_complex_from_parts(2, 0));
+      __pyx_v_u = __Pyx_c_quot(__Pyx_c_prod(__Pyx_c_prod(__Pyx_c_sum(__pyx_t_double_complex_from_parts(1, 0), __pyx_t_double_complex_from_parts(0, 1.0)), csqrt(__Pyx_c_prod(__Pyx_c_neg(__pyx_t_double_complex_from_parts(0, 0.5)), __Pyx_c_diff(__Pyx_c_prod(__pyx_v_e1, __Pyx_c_pow(__pyx_v_w, __pyx_t_double_complex_from_parts(2, 0))), __Pyx_c_pow(__pyx_v_h, __pyx_t_double_complex_from_parts(2, 0)))))), __pyx_t_double_complex_from_parts(__pyx_v_r, 0)), __pyx_t_double_complex_from_parts(2, 0));
 
       /* "pymwm/slit/utils/slit_utils.pyx":150
  *         else:
- *             u = csqrt(e1 * w ** 2 - h ** 2) * r / 2
+ *             u = (1 + 1j) * csqrt(-0.5j * (e1 * w ** 2 - h ** 2)) * r / 2
  *             v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r / 2             # <<<<<<<<<<<<<<
  *             if n % 2 == 0:
  *                 if s == 0:
@@ -3579,7 +3579,7 @@ static PyObject *__pyx_pf_5pymwm_4slit_5utils_10slit_utils_2ABY_cython(CYTHON_UN
       __pyx_v_v = __Pyx_c_quot(__Pyx_c_prod(__Pyx_c_prod(__Pyx_c_diff(__pyx_t_double_complex_from_parts(1, 0), __pyx_t_double_complex_from_parts(0, 1.0)), csqrt(__Pyx_c_prod(__pyx_t_double_complex_from_parts(0, 0.5), __Pyx_c_sum(__Pyx_c_prod(__Pyx_c_prod(__Pyx_c_neg(__pyx_v_e2), __pyx_v_w), __pyx_v_w), __Pyx_c_prod(__pyx_v_h, __pyx_v_h))))), __pyx_t_double_complex_from_parts(__pyx_v_r, 0)), __pyx_t_double_complex_from_parts(2, 0));
 
       /* "pymwm/slit/utils/slit_utils.pyx":151
- *             u = csqrt(e1 * w ** 2 - h ** 2) * r / 2
+ *             u = (1 + 1j) * csqrt(-0.5j * (e1 * w ** 2 - h ** 2)) * r / 2
  *             v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r / 2
  *             if n % 2 == 0:             # <<<<<<<<<<<<<<
  *                 if s == 0:
@@ -3648,7 +3648,7 @@ static PyObject *__pyx_pf_5pymwm_4slit_5utils_10slit_utils_2ABY_cython(CYTHON_UN
         __pyx_L9:;
 
         /* "pymwm/slit/utils/slit_utils.pyx":151
- *             u = csqrt(e1 * w ** 2 - h ** 2) * r / 2
+ *             u = (1 + 1j) * csqrt(-0.5j * (e1 * w ** 2 - h ** 2)) * r / 2
  *             v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r / 2
  *             if n % 2 == 0:             # <<<<<<<<<<<<<<
  *                 if s == 0:
@@ -4341,7 +4341,7 @@ static PyObject *__pyx_pf_5pymwm_4slit_5utils_10slit_utils_4uvABY_cython(CYTHON_
  *             r, e1, e2, &As[0], &Bs[0])
  *     for i in range(num_n_all):             # <<<<<<<<<<<<<<
  *         h = hs[i]
- *         u = csqrt(e1 * w ** 2 - h ** 2) * r / 2
+ *         u = (1 + 1j) * csqrt(-0.5j * (e1 * w ** 2 - h ** 2)) * r / 2
  */
   __pyx_t_18 = __pyx_v_num_n_all;
   for (__pyx_t_19 = 0; __pyx_t_19 < __pyx_t_18; __pyx_t_19+=1) {
@@ -4351,7 +4351,7 @@ static PyObject *__pyx_pf_5pymwm_4slit_5utils_10slit_utils_4uvABY_cython(CYTHON_
  *             r, e1, e2, &As[0], &Bs[0])
  *     for i in range(num_n_all):
  *         h = hs[i]             # <<<<<<<<<<<<<<
- *         u = csqrt(e1 * w ** 2 - h ** 2) * r / 2
+ *         u = (1 + 1j) * csqrt(-0.5j * (e1 * w ** 2 - h ** 2)) * r / 2
  *         v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r / 2
  */
     __pyx_t_20 = __pyx_v_i;
@@ -4360,15 +4360,15 @@ static PyObject *__pyx_pf_5pymwm_4slit_5utils_10slit_utils_4uvABY_cython(CYTHON_
     /* "pymwm/slit/utils/slit_utils.pyx":201
  *     for i in range(num_n_all):
  *         h = hs[i]
- *         u = csqrt(e1 * w ** 2 - h ** 2) * r / 2             # <<<<<<<<<<<<<<
+ *         u = (1 + 1j) * csqrt(-0.5j * (e1 * w ** 2 - h ** 2)) * r / 2             # <<<<<<<<<<<<<<
  *         v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r / 2
  *         n = n_all[i]
  */
-    __pyx_v_u = __Pyx_c_quot(__Pyx_c_prod(csqrt(__Pyx_c_diff(__Pyx_c_prod(__pyx_v_e1, __Pyx_c_pow(__pyx_v_w, __pyx_t_double_complex_from_parts(2, 0))), __Pyx_c_pow(__pyx_v_h, __pyx_t_double_complex_from_parts(2, 0)))), __pyx_t_double_complex_from_parts(__pyx_v_r, 0)), __pyx_t_double_complex_from_parts(2, 0));
+    __pyx_v_u = __Pyx_c_quot(__Pyx_c_prod(__Pyx_c_prod(__Pyx_c_sum(__pyx_t_double_complex_from_parts(1, 0), __pyx_t_double_complex_from_parts(0, 1.0)), csqrt(__Pyx_c_prod(__Pyx_c_neg(__pyx_t_double_complex_from_parts(0, 0.5)), __Pyx_c_diff(__Pyx_c_prod(__pyx_v_e1, __Pyx_c_pow(__pyx_v_w, __pyx_t_double_complex_from_parts(2, 0))), __Pyx_c_pow(__pyx_v_h, __pyx_t_double_complex_from_parts(2, 0)))))), __pyx_t_double_complex_from_parts(__pyx_v_r, 0)), __pyx_t_double_complex_from_parts(2, 0));
 
     /* "pymwm/slit/utils/slit_utils.pyx":202
  *         h = hs[i]
- *         u = csqrt(e1 * w ** 2 - h ** 2) * r / 2
+ *         u = (1 + 1j) * csqrt(-0.5j * (e1 * w ** 2 - h ** 2)) * r / 2
  *         v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r / 2             # <<<<<<<<<<<<<<
  *         n = n_all[i]
  *         s = s_all[i]
@@ -4376,7 +4376,7 @@ static PyObject *__pyx_pf_5pymwm_4slit_5utils_10slit_utils_4uvABY_cython(CYTHON_
     __pyx_v_v = __Pyx_c_quot(__Pyx_c_prod(__Pyx_c_prod(__Pyx_c_diff(__pyx_t_double_complex_from_parts(1, 0), __pyx_t_double_complex_from_parts(0, 1.0)), csqrt(__Pyx_c_prod(__pyx_t_double_complex_from_parts(0, 0.5), __Pyx_c_sum(__Pyx_c_prod(__Pyx_c_prod(__Pyx_c_neg(__pyx_v_e2), __pyx_v_w), __pyx_v_w), __Pyx_c_prod(__pyx_v_h, __pyx_v_h))))), __pyx_t_double_complex_from_parts(__pyx_v_r, 0)), __pyx_t_double_complex_from_parts(2, 0));
 
     /* "pymwm/slit/utils/slit_utils.pyx":203
- *         u = csqrt(e1 * w ** 2 - h ** 2) * r / 2
+ *         u = (1 + 1j) * csqrt(-0.5j * (e1 * w ** 2 - h ** 2)) * r / 2
  *         v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r / 2
  *         n = n_all[i]             # <<<<<<<<<<<<<<
  *         s = s_all[i]

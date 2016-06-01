@@ -166,7 +166,7 @@ cdef void coefs_C(
         en = 1 if n == 0 else 2
         h = hs[i]
         s = s_all[i]
-        u = csqrt(e1 * w * w - h * h) * r
+        u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r
         jnu = c_besselJ(n, u)
         jnpu = c_besselJp(n, u)
         v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r
@@ -251,7 +251,7 @@ def ABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
         n = n_all[i]
         en = 1 if n == 0 else 2
         h = hs[i]
-        u = csqrt(e1 * w * w - h * h) * r
+        u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r
         jnu = c_besselJ(n, u)
         jnpu = c_besselJp(n, u)
         v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r
@@ -329,7 +329,7 @@ def uvABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
         n = n_all[i]
         en = 1 if n == 0 else 2
         h = hs[i]
-        u = csqrt(e1 * w * w - h * h) * r
+        u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r
         jnu = c_besselJ(n, u)
         jnpu = c_besselJp(n, u)
         v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r

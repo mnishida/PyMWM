@@ -78,7 +78,7 @@ cdef void coefs_C(
         n = n_all[i]
         h = hs[i]
         s = s_all[i]
-        u = csqrt(e1 * w * w - h * h) * r / 2
+        u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r / 2
         v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r / 2
         uc = u.conjugate()
         vc = v.conjugate()
@@ -146,7 +146,7 @@ def ABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
         if creal(e2) < -1e6:
             Ys[i] = y_in
         else:
-            u = csqrt(e1 * w ** 2 - h ** 2) * r / 2
+            u = (1 + 1j) * csqrt(-0.5j * (e1 * w ** 2 - h ** 2)) * r / 2
             v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r / 2
             if n % 2 == 0:
                 if s == 0:
@@ -198,7 +198,7 @@ def uvABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
             r, e1, e2, &As[0], &Bs[0])
     for i in range(num_n_all):
         h = hs[i]
-        u = csqrt(e1 * w ** 2 - h ** 2) * r / 2
+        u = (1 + 1j) * csqrt(-0.5j * (e1 * w ** 2 - h ** 2)) * r / 2
         v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r / 2
         n = n_all[i]
         s = s_all[i]
