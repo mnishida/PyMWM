@@ -51,7 +51,7 @@ class Cylinder(object):
                         polarization) and "v" (vertical polarization).
         """
         from pyoptmat import Material
-        from pymwm.cylinder.samples import Samples
+        from pymwm.cylinder.samples import Samples, SamplesLowLoss
         self.r = params['core']['size']
         self.fill = Material(params['core']['fill'])
         self.clad = Material(params['clad'])
@@ -84,6 +84,7 @@ class Cylinder(object):
             num_n = params['modes']['num_n']
             p = Pool(num_n)
             betas_list = p.map(self.samples, range(num_n))
+            # betas_list = list(map(self.samples, range(num_n)))
             betas = {key: val for betas, convs in betas_list
                      for key, val in betas.items()}
             convs = {key: val for betas, convs in betas_list
@@ -91,37 +92,33 @@ class Cylinder(object):
             self.samples.save(betas, convs)
         if im_factor != 1.0:
             self.clad.im_factor = im_factor
-            pmodes['num_n'] = num_n_0
-            pmodes['num_m'] = num_m_0
-            self.samples = Samples(
+            self.samples = SamplesLowLoss(
                 self.r, self.fill, self.clad, pmodes)
-            success = False
-            for num_n, num_m in [(n, m) for n in range(num_n_0, 17)
-                                 for m in range(num_m_0, 5)]:
-                pmodes['num_n'] = num_n
-                pmodes['num_m'] = num_m
-                self.samples = Samples(
-                    self.r, self.fill, self.clad, pmodes)
-                try:
-                    betas, convs = self.samples.load()
-                    success = True
-                    break
-                except:
-                    continue
-            if not success:
+            try:
+                betas, convs = self.samples.load()
+            except:
                 self.clad.im_factor = im_factor
-                pmodes['num_n'] = num_n_0
-                pmodes['num_m'] = num_m_0
-                self.samples = Samples(
-                    self.r, self.fill, self.clad, pmodes)
-                from multiprocessing import Pool
                 num_n = params['modes']['num_n']
-                p = Pool(num_n)
-                betas_list = p.map(self.samples, range(num_n))
-                betas = {key: val for betas, convs in betas_list
-                         for key, val in betas.items()}
-                convs = {key: val for betas, convs in betas_list
-                         for key, val in convs.items()}
+                num_m = params['modes']['num_m']
+                args = []
+                for iwr in range(len(self.samples.ws)):
+                    for iwi in range(len(self.samples.wis)):
+                        xis_list = []
+                        for n in range(num_n):
+                            xis = []
+                            for i in range(num_m + 1):
+                                xis.append(
+                                    betas[('M', n, i + 1)][iwr, iwi] ** 2)
+                            for i in range(num_m):
+                                xis.append(
+                                    betas[('E', n, i + 1)][iwr, iwi] ** 2)
+                            xis_list.append(xis)
+                        args.append((iwr, iwi, xis_list))
+                from multiprocessing import Pool
+                p = Pool(16)
+                xs_success_list = p.map(self.samples, args)
+                # xs_success_list = list(map(self.samples, self.samples.args)
+                betas, convs = self.samples.betas_convs(xs_success_list)
                 self.samples.save(betas, convs)
         self.bounds = params['bounds']
         self.beta_funcs = self.samples.interpolation(betas, convs, self.bounds)

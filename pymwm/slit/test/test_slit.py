@@ -11,7 +11,7 @@ def test_attributes():
                        'fill': {'model': 'air'}},
               'clad': {'model': 'gold_dl'},
               'bounds': {'lmax': 5.0, 'lmin': 0.575, 'limag': 10.0},
-              'modes': {'num_n': 6, 'num_m': 2}}
+              'modes': {'num_n': 6}}
     wg = pymwm.create(params)
     assert_equal(wg.r, 0.15)
     w = 2 * np.pi / 5.0
@@ -26,9 +26,9 @@ def test_Yab_pec():
     import pymwm
     params = {'core': {'shape': 'slit', 'size': 0.15,
                        'fill': {'model': 'air'}},
-              'clad': {'model': 'pec', 'im_factor': 0.0},
+              'clad': {'model': 'pec'},
               'bounds': {'lmax': 5.0, 'lmin': 0.575, 'limag': 10.0},
-              'modes': {'num_n': 6, 'num_m': 2}}
+              'modes': {'num_n': 6}}
     wg = pymwm.create(params)
     w = 2 * np.pi / 5.0
     alpha1 = ('E', 1, 1)
@@ -65,7 +65,7 @@ def test_Yab_no_loss():
                        'fill': {'model': 'air'}},
               'clad': {'model': 'gold_dl', 'im_factor': 0.0},
               'bounds': {'lmax': 3.0, 'lmin': 0.575, 'limag': 10.0},
-              'modes': {'num_n': 6, 'num_m': 2}}
+              'modes': {'num_n': 6}}
     wg = pymwm.create(params)
     w = 2 * np.pi / 2.0
     alpha1 = ('E', 1, 1)
@@ -105,7 +105,7 @@ def test_Yab_with_loss():
                        'fill': {'model': 'air'}},
               'clad': {'model': 'gold_dl', 'im_factor': 1.0},
               'bounds': {'lmax': 3.0, 'lmin': 0.575, 'limag': 10.0},
-              'modes': {'num_n': 6, 'num_m': 2}}
+              'modes': {'num_n': 6}}
     wg = pymwm.create(params)
     w = 2 * np.pi / 2.0
     alpha1 = ('E', 1, 1)

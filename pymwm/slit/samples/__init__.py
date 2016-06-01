@@ -154,13 +154,13 @@ class Samples(object):
         return h2
 
     def u(self, h2, w, e1):
-        return np.sqrt(e1 * w ** 2 - h2) * self.r / 2
-        # return (1 + 1j) * np.sqrt(-0.5j * (e1 * w ** 2 - h2)) * self.r / 2
+        # return np.sqrt(e1 * w ** 2 - h2) * self.r / 2
+        return (1 + 1j) * np.sqrt(-0.5j * (e1 * w ** 2 - h2)) * self.r / 2
 
     def v(self, h2, w, e2):
-        return np.sqrt(- e2 * w ** 2 + h2) * self.r / 2
-        # return (1 - 1j) * np.sqrt(0.5j * (- e2 * w ** 2 + h2)) * self.r / 2
-        # return -1j * np.sqrt(e2 * w ** 2 - h2) * self.r / 2
+        # This definition is very important!!
+        # Other definitions can not give good results in some cases
+        return (1 - 1j) * np.sqrt(0.5j * (- e2 * w ** 2 + h2)) * self.r / 2
 
     def eigeq(self, h2, args):
         """Return the value of the characteristic equation
@@ -355,8 +355,8 @@ class Samples(object):
                 prod_denom = 1.0
                 for h2_0 in roots:
                     denom = h2 - h2_0
-                    while (abs(denom) < 1e-9):
-                        denom += 1.0e-9
+                    while (abs(denom) < 1e-14):
+                        denom += 1.0e-14
                     prod_denom *= 1.0 / denom
                 f *= prod_denom
                 f_array = np.array([f.real, f.imag])
@@ -380,10 +380,11 @@ class Samples(object):
             # v = result.x[2] + result.x[3] * 1j
             # x = e1 * w ** 2 - (2 * u / self.r) ** 2
             v = self.v(x, w, e2)
-            if pol == 'E' and abs(v.real) < abs(v.imag):
-                success.append(False)
-            else:
+            # if pol == 'E' and abs(v.real) < abs(v.imag):
+            if v.real > 0.0:
                 success.append(result.success)
+            else:
+                success.append(False)
             vals.append(x)
         return np.array(vals), success
 
@@ -407,17 +408,25 @@ class Samples(object):
         w_0 = 0.1
         e1 = self.fill(w_0)
         e2_0 = -1.0e7 + self.clad(w_0).imag * 1j
-        xs = self.beta2_pec(w_0, num_n)
+        xis = self.beta2_pec(w_0, num_n)
         de2 = (self.clad(w_0) - e2_0) / 1000
         for i in range(1001):
             e2 = e2_0 + de2 * i
-            xs, success = self.beta2(w_0, pol, num_n, e1, e2, xs)
+            xs, success = self.beta2(w_0, pol, num_n, e1, e2, xis)
+            for i, ok in enumerate(success):
+                if not ok:
+                    xs[i] = xis[i]
+            xis = xs
         dw = (self.ws[0] - w_0) / 1000
         for i in range(1001):
             w = w_0 + dw * i
             e1 = self.fill(w)
             e2 = self.clad(w)
-            xs, success = self.beta2(w, pol, num_n, e1, e2, xs)
+            xs, success = self.beta2(w, pol, num_n, e1, e2, xis)
+            for i, ok in enumerate(success):
+                if not ok:
+                    xs[i] = xis[i]
+            xis = xs
         return xs, success
 
     def beta2_wmax(self, pol, num_n):
@@ -526,55 +535,175 @@ class Samples(object):
         num_ws = len(self.ws)
         xs_array = np.zeros((num_ws, len(self.wis), num_n), dtype=complex)
         success_array = np.zeros((num_ws, len(self.wis), num_n), dtype=bool)
-        if self.clad.im_factor != 1.0:
-            im_factor = self.clad.im_factor
-            self.clad.im_factor = 1.0
-            try:
-                betas, convs = self.load()
-            except:
-                betas, convs = self.__call__(pol_num_n)
-            for iwi in range(len(self.wis)):
-                for iwr in range(num_ws):
-                    for n in range(num_n):
-                        xs_array[iwr, iwi, n] = betas[
-                            (pol, n, 1)][iwr, iwi] ** 2
-            while self.clad.im_factor != im_factor:
-                self.clad.im_factor = max(
-                    self.clad.im_factor - 0.5, im_factor)
-                for iwi in range(len(self.wis)):
-                    for iwr in range(len(self.ws)):
-                        wr = self.ws[iwr]
-                        wi = self.wis[iwi]
-                        w = wr + 1j * wi
-                        e1 = self.fill(w)
-                        e2 = self.clad(w)
-                        xs, success = self.beta2(w, pol, num_n, e1, e2,
-                                                 xs_array[iwr, iwi])
-                        xs_array[iwr, iwi] = xs
-                        success_array[iwr, iwi] = success
-        else:
-            iwi = 0
-            xs, success = self.beta2_wmin(pol, num_n)
-            xs_array[0, iwi] = xs
-            success_array[0, iwi] = success
-            for iwr in range(1, num_ws):
+        iwr = iwi = 0
+        wr = self.ws[iwr]
+        wi = self.wis[iwi]
+        w = wr + 1j * wi
+        e1 = self.fill(w)
+        e2 = self.clad(w)
+        xis, success = self.beta2_wmin(pol, num_n)
+        xs_array[iwr, iwi] = xis
+        success_array[iwr, iwi] = success
+        for iwr in range(1, len(self.ws)):
+            wr = self.ws[iwr]
+            w = wr + 1j * wi
+            e1 = self.fill(w)
+            e2 = self.clad(w)
+            xs, success = self.beta2(w, pol, num_n, e1, e2, xis)
+            for i, ok in enumerate(success):
+                # if ok:
+                #     if abs(xs[i] - xis[i]) > max(0.1 * abs(xis[i]), 5.0):
+                #         success[i] = False
+                #         xs[i] = xis[i]
+                # else:
+                if not ok:
+                    xs[i] = xis[i]
+            xs_array[iwr, iwi] = xs
+            success_array[iwr, iwi] = success
+            xis = xs
+        for iwi in range(1, len(self.wis)):
+            wi = self.wis[iwi]
+            for iwr in range(len(self.ws)):
                 wr = self.ws[iwr]
-                wi = self.wis[iwi]
                 w = wr + 1j * wi
                 e1 = self.fill(w)
                 e2 = self.clad(w)
-                xs, success = self.beta2(w, pol, num_n, e1, e2, xs)
+                if iwr == 0:
+                    xis = xs_array[iwr, iwi - 1]
+                else:
+                    xis = (xs_array[iwr, iwi - 1] +
+                           xs_array[iwr - 1, iwi] -
+                           xs_array[iwr - 1, iwi - 1])
+                xs, success = self.beta2(w, pol, num_n, e1, e2, xis)
+                for i, ok in enumerate(success):
+                    # if ok:
+                    #     if abs(xs[i] - xis[i]) > max(
+                    #             0.1 * abs(xis[i]), 5.0):
+                    #         success[i] = False
+                    #         xs[i] = xis[i]
+                    # else:
+                    if not ok:
+                        xs[i] = xis[i]
                 xs_array[iwr, iwi] = xs
                 success_array[iwr, iwi] = success
-            for iwi in range(1, len(self.wis)):
-                for iwr in range(len(self.ws)):
-                    wr = self.ws[iwr]
-                    wi = self.wis[iwi]
-                    w = wr + 1j * wi
-                    e1 = self.fill(w)
-                    e2 = self.clad(w)
-                    xs = xs_array[iwr, iwi - 1]
-                    xs, success = self.beta2(w, pol, num_n, e1, e2, xs)
-                    xs_array[iwr, iwi] = xs
-                    success_array[iwr, iwi] = success
         return self._betas_convs(pol, xs_array, success_array)
+
+
+class SamplesLowLoss(Samples):
+    """A class defining samples of phase constants of cylindrical waveguide
+    modes in a virtual low-loss clad waveguide by subclassing the Samples
+    class.
+
+    Attributes:
+        fill: An instance of Material class for the core
+        clad: An instance of Material class for the clad
+        r: A float indicating the width of the slit [um].
+        params: A dict whose keys and values are as follows:
+            'lmax': A float indicating the maximum wavelength [um]
+            'lmin': A float indicating the minimum wavelength [um]
+            'limag': A float indicating the minimum value of
+                abs(c / fimag) [um] where fimag is the imaginary part of
+                the frequency.
+            'dw': A float indicating frequency interval
+                [rad * c / 1um]=[2.99792458e14 rad / s].
+            'num_n': An integer indicating the number of orders of modes.
+        ws: A 1D array indicating the real part of the angular frequencies
+            to be calculated [rad (c / 1um)]=[2.99792458e14 rad / s].
+        wis: A 1D array indicating the imaginary part of the angular
+            frequencies to be calculated [rad * (c / 1um)].
+    """
+
+    def __init__(self, r, fill, clad, params):
+        """Init Samples class.
+
+        Args:
+            r: A float indicating the width of the slit [um].
+            fill: An instance of Material class for the core
+            clad: An instance of Material class for the clad
+            params: A dict whose keys and values are as follows:
+                'lmax': A float indicating the maximum wavelength [um]
+                    (defulat: 5.0)
+                'lmin': A float indicating the minimum wavelength [um]
+                    (defulat: 0.4)
+                'limag': A float indicating the minimum value of
+                    abs(c / fimag) [um] where fimag is the imaginary part of
+                    the frequency. (default: 5.0)
+                'dw': A float indicating frequency interval
+                    [rad c / 1um]=[2.99792458e14 rad / s] (default: 1 / 64).
+                'num_n': An integer indicating the number of orders of modes.
+                'num_m': An integer indicating the number of modes in each
+                    order and polarization.
+        """
+        super(SamplesLowLoss, self).__init__(r, fill, clad, params)
+
+    def __call__(self, args):
+        """Return a dict of the roots of the characteristic equation
+
+        Args:
+            args: A tuple (iwr, iwi, n, x0s)
+                iwr: An integer indicating the ordinal of the Re(w).
+                iwi: An integer indicating the ordinal of the Im(w).
+                xis_list: A list of num_n 1D arrays indicating the initial
+                    guess of roots whose length is 2*num_m+1
+        Returns:
+            xs_list: A list of num_n 1D arrays indicating the roots, whose
+                length is 2*num_m+1
+            success_list: A list of num_n 1D arrays indicating the convergence
+                information for xs, whose length is 2*num_m+1
+        """
+        num_n = self.params['num_n']
+        iwr, iwi, xis_list = args
+        im_factor = self.clad.im_factor
+        self.clad.im_factor = 1.0
+        wr = self.ws[iwr]
+        wi = self.wis[iwi]
+        w = wr + 1j * wi
+        e1 = self.fill(w)
+        xs_list = []
+        success_list = []
+        for i_pol, x0s in enumerate(xis_list):
+            if i_pol == 0:
+                pol = 'M'
+            else:
+                pol = 'E'
+            xis = x0s
+            for i in range(1, 16):
+                self.clad.im_factor = 0.7 ** i
+                if i == 15 or self.clad.im_factor < im_factor:
+                    self.clad.im_factor = im_factor
+                e2 = self.clad(w)
+                xs, success = self.beta2(w, pol, num_n, e1, e2, xis)
+                for i, ok in enumerate(success):
+                    if not ok:
+                        xs[i] = xis[i]
+                xis = xs
+            xs_list.append(xs)
+            success_list.append(success)
+        return xs_list, success_list
+
+    def betas_convs(self, xs_success_list):
+        num_iwr = len(self.ws)
+        num_iwi = len(self.wis)
+        num_n = self.params['num_n']
+        betas = {}
+        convs = {}
+        for n in range(num_n):
+            betas[('M', n, 1)] = np.zeros((len(self.ws), len(self.wis)),
+                                          dtype=complex)
+            convs[('M', n, 1)] = np.zeros((len(self.ws), len(self.wis)),
+                                          dtype=bool)
+            betas[('E', n, 1)] = np.zeros((len(self.ws), len(self.wis)),
+                                          dtype=complex)
+            convs[('E', n, 1)] = np.zeros((len(self.ws), len(self.wis)),
+                                          dtype=bool)
+        for iwr in range(num_iwr):
+            for iwi in range(num_iwi):
+                j = iwr * num_iwi + iwi
+                for n in range(num_n):
+                    betas[('M', n, 1)][iwr, iwi] = (
+                        self.beta_from_beta2(xs_success_list[j][0][0][n]))
+                    convs[('M', n, 1)][iwr, iwi] = xs_success_list[j][1][0][n]
+                    betas[('E', n, 1)][iwr, iwi] = (
+                        self.beta_from_beta2(xs_success_list[j][0][1])[n])
+                    convs[('E', n, 1)][iwr, iwi] = xs_success_list[j][1][1][n]
+        return betas, convs

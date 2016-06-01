@@ -3,15 +3,15 @@
 import numpy as np
 from scipy.constants import c
 import pymwm
-fmin = 2.0
-fmax = 6.0
+fmax = 5.8
+fmin = 2.8
 lmin = c * 1e-8 / fmax
 lmax = c * 1e-8 / fmin
-params = {'core': {'shape': 'cylinder', 'size': 0.15,
+params = {'core': {'shape': 'slit', 'size': 0.5,
                    'fill': {'model': 'air'}},
-          'clad': {'model': 'gold_dl'},
+          'clad': {'model': 'gold_dl', 'im_factor': 0.0},
           'bounds': {'lmax': lmax, 'lmin': lmin, 'limag': 10.0},
-          'modes': {'num_n': 6, 'num_m': 2}}
+          'modes': {'num_n': 6}}
 wg = pymwm.create(params)
 wg.plot_betas(fmin, fmax, comp='real')
 wg.plot_betas(fmin, fmax, comp='imag')

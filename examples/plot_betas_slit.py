@@ -4,7 +4,7 @@ import numpy as np
 from scipy.constants import c
 import pymwm
 lmax = 1.2
-lmin = 0.545
+lmin = 0.5
 fmin = c * 1e-8 / lmax
 fmax = c * 1e-8 / lmin
 params = {'core': {'shape': 'slit', 'size': 0.5,

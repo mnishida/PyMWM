@@ -170,29 +170,54 @@ class Samples(object):
         h2s = np.hstack((h2sM, h2sE))
         return h2s
 
+    def beta2_pec_per_mode(self, w, key):
+        """Return squares of phase constants for a PEC waveguide
+
+        Args:
+            w: A complex indicating the angular frequency
+            key: A tuple (pol, n, m) where
+                pol: 'E' or 'M' indicating the polarization.
+                n: A integer indicating the order of the mode.
+                m: A integer indicating the ordinal of the mode in the same
+                    order.
+        Returns:
+            h2s: A 1D array indicating squares of phase constants, whose first
+                num_m+1 elements are for TM-like modes and the rest are for
+                TE-like modes.
+        """
+        wcomp = w.real + 1j * w.imag
+        pol, n, m = key
+        if pol == 'M':
+            chi = jn_zeros(n, m)[-1]
+            h2 = self.fill(wcomp) * wcomp ** 2 - chi ** 2 / self.r ** 2
+        else:
+            chi = jnp_zeros(n, m)[-1]
+            h2 = self.fill(wcomp) * wcomp ** 2 - chi ** 2 / self.r ** 2
+        return h2
+
     def u(self, h2, w, e1):
-        return np.sqrt(e1 * w ** 2 - h2) * self.r
-        # return (1 + 1j) * np.sqrt(-0.5j * (e1 * w ** 2 - h2)) * self.r
+        # return np.sqrt(e1 * w ** 2 - h2) * self.r
+        return (1 + 1j) * np.sqrt(-0.5j * (e1 * w ** 2 - h2)) * self.r
 
     def v(self, h2, w, e2):
-        return np.sqrt(- e2 * w ** 2 + h2) * self.r
-        # return (1 - 1j) * np.sqrt(0.5j * (- e2 * w ** 2 + h2)) * self.r
-        # return -1j * np.sqrt(e2 * w ** 2 - h2) * self.r
+        # This definition is very important!!
+        # Other definitions can not give good results in some cases
+        return (1 - 1j) * np.sqrt(0.5j * (- e2 * w ** 2 + h2)) * self.r
 
     def eigeq(self, h2, args):
         """Return the value of the characteristic equation
 
         Args:
             h2: A complex indicating the square of the phase constant.
-            args: A tuple (w, n, e1, e2), where w indicates the angular
-                frequency, n indicates  the order of the modes, e1 indicates
-                the permittivity of the core, and e2 indicates the permittivity
-                of the clad.
+            args: A tuple (w, pol, n, e1, e2), where w indicates the angular
+                frequency, pol indicates the polarization, n indicates the
+                order of the modes, e1 indicates the permittivity of the core,
+                and e2 indicates the permittivity of the clad.
         Returns:
             val: A complex indicating the left-hand value of the characteristic
                 equation.
         """
-        w, n, e1, e2 = args
+        w, pol, n, e1, e2 = args
         h2comp = h2.real + 1j * h2.imag
         u = self.u(h2comp, w, e1)
         v = self.v(h2comp, w, e2)
@@ -202,18 +227,14 @@ class Samples(object):
         kpvs = kvp(n, v)
         te = jpus / u + kpvs * jus / (v * kvs)
         tm = e1 * jpus / u + e2 * kpvs * jus / (v * kvs)
-        val = (tm * te - h2comp * (n / w) ** 2 *
-               ((1 / u ** 2 + 1 / v ** 2) * jus) ** 2)
-        # te = jpus / (u * jus) + kpvs / (v * kvs)
-        # tm = e1 * jpus / (u * jus) + e2 * kpvs / (v * kvs)
-        # val = (tm * te - h2comp * (n / w) ** 2 *
-        #        (1 / u ** 2 + 1 / v ** 2) ** 2)
-        # x = jpus / u
-        # y = kpvs * jus / (v * kvs)
-        # val = x + (e1 + e2) / (2 * e1) * y + np.sqrt(
-        #     ((e1 - e2) / (2 * e1) * y) ** 2 +
-        #     (n * jus / w) ** 2 * h2comp / e1 * (
-        #         1 / u ** 2 + 1 / v ** 2) ** 2)
+        if n == 0:
+            if pol == 'M':
+                val = tm
+            else:
+                val = te
+        else:
+            val = (tm * te - h2comp * (n / w) ** 2 *
+                   ((1 / u ** 2 + 1 / v ** 2) * jus) ** 2)
         return val
 
     def jac(self, h2, args):
@@ -229,7 +250,7 @@ class Samples(object):
             val: A complex indicating the Jacobian of the characteristic
                 equation.
         """
-        w, n, e1, e2 = args
+        w, pol, n, e1, e2 = args
         h2comp = h2.real + 1j * h2.imag
         u = self.u(h2comp, w, e1)
         v = self.v(h2comp, w, e2)
@@ -237,31 +258,30 @@ class Samples(object):
         jpus = jvp(n, u)
         kvs = kv(n, v)
         kpvs = kvp(n, v)
-        te = jpus / u + kpvs * jus / (v * kvs)
-        tm = e1 * jpus / u + e2 * kpvs * jus / (v * kvs)
         du_dh2 = - self.r / (2 * u)
         dv_dh2 = self.r / (2 * v)
+        te = jpus / u + kpvs * jus / (v * kvs)
         dte_du = (-(u * (1 - n ** 2 / u ** 2) * jus + 2 * jpus) / u ** 2 +
                   jpus * kpvs / (v * kvs))
         dte_dv = jus * (n ** 2 * kvs ** 2 / v + v * (kvs ** 2 - kpvs ** 2) -
                         2 * kvs * kpvs) / (v ** 2 * kvs ** 2)
-        # dte_du = (n ** 2 * jus ** 2 / u - u * (jus ** 2 + jpus ** 2) -
-        #           2 * jus * jpus) / (u ** 2 * jus ** 2)
-        # dte_dv = (n ** 2 * kvs ** 2 / v + v * (kvs ** 2 - kpvs ** 2) -
-        #           2 * kvs * kpvs) / (v ** 2 * kvs ** 2)
-        # dre_dh2 = (- n ** 2 / w ** 2 * (
-        #            (1 / u ** 2 + 1 / v ** 2) -
-        #            self.r ** 2 * h2comp * (1 / u ** 4 - 1 / v ** 4)))
+        tm = e1 * jpus / u + e2 * kpvs * jus / (v * kvs)
         dtm_du = e1 * dte_du
         dtm_dv = e2 * dte_dv
-        dre_dh2 = -(n / w) ** 2 * jus * (
-            jus * (
-                (1 / u ** 2 + 1 / v ** 2) ** 2 -
-                self.r * h2comp * (1 / u ** 4 - 1 / v ** 4)) +
-            jpus * 2 * h2comp * (1 / u ** 2 + 1 / v ** 2) ** 2)
-        val = ((dte_du * du_dh2 + dte_dv * dv_dh2) * tm +
-               (dtm_du * du_dh2 + dtm_dv * dv_dh2) * te +
-               dre_dh2)
+        if n == 0:
+            if pol == 'M':
+                val = dtm_du * du_dh2 + dtm_dv * dv_dh2
+            else:
+                val = dte_du * du_dh2 + dte_dv * dv_dh2
+        else:
+            dre_dh2 = -(n / w) ** 2 * jus * (
+                jus * (
+                    (1 / u ** 2 + 1 / v ** 2) ** 2 -
+                    self.r * h2comp * (1 / u ** 4 - 1 / v ** 4)) +
+                jpus * 2 * h2comp * (1 / u ** 2 + 1 / v ** 2) ** 2)
+            val = ((dte_du * du_dh2 + dte_dv * dv_dh2) * tm +
+                   (dtm_du * du_dh2 + dtm_dv * dv_dh2) * te +
+                   dre_dh2)
         return val
 
     def func_jac(self, h2, args):
@@ -277,7 +297,7 @@ class Samples(object):
             val: 2 complexes indicating the left-hand value and Jacobian
                 of the characteristic equation.
         """
-        w, n, e1, e2 = args
+        w, pol, n, e1, e2 = args
         h2comp = h2.real + 1j * h2.imag
         u = self.u(h2comp, w, e1)
         v = self.v(h2comp, w, e2)
@@ -285,26 +305,34 @@ class Samples(object):
         jpus = jvp(n, u)
         kvs = kv(n, v)
         kpvs = kvp(n, v)
-        te = jpus / u + kpvs * jus / (v * kvs)
-        tm = e1 * jpus / u + e2 * kpvs * jus / (v * kvs)
-        f = (tm * te - h2comp * (n / w) ** 2 *
-             ((1 / u ** 2 + 1 / v ** 2) * jus) ** 2)
         du_dh2 = - self.r / (2 * u)
         dv_dh2 = self.r / (2 * v)
+        te = jpus / u + kpvs * jus / (v * kvs)
         dte_du = (-(u * (1 - n ** 2 / u ** 2) * jus + 2 * jpus) / u ** 2 +
                   jpus * kpvs / (v * kvs))
         dte_dv = jus * (n ** 2 * kvs ** 2 / v + v * (kvs ** 2 - kpvs ** 2) -
                         2 * kvs * kpvs) / (v ** 2 * kvs ** 2)
+        tm = e1 * jpus / u + e2 * kpvs * jus / (v * kvs)
         dtm_du = e1 * dte_du
         dtm_dv = e2 * dte_dv
-        dre_dh2 = -(n / w) ** 2 * jus * (
-            jus * (
-                (1 / u ** 2 + 1 / v ** 2) ** 2 -
-                self.r * h2comp * (1 / u ** 4 - 1 / v ** 4)) +
-            jpus * 2 * h2comp * (1 / u ** 2 + 1 / v ** 2) ** 2)
-        val = ((dte_du * du_dh2 + dte_dv * dv_dh2) * tm +
-               (dtm_du * du_dh2 + dtm_dv * dv_dh2) * te +
-               dre_dh2)
+        if n == 0:
+            if pol == 'M':
+                f = tm
+                val = dtm_du * du_dh2 + dtm_dv * dv_dh2
+            else:
+                f = te
+                val = dte_du * du_dh2 + dte_dv * dv_dh2
+        else:
+            f = (tm * te - h2comp * (n / w) ** 2 *
+                 ((1 / u ** 2 + 1 / v ** 2) * jus) ** 2)
+            dre_dh2 = -(n / w) ** 2 * jus * (
+                jus * (
+                    (1 / u ** 2 + 1 / v ** 2) ** 2 -
+                    self.r * h2comp * (1 / u ** 4 - 1 / v ** 4)) +
+                jpus * 2 * h2comp * (1 / u ** 2 + 1 / v ** 2) ** 2)
+            val = ((dte_du * du_dh2 + dte_dv * dv_dh2) * tm +
+                   (dtm_du * du_dh2 + dtm_dv * dv_dh2) * te +
+                   dre_dh2)
         return f, val
 
     def beta2(self, w, n, e1, e2, xis):
@@ -326,13 +354,14 @@ class Samples(object):
             success = np.ones_like(xs, dtype=bool)
             return xs, success
         from scipy.optimize import root
+        num_m = self.params['num_m']
         roots = []
         vals = []
         success = []
 
-        # def func(h2vec):
+        # def func(h2vec, args):
         #     h2 = h2vec[0] + h2vec[1] * 1j
-        #     f, ja = self.func_jac(h2, (w, n, e1, e2))
+        #     f, ja = self.func_jac(h2, args)
         #     prod_denom = 1.0
         #     sum_denom = 0.0
         #     for h2_0 in roots:
@@ -348,33 +377,36 @@ class Samples(object):
         #                          [ja.imag, ja.real]])
         #     return f_array, ja_array
 
-        def func(h2vec):
+        def func(h2vec, args):
             h2 = h2vec[0] + h2vec[1] * 1j
-            f = self.eigeq(h2, (w, n, e1, e2))
+            f = self.eigeq(h2, args)
             prod_denom = 1.0
             for h2_0 in roots:
                 denom = h2 - h2_0
-                while (abs(denom) < 1e-9):
-                    denom += 1.0e-9
+                while (abs(denom) < 1e-14):
+                    denom += 1.0e-14
                 prod_denom *= 1.0 / denom
             f *= prod_denom
             f_array = np.array([f.real, f.imag])
             return f_array
 
-        for xi in xis:
-            # result = root(func, (xi.real, xi.imag), jac=True, method='hybr',
-            #               options={'xtol': 1.0e-9})
-            result = root(func, (xi.real, xi.imag), jac=False, method='hybr',
-                          options={'xtol': 1.0e-9})
+        for i, xi in enumerate(xis):
+            if i < num_m + 1:
+                args = ((w, 'M', n, e1, e2),)
+            else:
+                args = ((w, 'E', n, e1, e2),)
+            # result = root(func, (xi.real, xi.imag), args=args, jac=True,
+            #               method='hybr', options={'xtol': 1.0e-9})
+            result = root(func, (xi.real, xi.imag), args=args, jac=False,
+                          method='hybr', options={'xtol': 1.0e-9})
             x = result.x[0] + result.x[1] * 1j
-            # v = self.v(x, w, e2)
+            v = self.v(x, w, e2)
             if result.success:
                 roots.append(x)
-            # if v.real > 0.0:
-            # if abs(v.real) > abs(v.imag):
-            success.append(result.success)
-            # else:
-            #     success.append(False)
+            if v.real > 0.0:
+                success.append(result.success)
+            else:
+                success.append(False)
             vals.append(x)
         return np.array(vals), success
 
@@ -393,19 +425,54 @@ class Samples(object):
             success = np.ones_like(xs, dtype=bool)
             return xs, success
         w_0 = 0.1
-        xs = self.beta2_pec(w_0, n)
+        xis = self.beta2_pec(w_0, n)
         e1 = self.fill(w_0)
         e2_0 = -1.0e7 + self.clad(w_0).imag * 1j
         de2 = (self.clad(w_0) - e2_0) / 1000
         for i in range(1001):
             e2 = e2_0 + de2 * i
-            xs, success = self.beta2(w_0, n, e1, e2, xs)
+            xs, success = self.beta2(w_0, n, e1, e2, xis)
+            for i, ok in enumerate(success):
+                if not ok:
+                    xs[i] = xis[i]
+            xis = xs
         dw = (self.ws[0] - w_0) / 1000
         for i in range(1001):
             w = w_0 + dw * i
             e1 = self.fill(w)
             e2 = self.clad(w)
-            xs, success = self.beta2(w, n, e1, e2, xs)
+            xs, success = self.beta2(w, n, e1, e2, xis)
+            for i, ok in enumerate(success):
+                if not ok:
+                    xs[i] = xis[i]
+            xis = xs
+        return xs, success
+
+    def beta2_wmax(self, n):
+        """Return roots and convergences of the characteristic equation at
+            the highest angular frequency, ws[-1].
+
+        Args:
+            n: A integer indicating the order of the mode
+        Returns:
+            xs: A 1D array indicating the roots, whose length is 2*num_m+1.
+            success: A 1D array indicating the convergence information for xs.
+        """
+        w = self.ws[-1]
+        xis = self.beta2_pec(w, n)
+        if self.clad.model == 'pec':
+            success = np.ones_like(xis, dtype=bool)
+            return xis, success
+        e1 = self.fill(w)
+        e2_0 = -1.0e7 + self.clad(w).imag * 1j
+        de2 = (self.clad(w) - e2_0) / 100000
+        for i in range(100001):
+            e2 = e2_0 + de2 * i
+            xs, success = self.beta2(w, n, e1, e2, xis)
+            for i, ok in enumerate(success):
+                if not ok:
+                    xs[i] = xis[i]
+            xis = xs
         return xs, success
 
     def beta_from_beta2(self, x):
@@ -488,63 +555,178 @@ class Samples(object):
                              2 * num_m + 1), dtype=complex)
         success_array = np.zeros((len(self.ws), len(self.wis),
                                   2 * num_m + 1), dtype=bool)
-        if self.clad.im_factor != 1.0:
-            im_factor = self.clad.im_factor
-            self.clad.im_factor = 1.0
-            try:
-                betas, convs = self.load()
-            except:
-                betas, convs = self.__call__(n)
-            for iwi in range(len(self.wis)):
-                for iwr in range(len(self.ws)):
-                    for i in range(num_m + 1):
-                        xs_array[iwr, iwi, i] = betas[
-                            ('M', n, i + 1)][iwr, iwi] ** 2
-                    for i in range(num_m):
-                        xs_array[iwr, iwi, i + num_m + 1] = betas[
-                            ('E', n, i + 1)][iwr, iwi] ** 2
-            while self.clad.im_factor != im_factor:
-                self.clad.im_factor = max(
-                    self.clad.im_factor - 0.5, im_factor)
-                for iwi in range(len(self.wis)):
-                    for iwr in range(len(self.ws)):
-                        wr = self.ws[iwr]
-                        wi = self.wis[iwi]
-                        w = wr + 1j * wi
-                        e1 = self.fill(w)
-                        e2 = self.clad(w)
-                        xs, success = self.beta2(w, n, e1, e2,
-                                                 xs_array[iwr, iwi])
-                        xs_array[iwr, iwi] = xs
-                        success_array[iwr, iwi] = success
-        else:
-            iwr = iwi = 0
+        iwr = iwi = 0
+        wr = self.ws[iwr]
+        wi = self.wis[iwi]
+        w = wr + 1j * wi
+        e1 = self.fill(w)
+        e2 = self.clad(w)
+        xis, success = self.beta2_wmin(n)
+        xs_array[iwr, iwi] = xis
+        success_array[iwr, iwi] = success
+        for iwr in range(1, len(self.ws)):
             wr = self.ws[iwr]
-            wi = self.wis[iwi]
             w = wr + 1j * wi
             e1 = self.fill(w)
             e2 = self.clad(w)
-            xs, success = self.beta2_wmin(n)
+            xs, success = self.beta2(w, n, e1, e2, xis)
+            for i, ok in enumerate(success):
+                # if ok:
+                #     if abs(xs[i] - xis[i]) > max(0.1 * abs(xis[i]), 5.0):
+                #         success[i] = False
+                #         xs[i] = xis[i]
+                # else:
+                if not ok:
+                    xs[i] = xis[i]
             xs_array[iwr, iwi] = xs
             success_array[iwr, iwi] = success
-            for iwr in range(1, len(self.ws)):
+            xis = xs
+        for iwi in range(1, len(self.wis)):
+            wi = self.wis[iwi]
+            for iwr in range(len(self.ws)):
                 wr = self.ws[iwr]
-                wi = self.wis[iwi]
                 w = wr + 1j * wi
                 e1 = self.fill(w)
                 e2 = self.clad(w)
-                xs, success = self.beta2(w, n, e1, e2, xs)
+                if iwr == 0:
+                    xis = xs_array[iwr, iwi - 1]
+                else:
+                    xis = (xs_array[iwr, iwi - 1] +
+                           xs_array[iwr - 1, iwi] -
+                           xs_array[iwr - 1, iwi - 1])
+                xs, success = self.beta2(w, n, e1, e2, xis)
+                for i, ok in enumerate(success):
+                    # if ok:
+                    #     if abs(xs[i] - xis[i]) > max(
+                    #             0.1 * abs(xis[i]), 5.0):
+                    #         success[i] = False
+                    #         xs[i] = xis[i]
+                    # else:
+                    if not ok:
+                        xs[i] = xis[i]
                 xs_array[iwr, iwi] = xs
                 success_array[iwr, iwi] = success
-            for iwi in range(1, len(self.wis)):
-                for iwr in range(len(self.ws)):
-                    wr = self.ws[iwr]
-                    wi = self.wis[iwi]
-                    w = wr + 1j * wi
-                    e1 = self.fill(w)
-                    e2 = self.clad(w)
-                    xs = xs_array[iwr, iwi - 1]
-                    xs, success = self.beta2(w, n, e1, e2, xs)
-                    xs_array[iwr, iwi] = xs
-                    success_array[iwr, iwi] = success
         return self._betas_convs(n, xs_array, success_array)
+
+
+class SamplesLowLoss(Samples):
+    """A class defining samples of phase constants of cylindrical waveguide
+    modes in a virtual low-loss clad waveguide by subclassing the Samples
+    class.
+
+    Attributes:
+        fill: An instance of Material class for the core
+        clad: An instance of Material class for the clad
+        r: A float indicating the width of the slit [um].
+        params: A dict whose keys and values are as follows:
+            'lmax': A float indicating the maximum wavelength [um]
+            'lmin': A float indicating the minimum wavelength [um]
+            'limag': A float indicating the minimum value of
+                abs(c / fimag) [um] where fimag is the imaginary part of
+                the frequency.
+            'dw': A float indicating frequency interval
+                [rad * c / 1um]=[2.99792458e14 rad / s].
+            'num_n': An integer indicating the number of orders of modes.
+        ws: A 1D array indicating the real part of the angular frequencies
+            to be calculated [rad (c / 1um)]=[2.99792458e14 rad / s].
+        wis: A 1D array indicating the imaginary part of the angular
+            frequencies to be calculated [rad * (c / 1um)].
+    """
+
+    def __init__(self, r, fill, clad, params):
+        """Init Samples class.
+
+        Args:
+            r: A float indicating the radius of the circular cross section [um]
+            fill: An instance of Material class for the core
+            clad: An instance of Material class for the clad
+            params: A dict whose keys and values are as follows:
+                'lmax': A float indicating the maximum wavelength [um]
+                    (defulat: 5.0)
+                'lmin': A float indicating the minimum wavelength [um]
+                    (defulat: 0.4)
+                'limag': A float indicating the minimum value of
+                    abs(c / fimag) [um] where fimag is the imaginary part of
+                    the frequency. (default: 5.0)
+                'dw': A float indicating frequency interval
+                    [rad c / 1um]=[2.99792458e14 rad / s] (default: 1 / 64).
+                'num_n': An integer indicating the number of orders of modes.
+                'num_m': An integer indicating the number of modes in each
+                    order and polarization.
+        """
+        super(SamplesLowLoss, self).__init__(r, fill, clad, params)
+
+    def __call__(self, args):
+        """Return a dict of the roots of the characteristic equation
+
+        Args:
+            args: A tuple (iwr, iwi, n, x0s)
+                iwr: An integer indicating the ordinal of the Re(w).
+                iwi: An integer indicating the ordinal of the Im(w).
+                xis_list: A list of num_n 1D arrays indicating the initial
+                    guess of roots whose length is 2*num_m+1
+        Returns:
+            xs_list: A list of num_n 1D arrays indicating the roots, whose
+                length is 2*num_m+1
+            success_list: A list of num_n 1D arrays indicating the convergence
+                information for xs, whose length is 2*num_m+1
+        """
+        iwr, iwi, xis_list = args
+        im_factor = self.clad.im_factor
+        self.clad.im_factor = 1.0
+        wr = self.ws[iwr]
+        wi = self.wis[iwi]
+        w = wr + 1j * wi
+        e1 = self.fill(w)
+        xs_list = []
+        success_list = []
+        for n, x0s in enumerate(xis_list):
+            xis = x0s
+            for i in range(1, 16):
+                self.clad.im_factor = 0.7 ** i
+                if i == 15 or self.clad.im_factor < im_factor:
+                    self.clad.im_factor = im_factor
+                e2 = self.clad(w)
+                xs, success = self.beta2(w, n, e1, e2, xis)
+                for i, ok in enumerate(success):
+                    if not ok:
+                        xs[i] = xis[i]
+                xis = xs
+            xs_list.append(xs)
+            success_list.append(success)
+        return xs_list, success_list
+
+    def betas_convs(self, xs_success_list):
+        num_iwr = len(self.ws)
+        num_iwi = len(self.wis)
+        num_n = self.params['num_n']
+        num_m = self.params['num_m']
+        betas = {}
+        convs = {}
+        for n in range(num_n):
+            for m in range(1, num_m + 2):
+                betas[('M', n, m)] = np.zeros((len(self.ws), len(self.wis)),
+                                              dtype=complex)
+                convs[('M', n, m)] = np.zeros((len(self.ws), len(self.wis)),
+                                              dtype=bool)
+            for m in range(1, num_m + 1):
+                betas[('E', n, m)] = np.zeros((len(self.ws), len(self.wis)),
+                                              dtype=complex)
+                convs[('E', n, m)] = np.zeros((len(self.ws), len(self.wis)),
+                                              dtype=bool)
+        for iwr in range(num_iwr):
+            for iwi in range(num_iwi):
+                j = iwr * num_iwi + iwi
+                for n in range(num_n):
+                    for i in range(num_m + 1):
+                        betas[('M', n, i + 1)][iwr, iwi] = (
+                            self.beta_from_beta2(xs_success_list[j][0][n][i]))
+                        convs[('M', n, i + 1)][iwr, iwi] = (
+                            xs_success_list[j][1][n][i])
+                    for i in range(num_m):
+                        betas[('E', n, i + 1)][iwr, iwi] = (
+                            self.beta_from_beta2(
+                                xs_success_list[j][0][n][i + num_m + 1]))
+                        convs[('E', n, i + 1)][iwr, iwi] = (
+                            xs_success_list[j][1][n][i + num_m + 1])
+        return betas, convs

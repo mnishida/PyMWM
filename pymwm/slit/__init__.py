@@ -49,7 +49,7 @@ class Slit(object):
                         polarization.
         """
         from pyoptmat import Material
-        from pymwm.slit.samples import Samples
+        from pymwm.slit.samples import Samples, SamplesLowLoss
         self.r = params['core']['size']
         self.fill = Material(params['core']['fill'])
         self.clad = Material(params['clad'])
@@ -87,35 +87,27 @@ class Slit(object):
             self.samples.save(betas, convs)
         if im_factor != 1.0:
             self.clad.im_factor = im_factor
-            pmodes['num_n'] = num_n_0
-            self.samples = Samples(
+            self.samples = SamplesLowLoss(
                 self.r, self.fill, self.clad, pmodes)
-            success = False
-            for num_n in [n for n in range(num_n_0, 25)]:
-                pmodes['num_n'] = num_n
-                self.samples = Samples(
-                    self.r, self.fill, self.clad, pmodes)
-                try:
-                    betas, convs = self.samples.load()
-                    success = True
-                    break
-                except:
-                    continue
-            if not success:
+            try:
+                betas, convs = self.samples.load()
+            except:
                 self.clad.im_factor = im_factor
-                pmodes['num_n'] = num_n_0
-                self.samples = Samples(
-                    self.r, self.fill, self.clad, pmodes)
-                from multiprocessing import Pool
                 num_n = params['modes']['num_n']
-                p = Pool(2)
-                betas_list = p.map(self.samples, [('M', num_n), ('E', num_n)])
-                # betas_list = list(map(self.samples,
-                #                       [('M', num_n), ('E', num_n)]))
-                betas = {key: val for betas, convs in betas_list
-                         for key, val in betas.items()}
-                convs = {key: val for betas, convs in betas_list
-                         for key, val in convs.items()}
+                args = []
+                for iwr in range(len(self.samples.ws)):
+                    for iwi in range(len(self.samples.wis)):
+                        xis_list = [
+                            [betas[('M', n, 1)][iwr, iwi] ** 2
+                             for n in range(num_n)],
+                            [betas[('E', n, 1)][iwr, iwi] ** 2
+                             for n in range(num_n)]]
+                        args.append((iwr, iwi, xis_list))
+                from multiprocessing import Pool
+                p = Pool(16)
+                xs_success_list = p.map(self.samples, args)
+                # xs_success_list = list(map(self.samples, self.samples.args)
+                betas, convs = self.samples.betas_convs(xs_success_list)
                 self.samples.save(betas, convs)
         self.bounds = params['bounds']
         self.beta_funcs = self.samples.interpolation(betas, convs, self.bounds)

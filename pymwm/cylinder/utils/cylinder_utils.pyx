@@ -169,7 +169,7 @@ cdef void coefs_C(
         u = csqrt(e1 * w * w - h * h) * r
         jnu = c_besselJ(n, u)
         jnpu = c_besselJp(n, u)
-        v = csqrt(- e2 * w * w + h * h) * r
+        v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r
         knv = c_besselK(n, v)
         knpv = c_besselKp(n, v)
         uc = u.conjugate()
@@ -254,7 +254,7 @@ def ABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
         u = csqrt(e1 * w * w - h * h) * r
         jnu = c_besselJ(n, u)
         jnpu = c_besselJp(n, u)
-        v = csqrt(- e2 * w * w + h * h) * r
+        v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r
         knv = c_besselK(n, v)
         knpv = c_besselKp(n, v)
         val_u = 2 * M_PI * r * r / en
@@ -319,7 +319,7 @@ def uvABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
                 Bs[i] = 1.0 / norm
                 Ys[i] = e1 * w / hs[i]
             us[i] = up
-            vs[i] = csqrt(- e2 * w * w + hs[i] * hs[i]) * r
+            vs[i] = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + hs[i] * hs[i])) * r
         return us_array, vs_array, As_array, Bs_array, Ys_array
     coefs_C(
         &hs[0], w, &s_all[0], &n_all[0], &m_all[0], num_n_all,
@@ -332,7 +332,7 @@ def uvABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
         u = csqrt(e1 * w * w - h * h) * r
         jnu = c_besselJ(n, u)
         jnpu = c_besselJp(n, u)
-        v = csqrt(- e2 * w * w + h * h) * r
+        v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r
         knv = c_besselK(n, v)
         knpv = c_besselKp(n, v)
         val_u = 2 * M_PI * r * r / en
