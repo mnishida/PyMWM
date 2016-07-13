@@ -16,9 +16,9 @@ extra_compile_args = ['-fPIC', '-m64', '-fopenmp', '-march=native', '-O3',
 blas_params = np.__config__.blas_opt_info
 blas_library_dirs = blas_params['library_dirs']
 blas_libraries = blas_params['libraries']
-lapack_params = np.__config__.lapack_opt_info
-lapack_library_dirs = lapack_params['library_dirs']
-lapack_libraries = lapack_params['libraries']
+# lapack_params = np.__config__.lapack_opt_info
+# lapack_library_dirs = lapack_params['library_dirs']
+# lapack_libraries = lapack_params['libraries']
 complex_bessel = os.path.join('pymwm', 'cylinder', 'utils', 'complex_bessel')
 c_complex_bessel = os.path.join('pymwm', 'cylinder', 'utils',
                                 'c_complex_bessel.cpp')
@@ -49,8 +49,10 @@ extra_link_args = [
                  'zbesh.o')
 ]
 slit_pyx = os.path.join('pymwm', 'slit', 'utils', 'slit_utils.pyx')
-library_dirs = blas_library_dirs + lapack_library_dirs
-libraries = blas_libraries + lapack_libraries + ['gfortran', 'dl', 'm']
+# library_dirs = blas_library_dirs + lapack_library_dirs
+# libraries = blas_libraries + lapack_libraries + ['gfortran', 'dl', 'm']
+library_dirs = blas_library_dirs
+libraries = blas_libraries + ['gfortran', 'dl', 'm']
 extentions = [
     Extension("pymwm.cylinder.utils.cylinder_utils",
               sources=cylinder_src,
