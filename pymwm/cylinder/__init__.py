@@ -73,7 +73,8 @@ class Cylinder(object):
                 betas, convs = self.samples.load()
                 success = True
                 break
-            except:
+            except TypeError as e:
+                print(e)
                 continue
         if not success:
             pmodes['num_n'] = num_n_0

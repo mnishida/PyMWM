@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
-import shelve
+from bsddb3 import dbshelve
 import numpy as np
 
 
@@ -69,7 +69,7 @@ class Samples(object):
         p = self.params
         return "{0}_{1}_{2}_{3}_{4}_{5}".format(
             p['lmax'], p['lmin'], p['limag'], p['dw'], p['num_n'],
-            self.clad.im_factor)
+            self.clad.im_factor).encode('utf-8')
 
     @property
     def filename(self):
@@ -114,7 +114,7 @@ class Samples(object):
         return beta_funcs
 
     def load(self):
-        s = shelve.open(self.filename, flag='r')
+        s = dbshelve.open(self.filename, 'r')
         try:
             betas = s[self.key]['betas']
             convs = s[self.key]['convs']
@@ -123,14 +123,14 @@ class Samples(object):
         return betas, convs
 
     def save(self, betas, convs):
-        s = shelve.open(self.filename)
+        s = dbshelve.open(self.filename)
         try:
             s[self.key] = {'betas': betas, 'convs': convs}
         finally:
             s.close()
 
     def delete(self):
-        s = shelve.open(self.filename)
+        s = dbshelve.open(self.filename)
         try:
             del s[self.key]
         except KeyError:

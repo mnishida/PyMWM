@@ -121,7 +121,7 @@ class Samples(object):
         return beta_funcs
 
     def load(self):
-        s = dbshelve.open(self.filename, flag='r')
+        s = dbshelve.open(self.filename, 'r')
         try:
             betas = s[self.key]['betas']
             convs = s[self.key]['convs']
