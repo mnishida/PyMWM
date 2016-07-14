@@ -101,6 +101,7 @@ setup(name='pymwm',
       install_requires=[
           'setuptools',
           'numpy',
+          'bsddb3',
           'scipy',
           'matplotlib',
           'pyoptmat',
