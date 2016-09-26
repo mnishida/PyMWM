@@ -83,12 +83,13 @@ class Cylinder(object):
             from multiprocessing import Pool
             num_n = params['modes']['num_n']
             p = Pool(num_n)
-            betas_list = p.map(self.samples, range(num_n))
+            xs_success_list = p.map(self.samples, range(num_n))
             # betas_list = list(map(self.samples, range(num_n)))
-            betas = {key: val for betas, convs in betas_list
-                     for key, val in betas.items()}
-            convs = {key: val for betas, convs in betas_list
-                     for key, val in convs.items()}
+            # betas = {key: val for betas, convs in betas_list
+            #          for key, val in betas.items()}
+            # convs = {key: val for betas, convs in betas_list
+            #          for key, val in convs.items()}
+            betas, convs = self.samples.betas_convs(xs_success_list)
             self.samples.save(betas, convs)
         if im_factor != 1.0:
             self.clad.im_factor = im_factor

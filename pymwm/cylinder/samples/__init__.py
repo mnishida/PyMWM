@@ -80,8 +80,18 @@ class Samples(object):
     def filename(self):
         dirname = os.path.join(os.path.expanduser('~'), '.pymwm')
         filename = os.path.join(dirname, 'cylinder')
-        cond = "_size_{0}_core_{1}_clad_{2}".format(
-            self.r, self.fill.model, self.clad.model)
+        if self.clad.model == 'dielectric':
+            clad = "clad_{0}_e_{1}".format(
+                self.clad.model, self.clad.params['e'])
+        else:
+            clad = "clad_{0}".format(self.clad.model)
+        if self.fill.model == 'dielectric':
+            core = "core_{0}_e_{1}".format(
+                self.fill.model, self.fill.params['e'])
+        else:
+            core = "core_{0}".format(self.fill.model)
+        cond = "_size_{0}_{1}_{2}".format(
+            self.r, core, clad)
         return filename + cond + ".db"
 
     def interpolation(self, betas, convs, bounds):
@@ -403,6 +413,7 @@ class Samples(object):
             v = self.v(x, w, e2)
             if result.success:
                 roots.append(x)
+            # if v.real > 0.0 and v.real > abs(v.imag):
             if v.real > 0.0:
                 success.append(result.success)
             else:
@@ -606,7 +617,48 @@ class Samples(object):
                         xs[i] = xis[i]
                 xs_array[iwr, iwi] = xs
                 success_array[iwr, iwi] = success
-        return self._betas_convs(n, xs_array, success_array)
+        return xs_array, success_array
+
+    def betas_convs(self, xs_success_list):
+        num_n = self.params['num_n']
+        num_m = self.params['num_m']
+        betas = {}
+        convs = {}
+        for n in range(num_n):
+            xs_array, success_array = xs_success_list[n]
+            for m in range(1, num_m + 2):
+                betas[('M', n, m)] = np.zeros((len(self.ws), len(self.wis)),
+                                              dtype=complex)
+                convs[('M', n, m)] = np.zeros((len(self.ws), len(self.wis)),
+                                              dtype=bool)
+            for m in range(1, num_m + 1):
+                betas[('E', n, m)] = np.zeros((len(self.ws), len(self.wis)),
+                                              dtype=complex)
+                convs[('E', n, m)] = np.zeros((len(self.ws), len(self.wis)),
+                                              dtype=bool)
+            for iwi in range(len(self.wis)):
+                for iwr in range(len(self.ws)):
+                    w = self.ws[iwr] + 1j * self.wis[iwi]
+                    e2 = self.clad(w)
+                    for i in range(num_m + 1):
+                        x = xs_array[iwr, iwi][i]
+                        v = self.v(x, w, e2)
+                        betas[
+                            ('M', n, i + 1)][iwr, iwi] = self.beta_from_beta2(
+                                x)
+                        convs[('M', n, i + 1)][iwr, iwi] = (
+                            success_array[iwr, iwi][i]
+                            if v.real > abs(v.imag) else False)
+                    for i in range(num_m):
+                        x = xs_array[iwr, iwi][i + num_m + 1]
+                        v = self.v(x, w, e2)
+                        betas[
+                            ('E', n, i + 1)][iwr, iwi] = self.beta_from_beta2(
+                                x)
+                        convs[('E', n, i + 1)][iwr, iwi] = (
+                            success_array[iwr, iwi][i + num_m + 1]
+                            if v.real > abs(v.imag) else False)
+        return betas, convs
 
 
 class SamplesLowLoss(Samples):
@@ -717,16 +769,23 @@ class SamplesLowLoss(Samples):
         for iwr in range(num_iwr):
             for iwi in range(num_iwi):
                 j = iwr * num_iwi + iwi
+                w = self.ws[iwr] + 1j * self.wis[iwi]
+                e2 = self.clad(w)
                 for n in range(num_n):
                     for i in range(num_m + 1):
+                        x = xs_success_list[j][0][n][i]
+                        v = self.v(x, w, e2)
                         betas[('M', n, i + 1)][iwr, iwi] = (
-                            self.beta_from_beta2(xs_success_list[j][0][n][i]))
+                            self.beta_from_beta2(x))
                         convs[('M', n, i + 1)][iwr, iwi] = (
-                            xs_success_list[j][1][n][i])
+                            xs_success_list[j][1][n][i]
+                            if v.real > abs(v.imag) else False)
                     for i in range(num_m):
+                        x = xs_success_list[j][0][n][i + num_m + 1]
+                        v = self.v(x, w, e2)
                         betas[('E', n, i + 1)][iwr, iwi] = (
-                            self.beta_from_beta2(
-                                xs_success_list[j][0][n][i + num_m + 1]))
+                            self.beta_from_beta2(x))
                         convs[('E', n, i + 1)][iwr, iwi] = (
-                            xs_success_list[j][1][n][i + num_m + 1])
+                            xs_success_list[j][1][n][i + num_m + 1]
+                            if v.real > abs(v.imag) else False)
         return betas, convs

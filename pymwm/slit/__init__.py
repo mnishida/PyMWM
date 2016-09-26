@@ -77,13 +77,14 @@ class Slit(object):
             from multiprocessing import Pool
             num_n = params['modes']['num_n']
             p = Pool(2)
-            betas_list = p.map(self.samples, [('M', num_n), ('E', num_n)])
+            xs_success_list = p.map(self.samples, [('M', num_n), ('E', num_n)])
             # betas_list = list(map(self.samples,
             #                       [('M', num_n), ('E', num_n)]))
-            betas = {key: val for betas, convs in betas_list
-                     for key, val in betas.items()}
-            convs = {key: val for betas, convs in betas_list
-                     for key, val in convs.items()}
+            # betas = {key: val for betas, convs in betas_list
+            #          for key, val in betas.items()}
+            # convs = {key: val for betas, convs in betas_list
+            #          for key, val in convs.items()}
+            betas, convs = self.samples.betas_convs(xs_success_list)
             self.samples.save(betas, convs)
         if im_factor != 1.0:
             self.clad.im_factor = im_factor
