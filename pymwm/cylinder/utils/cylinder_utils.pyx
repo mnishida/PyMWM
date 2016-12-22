@@ -47,9 +47,9 @@ cdef cdouble upart_diag(int n, cdouble uc, cdouble jnuc, cdouble jnpuc,
     u2 = u * u
     jnu2 = jnu * jnu
     jnpu2 = jnpu * jnpu
-    if cabs(uc - u) < 1e-16:
+    if cabs(uc - u) < 1e-15:
         return jnu * jnpu / u + (jnpu2 + (1.0 - n2 / u2) * jnu2) / 2.0
-    if cabs(uc + u) < 1e-16:
+    if cabs(uc + u) < 1e-15:
         return ((1 - ((n - 1) % 2) * 2) *
                 (jnu * jnpu / u + (jnpu2 + (1.0 - n2 / u2) * jnu2) / 2.0))
     return (uc * jnuc * jnpu - u * jnu * jnpuc) / (uc * uc - u2)
@@ -74,10 +74,10 @@ cdef cdouble vpart_diag(int n, cdouble vc, cdouble knvc, cdouble knpvc,
     v2 = v * v
     knv2 = knv * knv
     knpv2 = knpv * knpv
-    if cabs(vc - v) < 1e-16:
+    if cabs(vc - v) < 1e-15:
         return (knv * knpv / v +
 		(knpv2 - (1.0 + n2 / v2) * knv2) / 2.0)
-    if cabs(vc + v) < 1e-16:
+    if cabs(vc + v) < 1e-15:
         return (1 - ((n - 1) % 2) * 2) * (
             knv * knpv / v +
 	    (knpv2 - (1.0 + n2 / v2) * knv2) / 2.0)
@@ -157,6 +157,7 @@ cdef void coefs_C(
     cdef:
         int i, s, n, m, en
         double norm
+        cdouble norm2
         cdouble uc, vc, jnuc, jnpuc, knvc, knpvc, ac, bc
         cdouble h, u, v, jnu, jnpu, knv, knpv, a, b
         cdouble ab[2]
@@ -190,6 +191,9 @@ cdef void coefs_C(
         vd = vpart_diag(n, vc, knvc, knpvc, v, knv, knpv)
         uod = upart_off(n, uc, jnuc, u, jnu)
         vod = vpart_off(n, vc, knvc, v, knv)
+        norm2 = (
+            val_u * (
+                a * (ac * ud + bc * uod) + b * (bc * ud + ac * uod)))
         norm = sqrt(
             creal(val_u * (
                 a * (ac * ud + bc * uod) + b * (bc * ud + ac * uod)) -

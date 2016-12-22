@@ -196,7 +196,7 @@ class Cylinder(object):
         wr = w.real
         wi = w.imag
         hr = self.beta_funcs[(alpha, 'real')](wr, wi)[0, 0]
-        hi = self.beta_funcs[(alpha, 'imag')](wr, wi)[0, 0] + 1e-16
+        hi = self.beta_funcs[(alpha, 'imag')](wr, wi)[0, 0]
         # if hr < 0:
         #     hr = 1e-16
         # if hi < 0:
