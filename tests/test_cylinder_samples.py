@@ -45,12 +45,11 @@ def func(args):
 
 
 def test_attributes():
-    import os
     from pyoptmat import Material
     from pymwm.cylinder.samples import Samples
     params = {'core': {'shape': 'cylinder', 'size': 0.15,
-                       'fill': {'model': 'air'}},
-              'clad': {'model': 'gold_dl'},
+                       'fill': {'RI': 1.0}},
+              'clad': {'model': 'gold_dl', 'bound_check': False},
               'modes': {'lmax': 5.0, 'lmin': 0.4, 'limag': 5.0,
                         'dw': 1.0 / 64, 'num_n': 6, 'num_m': 2}}
     r = params['core']['size']
@@ -63,21 +62,16 @@ def test_attributes():
     ind_wimag = int(np.ceil(2 * np.pi / p['limag'] / p['dw']))
     ws = np.arange(ind_wmin, ind_wmax + 1) * p['dw']
     wis = -np.arange(ind_wimag + 1) * p['dw']
-    print(ws.shape, wg.ws.shape)
     npt.assert_equal(wg.ws, ws)
     npt.assert_equal(wg.wis, wis)
-    assert_equal(
-        wg.filename,
-        os.path.join(os.path.expanduser('~'), '.pymwm',
-                     "cylinder_size_0.15_core_air_clad_gold_dl.db"))
 
 
 def test_beta2_pec():
     from pyoptmat import Material
     from pymwm.cylinder.samples import Samples
     params = {'core': {'shape': 'cylinder', 'size': 0.15,
-                       'fill': {'model': 'air'}},
-              'clad': {'model': 'gold_dl'},
+                       'fill': {'RI': 1.0}},
+              'clad': {'model': 'gold_dl', 'bound_check': False},
               'modes': {'num_n': 6, 'num_m': 2}}
     r = params['core']['size']
     fill = Material(params['core']['fill'])
@@ -115,8 +109,8 @@ def test_beta2_wmin():
     from pyoptmat import Material
     from pymwm.cylinder.samples import Samples
     params = {'core': {'shape': 'cylinder', 'size': 0.15,
-                       'fill': {'model': 'air'}},
-              'clad': {'model': 'gold_dl'},
+                       'fill': {'RI': 1.0}},
+              'clad': {'model': 'gold_dl', 'bound_check': False},
               'modes': {'num_n': 6, 'num_m': 2}}
     r = params['core']['size']
     fill = Material(params['core']['fill'])
@@ -129,7 +123,7 @@ def test_beta2_wmin():
     vals = p.map(func, args)
     for n in range(6):
         h2s, success = vals[n]
-        npt.assert_almost_equal(h2s, BETAS[n] ** 2, decimal=6)
+        npt.assert_allclose(h2s, BETAS[n] ** 2, rtol=1e-6)
         # assert_equal(success, CONVS[n])
 
 
@@ -138,8 +132,8 @@ def test_db():
     from pyoptmat import Material
     from pymwm.cylinder.samples import Samples
     params = {'core': {'shape': 'cylinder', 'size': 0.15,
-                       'fill': {'model': 'air'}},
-              'clad': {'model': 'gold_dl'},
+                       'fill': {'RI': 1.0}},
+              'clad': {'model': 'gold_dl', 'bound_check': False},
               'modes': {'num_n': 6, 'num_m': 2}}
     r = params['core']['size']
     fill = Material(params['core']['fill'])
@@ -154,10 +148,10 @@ def test_db():
         betas, convs = wg.betas_convs(xs_success_list)
         wg.save(betas, convs)
     for n in range(6):
-        npt.assert_almost_equal(
+        npt.assert_allclose(
             [betas[('M', n, 1)][0, 0], betas[('M', n, 2)][0, 0],
              betas[('E', n, 1)][0, 0], betas[('E', n, 2)][0, 0]],
-            [BETAS[n][0], BETAS[n][1], BETAS[n][3], BETAS[n][4]], decimal=8)
+            [BETAS[n][0], BETAS[n][1], BETAS[n][3], BETAS[n][4]])
         print(n)
         assert_equal(
             [convs[('M', n, 1)][0, 0], convs[('M', n, 2)][0, 0],
@@ -170,8 +164,8 @@ def test_interpolation():
     from pyoptmat import Material
     from pymwm.cylinder.samples import Samples
     params = {'core': {'shape': 'cylinder', 'size': 0.15,
-                       'fill': {'model': 'air'}},
-              'clad': {'model': 'gold_dl'},
+                       'fill': {'RI': 1.0}},
+              'clad': {'model': 'gold_dl', 'bound_check': False},
               'modes': {'num_n': 6, 'num_m': 2}}
     r = params['core']['size']
     fill = Material(params['core']['fill'])

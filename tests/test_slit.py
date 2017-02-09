@@ -8,7 +8,7 @@ import numpy.testing as npt
 def test_attributes():
     import pymwm
     params = {'core': {'shape': 'slit', 'size': 0.15,
-                       'fill': {'model': 'air'}},
+                       'fill': {'RI': 1.0}},
               'clad': {'model': 'gold_dl'},
               'bounds': {'lmax': 5.0, 'lmin': 0.575, 'limag': 10.0},
               'modes': {'num_n': 6}}
@@ -17,7 +17,7 @@ def test_attributes():
     w = 2 * np.pi / 5.0
     assert_equal(wg.fill(w), 1.0)
     drude_lorentz = -1272.3749594350134+351.2507477484901j
-    npt.assert_almost_equal(wg.clad(w), drude_lorentz, decimal=7)
+    npt.assert_allclose(wg.clad(w), drude_lorentz, rtol=1e-6)
 
 
 def test_Yab_pec():
@@ -25,7 +25,7 @@ def test_Yab_pec():
     import numpy.testing as npt
     import pymwm
     params = {'core': {'shape': 'slit', 'size': 0.15,
-                       'fill': {'model': 'air'}},
+                       'fill': {'RI': 1.0}},
               'clad': {'model': 'pec'},
               'bounds': {'lmax': 5.0, 'lmin': 0.575, 'limag': 10.0},
               'modes': {'num_n': 6}}
@@ -42,19 +42,19 @@ def test_Yab_pec():
     l1 = l2 = 0
     n1 = n2 = 1
     m1 = m2 = 1
-    npt.assert_almost_equal(wg.norm(w, h1, alpha1, a1, b1), 1.0, decimal=10)
-    npt.assert_almost_equal(wg.norm(w, h2, alpha2, a2, b2), 1.0, decimal=10)
-    npt.assert_almost_equal(wg.Y(w, h1, alpha1, a1, b1), h1 / w, decimal=10)
-    npt.assert_almost_equal(wg.Y(w, h2, alpha2, a2, b2), w / h2, decimal=10)
-    npt.assert_almost_equal(
+    npt.assert_allclose(wg.norm(w, h1, alpha1, a1, b1), 1.0)
+    npt.assert_allclose(wg.norm(w, h2, alpha2, a2, b2), 1.0)
+    npt.assert_allclose(wg.Y(w, h1, alpha1, a1, b1), h1 / w)
+    npt.assert_allclose(wg.Y(w, h2, alpha2, a2, b2), w / h2)
+    npt.assert_allclose(
         wg.Yab(w, h1, s1, l1, n1, m1, a1, b1,
-               h1, s1, l1, n1, m1, a1, b1), h1 / w, decimal=10)
-    npt.assert_almost_equal(
+               h1, s1, l1, n1, m1, a1, b1), h1 / w)
+    npt.assert_allclose(
         wg.Yab(w, h2, s2, l2, n2, m2, a2, b2,
-               h2, s2, l2, n2, m2, a2, b2), w / h2, decimal=10)
-    npt.assert_almost_equal(
+               h2, s2, l2, n2, m2, a2, b2), w / h2)
+    npt.assert_allclose(
         wg.Yab(w, h1, s1, l1, n1, m1, a1, b1,
-               h2, s2, l2, n2, m2, a2, b2), 0.0, decimal=10)
+               h2, s2, l2, n2, m2, a2, b2), 0.0)
 
 
 def test_Yab_no_loss():
@@ -62,7 +62,7 @@ def test_Yab_no_loss():
     import numpy.testing as npt
     import pymwm
     params = {'core': {'shape': 'slit', 'size': 0.15,
-                       'fill': {'model': 'air'}},
+                       'fill': {'RI': 1.0}},
               'clad': {'model': 'gold_dl', 'im_factor': 0.0},
               'bounds': {'lmax': 3.0, 'lmin': 0.575, 'limag': 10.0},
               'modes': {'num_n': 6}}
@@ -80,21 +80,19 @@ def test_Yab_no_loss():
     n1 = n2 = 1
     m1 = m2 = 1
     print(a1, b1, a2, b2)
-    npt.assert_almost_equal(wg.norm(w, h1, alpha1, a1, b1), 1.0, decimal=10)
-    npt.assert_almost_equal(wg.norm(w, h2, alpha2, a2, b2), 1.0, decimal=10)
-    npt.assert_almost_equal(
+    npt.assert_allclose(wg.norm(w, h1, alpha1, a1, b1), 1.0)
+    npt.assert_allclose(wg.norm(w, h2, alpha2, a2, b2), 1.0)
+    npt.assert_allclose(
         wg.Yab(w, h1, s1, l1, n1, m1, a1, b1,
-               h1, s1, l1, n1, m1, a1, b1), wg.Y(w, h1, alpha1, a1, b1),
-        decimal=10)
-    npt.assert_almost_equal(
+               h1, s1, l1, n1, m1, a1, b1), wg.Y(w, h1, alpha1, a1, b1))
+    npt.assert_allclose(
         wg.Yab(w, h2, s2, l2, n2, m2, a2, b2,
-               h2, s2, l2, n2, m2, a2, b2), wg.Y(w, h2, alpha2, a2, b2),
-        decimal=10)
+               h2, s2, l2, n2, m2, a2, b2), wg.Y(w, h2, alpha2, a2, b2))
     print(wg.Yab(w, h1, s1, l1, n1, m1, a1, b1,
                  h2, s2, l2, n2, m2, a2, b2))
-    npt.assert_almost_equal(
+    npt.assert_allclose(
         wg.Yab(w, h1, s1, l1, n1, m1, a1, b1,
-               h2, s2, l2, n2, m2, a2, b2), 0.0, decimal=10)
+               h2, s2, l2, n2, m2, a2, b2), 0.0)
 
 
 def test_Yab_with_loss():
@@ -102,7 +100,7 @@ def test_Yab_with_loss():
     import numpy.testing as npt
     import pymwm
     params = {'core': {'shape': 'slit', 'size': 0.15,
-                       'fill': {'model': 'air'}},
+                       'fill': {'RI': 1.0}},
               'clad': {'model': 'gold_dl', 'im_factor': 1.0},
               'bounds': {'lmax': 3.0, 'lmin': 0.575, 'limag': 10.0},
               'modes': {'num_n': 6}}
@@ -119,12 +117,12 @@ def test_Yab_with_loss():
     l1 = l2 = 0
     n1 = n2 = 1
     m1 = m2 = 1
-    npt.assert_almost_equal(wg.norm(w, h1, alpha1, a1, b1), 1.0, decimal=10)
-    npt.assert_almost_equal(wg.norm(w, h2, alpha2, a2, b2), 1.0, decimal=10)
+    npt.assert_allclose(wg.norm(w, h1, alpha1, a1, b1), 1.0)
+    npt.assert_allclose(wg.norm(w, h2, alpha2, a2, b2), 1.0)
     print(wg.Yab(w, h1, s1, l1, n1, m1, a1, b1, h2, s2, l2, n2, m2, a2, b2))
-    npt.assert_almost_equal(
+    npt.assert_allclose(
         wg.Yab(w, h1, s1, l1, n1, m1, a1, b1,
-               h2, s2, l2, n2, m2, a2, b2), 0.0, decimal=10)
+               h2, s2, l2, n2, m2, a2, b2), 0.0)
 
 
 def test_Yaa_and_Y():
@@ -132,7 +130,7 @@ def test_Yaa_and_Y():
     import numpy.testing as npt
     import pymwm
     params = {'core': {'shape': 'slit', 'size': 0.15,
-                       'fill': {'model': 'air'}},
+                       'fill': {'RI': 1.0}},
               'clad': {'model': 'gold_dl', 'im_factor': 1.0},
               'bounds': {'lmax': 3.0, 'lmin': 0.575, 'limag': 10.0},
               'modes': {'num_n': 6}}
@@ -149,4 +147,4 @@ def test_Yaa_and_Y():
         Y = wg.Y(w, h, alpha, a, b)
         print(Yab)
         print(Y)
-        npt.assert_almost_equal(Yab, Y)
+        npt.assert_allclose(Yab, Y)

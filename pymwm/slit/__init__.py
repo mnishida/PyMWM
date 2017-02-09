@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+from pyoptmat import Material
+from pymwm.slit.samples import Samples, SamplesLowLoss
 from pymwm.slit.utils import coefs_cython, ABY_cython, uvABY_cython
 
 
@@ -48,11 +50,13 @@ class Slit(object):
                         In the slit case, "h" ("v") corresponds to TE (TM)
                         polarization.
         """
-        from pyoptmat import Material
-        from pymwm.slit.samples import Samples, SamplesLowLoss
         self.r = params['core']['size']
-        self.fill = Material(params['core']['fill'])
-        self.clad = Material(params['clad'])
+        p_fill = params['core']['fill'].copy()
+        p_fill['bound_check'] = False
+        p_clad = params['clad'].copy()
+        p_clad['bound_check'] = False
+        self.fill = Material(p_fill)
+        self.clad = Material(p_clad)
         im_factor = 1.0
         if self.clad.im_factor != 1.0:
             im_factor = self.clad.im_factor

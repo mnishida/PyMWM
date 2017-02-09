@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import os
-from bsddb3 import dbshelve
+from typing import Dict
 import numpy as np
 from scipy.special import jv, jvp, kv, kvp, jn_zeros, jnp_zeros
+from pymwm.waveguide import Database
 
 
 class Samples(object):
@@ -51,109 +52,53 @@ class Samples(object):
                 'num_m': An integer indicating the number of modes in each
                     order and polarization.
         """
-        dirname = os.path.join(os.path.expanduser('~'), '.pymwm')
-        if not os.path.exists(dirname):
-            os.mkdir(dirname)
+        self.shape = 'cylinder'
         self.r = r
         self.fill = fill
         self.clad = clad
         self.params = params
         p = self.params
+        self.num_all = p['num_n'] * (2 * p['num_m'] + 1)
+        self.database = Database(self.key)
+        self.ws = self.database.ws
+        self.wis = self.database.wis
+
+    @property
+    def key(self) -> Dict:
+        p = self.params
         dw = p.setdefault('dw', 1.0 / 64)
         lmax = p.setdefault('lmax', 5.0)
         lmin = p.setdefault('lmin', 0.4)
         limag = p.setdefault('limag', 5.0)
-        ind_wmin = int(np.floor(2 * np.pi / lmax / dw))
-        ind_wmax = int(np.ceil(2 * np.pi / lmin / dw))
-        ind_wimag = int(np.ceil(2 * np.pi / limag / dw))
-        self.ws = np.arange(ind_wmin, ind_wmax + 1) * dw
-        self.wis = -np.arange(ind_wimag + 1) * dw
-
-    @property
-    def key(self):
-        p = self.params
-        return "{0}_{1}_{2}_{3}_{4}_{5}_{6}".format(
-            p['lmax'], p['lmin'], p['limag'], p['dw'], p['num_n'], p['num_m'],
-            self.clad.im_factor).encode('utf-8')
-
-    @property
-    def filename(self):
-        dirname = os.path.join(os.path.expanduser('~'), '.pymwm')
-        filename = os.path.join(dirname, 'cylinder')
-        if self.clad.model == 'dielectric':
-            clad = "clad_{0}_e_{1}".format(
-                self.clad.model, self.clad.params['e'])
-        else:
-            clad = "clad_{0}".format(self.clad.model)
+        shape = self.shape
+        size = self.r
         if self.fill.model == 'dielectric':
-            core = "core_{0}_e_{1}".format(
-                self.fill.model, self.fill.params['e'])
+            core = "RI_{}".format(self.fill.params['RI'])
         else:
-            core = "core_{0}".format(self.fill.model)
-        cond = "_size_{0}_{1}_{2}".format(
-            self.r, core, clad)
-        return filename + cond + ".db"
-
-    def interpolation(self, betas, convs, bounds):
-        from scipy.interpolate import RectBivariateSpline
-        lmax = bounds['lmax']
-        lmin = bounds['lmin']
-        limag = bounds['limag']
-        wr_min = 2 * np.pi / lmax
-        wr_max = 2 * np.pi / lmin
-        wi_min = -2 * np.pi / limag
-        num_n = self.params['num_n']
-        num_m = self.params['num_m']
-        ws = self.ws
-        wis = self.wis[::-1]
-        beta_funcs = {}
-        for pol in ['M', 'E']:
-            for n in range(num_n):
-                for m in range(1, num_m + 1):
-                    alpha = (pol, n, m)
-                    imin = np.searchsorted(ws, wr_min, side='right') - 1
-                    imax = np.searchsorted(ws, wr_max)
-                    jmin = np.searchsorted(wis, wi_min, side='right') - 1
-                    if imin == -1 or imax == len(self.ws) or jmin == -1:
-                        print(imin, imax, jmin, len(self.ws))
-                        raise ValueError("exceed data bounds")
-                    conv = convs[alpha][:, ::-1]
-                    if np.all(conv[imin: imax + 1, jmin:]):
-                        data = betas[alpha][:, ::-1]
-                        beta_funcs[(alpha, 'real')] = RectBivariateSpline(
-                            ws[imin: imax + 1], wis[jmin:],
-                            data.real[imin: imax + 1, jmin:],
-                            kx=3, ky=3)
-                        beta_funcs[(alpha, 'imag')] = RectBivariateSpline(
-                            ws[imin: imax + 1], wis[jmin:],
-                            data.imag[imin: imax + 1, jmin:],
-                            kx=3, ky=3)
-        return beta_funcs
+            core = "{0}".format(self.fill.model)
+        if self.clad.model == 'dielectric':
+            clad = "RI_{}".format(self.clad.params['RI'])
+        else:
+            clad = "{0}".format(self.clad.model)
+        num_n = p['num_n']
+        num_m = p['num_m']
+        num_all = self.num_all
+        im_factor = self.clad.im_factor
+        d = dict((
+            ('shape', shape), ('size', size), ('core', core), ('clad', clad),
+            ('lmax', lmax), ('lmin', lmin), ('limag', limag),
+            ('dw', dw), ('num_n', num_n), ('num_m', num_m),
+            ('num_all', num_all), ('im_factor', im_factor)))
+        return d
 
     def load(self):
-        s = dbshelve.open(self.filename, 'r')
-        try:
-            betas = s[self.key]['betas']
-            convs = s[self.key]['convs']
-        finally:
-            s.close()
-        return betas, convs
+        return self.database.load()
 
     def save(self, betas, convs):
-        s = dbshelve.open(self.filename)
-        try:
-            s[self.key] = {'betas': betas, 'convs': convs}
-        finally:
-            s.close()
+        self.database.save(betas, convs)
 
-    def delete(self):
-        s = dbshelve.open(self.filename)
-        try:
-            del s[self.key]
-        except KeyError:
-            print("KeyError: not exists")
-        finally:
-            s.close()
+    def interpolation(self, betas, convs, bounds):
+        return self.database.interpolation(betas, convs, bounds)
 
     def beta2_pec(self, w, n):
         """Return squares of phase constants for a PEC waveguide

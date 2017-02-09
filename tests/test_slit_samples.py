@@ -34,7 +34,7 @@ def test_attributes():
     from pyoptmat import Material
     from pymwm.slit.samples import Samples
     params = {'core': {'shape': 'slit', 'size': 0.15,
-                       'fill': {'model': 'air'}},
+                       'fill': {'RI': 1.0}},
               'clad': {'model': 'gold_dl'},
               'modes': {'lmax': 5.0, 'lmin': 0.4, 'limag': 5.0,
                         'dw': 1.0 / 64, 'num_n': 6}}
@@ -51,10 +51,6 @@ def test_attributes():
     print(ws.shape, wg.ws.shape)
     npt.assert_equal(wg.ws, ws)
     npt.assert_equal(wg.wis, wis)
-    assert_equal(
-        wg.filename,
-        os.path.join(os.path.expanduser('~'), '.pymwm',
-                     "slit_size_0.15_core_air_clad_gold_dl.db"))
 
 
 def beta2_pec(w, n, e1, r):
@@ -66,7 +62,7 @@ def test_beta2_pec():
     from pyoptmat import Material
     from pymwm.slit.samples import Samples
     params = {'core': {'shape': 'slit', 'size': 0.3,
-                       'fill': {'model': 'air'}},
+                       'fill': {'RI': 1.0}},
               'clad': {'model': 'gold_dl'},
               'modes': {'num_n': 6}}
     r = params['core']['size']
@@ -75,7 +71,7 @@ def test_beta2_pec():
     wg = Samples(r, fill, clad, params['modes'])
     w = 2 * np.pi / 5.0
     pec = beta2_pec(w, np.arange(6), fill(w), 0.3)
-    npt.assert_almost_equal(wg.beta2_pec(w, 6), pec, decimal=8)
+    npt.assert_allclose(wg.beta2_pec(w, 6), pec)
 
 
 def test_beta2_wmin():
@@ -83,8 +79,8 @@ def test_beta2_wmin():
     from pyoptmat import Material
     from pymwm.slit.samples import Samples
     params = {'core': {'shape': 'slit', 'size': 0.3,
-                       'fill': {'model': 'air'}},
-              'clad': {'model': 'gold_dl'},
+                       'fill': {'RI': 1.0}},
+              'clad': {'model': 'gold_dl', 'bound_check': False},
               'modes': {'num_n': 6}}
     r = params['core']['size']
     fill = Material(params['core']['fill'])
@@ -98,7 +94,7 @@ def test_beta2_wmin():
     for i in range(2):
         h2s, success = vals[i]
         for j in range(6):
-            npt.assert_almost_equal(h2s[j], BETAS[i][j] ** 2, decimal=6)
+            npt.assert_allclose(h2s[j], BETAS[i][j] ** 2, rtol=1e-6)
             # assert_equal(success[j], CONVS[i][j])
 
 
@@ -107,7 +103,7 @@ def test_db():
     from pyoptmat import Material
     from pymwm.slit.samples import Samples
     params = {'core': {'shape': 'slit', 'size': 0.3,
-                       'fill': {'model': 'air'}},
+                       'fill': {'RI': 1.0}},
               'clad': {'model': 'gold_dl'},
               'modes': {'num_n': 6}}
     r = params['core']['size']
@@ -123,9 +119,9 @@ def test_db():
         betas, convs = wg.betas_convs(xs_success_list)
         wg.save(betas, convs)
     for n in range(6):
-        npt.assert_almost_equal(
+        npt.assert_allclose(
             [betas[('M', n, 1)][0, 0], betas[('E', n, 1)][0, 0]],
-            [BETAS[0][n], BETAS[1][n]], decimal=8)
+            [BETAS[0][n], BETAS[1][n]])
         assert_equal(
             [convs[('M', n, 1)][0, 0], convs[('E', n, 1)][0, 0]],
             [CONVS[0][n], CONVS[1][n]])
@@ -136,7 +132,7 @@ def test_interpolation():
     from pyoptmat import Material
     from pymwm.slit.samples import Samples
     params = {'core': {'shape': 'slit', 'size': 0.3,
-                       'fill': {'model': 'air'}},
+                       'fill': {'RI': 1.0}},
               'clad': {'model': 'gold_dl'},
               'modes': {'num_n': 6}}
     r = params['core']['size']
@@ -153,51 +149,51 @@ def test_interpolation():
         wg.save(betas, convs)
     beta_funcs = wg.interpolation(
         betas, convs, bounds={'lmax': 3.0, 'lmin': 0.575, 'limag': 10.0})
-    npt.assert_almost_equal(
+    npt.assert_allclose(
         beta_funcs[(('M', 0, 1), 'real')](2 * np.pi, 0.0)[0, 0],
-        6.78093154, decimal=8)
-    npt.assert_almost_equal(
+        6.78093154)
+    npt.assert_allclose(
         beta_funcs[(('M', 0, 1), 'imag')](2 * np.pi, 0.0)[0, 0],
-        0.01839788, decimal=8)
-    npt.assert_almost_equal(
+        0.01839788)
+    npt.assert_allclose(
         beta_funcs[(('M', 1, 1), 'real')](2 * np.pi, 0.0)[0, 0],
-        0.02905019, decimal=8)
-    npt.assert_almost_equal(
+        0.02905019)
+    npt.assert_allclose(
         beta_funcs[(('M', 1, 1), 'imag')](2 * np.pi, 0.0)[0, 0],
-        7.60162343, decimal=8)
-    npt.assert_almost_equal(
+        7.60162343)
+    npt.assert_allclose(
         beta_funcs[(('M', 2, 1), 'real')](2 * np.pi, 0.0)[0, 0],
-        0.00734511, decimal=8)
-    npt.assert_almost_equal(
+        0.00734511, rtol=1e-6)
+    npt.assert_allclose(
         beta_funcs[(('M', 2, 1), 'imag')](2 * np.pi, 0.0)[0, 0],
-        19.70308619, decimal=8)
-    npt.assert_almost_equal(
+        19.70308619)
+    npt.assert_allclose(
         beta_funcs[(('M', 3, 1), 'real')](2 * np.pi, 0.0)[0, 0],
-        -0.00016907, decimal=8)
-    npt.assert_almost_equal(
+        -0.00016907, rtol=1e-4)
+    npt.assert_allclose(
         beta_funcs[(('M', 3, 1), 'imag')](2 * np.pi, 0.0)[0, 0],
-        30.64071297, decimal=8)
-    npt.assert_almost_equal(
+        30.64071297)
+    npt.assert_allclose(
         beta_funcs[(('E', 1, 1), 'real')](2 * np.pi, 0.0)[0, 0],
-        0.05963503, decimal=8)
-    npt.assert_almost_equal(
+        0.05963503)
+    npt.assert_allclose(
         beta_funcs[(('E', 1, 1), 'imag')](2 * np.pi, 0.0)[0, 0],
-        6.53937945, decimal=8)
-    npt.assert_almost_equal(
+        6.53937945)
+    npt.assert_allclose(
         beta_funcs[(('E', 2, 1), 'real')](2 * np.pi, 0.0)[0, 0],
-        0.09734932, decimal=8)
-    npt.assert_almost_equal(
+        0.09734932)
+    npt.assert_allclose(
         beta_funcs[(('E', 2, 1), 'imag')](2 * np.pi, 0.0)[0, 0],
-        16.95279102, decimal=8)
-    npt.assert_almost_equal(
+        16.95279102)
+    npt.assert_allclose(
         beta_funcs[(('E', 3, 1), 'real')](2 * np.pi, 0.0)[0, 0],
-        0.15859949, decimal=8)
-    npt.assert_almost_equal(
+        0.15859949)
+    npt.assert_allclose(
         beta_funcs[(('E', 3, 1), 'imag')](2 * np.pi, 0.0)[0, 0],
-        26.20793155, decimal=8)
-    # npt.assert_almost_equal(
+        26.20793155)
+    # npt.assert_allclose(
     #     beta_funcs[(('E', 4, 1), 'real')](2 * np.pi, 0.0)[0, 0],
-    #     0.26532169, decimal=8)
-    # npt.assert_almost_equal(
+    #     0.26532169)
+    # npt.assert_allclose(
     #     beta_funcs[(('E', 4, 1), 'imag')](2 * np.pi, 0.0)[0, 0],
-    #     34.9463874, decimal=8)
+    #     34.9463874)

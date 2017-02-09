@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from scipy.special import jv, jvp, kv, kvp, jn_zeros, jnp_zeros
+from pyoptmat import Material
+from pymwm.cylinder.samples import Samples, SamplesLowLoss
 from pymwm.cylinder.utils import coefs_cython, ABY_cython, uvABY_cython
-
 
 class Cylinder(object):
     """A class defining a cylindrical waveguide.
@@ -50,11 +51,13 @@ class Cylinder(object):
                     'ls': A list of characters chosen from "h" (horizontal
                         polarization) and "v" (vertical polarization).
         """
-        from pyoptmat import Material
-        from pymwm.cylinder.samples import Samples, SamplesLowLoss
         self.r = params['core']['size']
-        self.fill = Material(params['core']['fill'])
-        self.clad = Material(params['clad'])
+        p_fill = params['core']['fill'].copy()
+        p_fill['bound_check'] = False
+        p_clad = params['clad'].copy()
+        p_clad['bound_check'] = False
+        self.fill = Material(p_fill)
+        self.clad = Material(p_clad)
         im_factor = 1.0
         if self.clad.im_factor != 1.0:
             im_factor = self.clad.im_factor
@@ -81,9 +84,8 @@ class Cylinder(object):
             self.samples = Samples(
                 self.r, self.fill, self.clad, pmodes)
             from multiprocessing import Pool
-            num_n = params['modes']['num_n']
-            p = Pool(num_n)
-            xs_success_list = p.map(self.samples, range(num_n))
+            p = Pool(num_n_0)
+            xs_success_list = p.map(self.samples, range(num_n_0))
             # betas_list = list(map(self.samples, range(num_n)))
             # betas = {key: val for betas, convs in betas_list
             #          for key, val in betas.items()}
