@@ -1,73 +1,76 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Any
 import abc
 from collections import OrderedDict
 import numpy as np
+from scipy.constants import c
 import pandas as pd
 from pandas import DataFrame
+import matplotlib.pyplot as plt
 from pyoptmat import Material
 
 
-class Waveguide(metaclass=abc.ABCMeta):
-    """A class defining a waveguide."""
-
-    @abc.abstractproperty
-    def fill(self) -> Material:
-        pass
-
-    @abc.abstractproperty
-    def clad(self) -> Material:
-        pass
-
-    @abc.abstractproperty
-    def r(self) -> float:
-        pass
-
-    @abc.abstractproperty
-    def samples(self):
-        pass
-
-    @abc.abstractproperty
-    def fill(self):
-        pass
-
-    @abc.abstractproperty
-    def clad(self):
-        pass
-
-
 class Sampling(metaclass=abc.ABCMeta):
-    """A class provides sampling methods."""
+    """A class provides sampling methods.
+
+    Attributes:
+        fill: An instance of Material class for the core
+        clad: An instance of Material class for the clad
+        size: A float indicating the size of core [um].
+        size2: A float indicating the optional size of core [um].
+        params: A dict whose keys and values are as follows:
+            'wl_max': A float indicating the maximum wavelength [um]
+            'wl_min': A float indicating the minimum wavelength [um]
+            'wl_imag': A float indicating the minimum value of
+                abs(c / f_imag) [um] where f_imag is the imaginary part of
+                the frequency.
+            'dw': A float indicating frequency interval
+                [rad * c / 1um]=[2.99792458e14 rad / s].
+            'num_n': An integer indicating the number of orders of modes.
+            'num_m': An integer indicating the number of modes in each
+                order and polarization.
+        ws: A 1D array indicating the real part of the angular frequencies
+            to be calculated [rad (c / 1um)]=[2.99792458e14 rad / s].
+        wis: A 1D array indicating the imaginary part of the angular
+            frequencies to be calculated [rad * (c / 1um)].
+    """
 
     @abc.abstractmethod
-    def __init__(self):
-        self.shape = None
-        self.r = None
-        self.num_all = None
+    def __init__(self, size: float, fill: Material, clad: Material,
+                 params: Dict, size2: float = 0.0):
+        self.size = size
+        self.size2 = size2
+        self.fill = fill
+        self.clad = clad
+        self.params = params
+        self.database = Database(self.key)
+        self.ws = self.database.ws
+        self.wis = self.database.wis
 
     @abc.abstractproperty
-    def fill(self):
+    def shape(self):
         pass
 
     @abc.abstractproperty
-    def clad(self):
+    def num_all(self):
         pass
 
-    @abc.abstractproperty
-    def params(self):
+    @abc.abstractmethod
+    def __call__(self, arg: Any) -> Tuple:
         pass
 
     @property
     def key(self) -> Dict:
         p = self.params
         dw = p.setdefault('dw', 1.0 / 64)
-        lmax = p.setdefault('lmax', 5.0)
-        lmin = p.setdefault('lmin', 0.4)
-        limag = p.setdefault('limag', 5.0)
+        wl_max = p.setdefault('wl_max', 5.0)
+        wl_min = p.setdefault('wl_min', 0.4)
+        wl_imag = p.setdefault('wl_imag', 5.0)
         shape = self.shape
-        size = self.r
+        size = self.size
+        size2 = self.size2
         if self.fill.model == 'dielectric':
             core = "RI_{}".format(self.fill.params['RI'])
         else:
@@ -81,11 +84,504 @@ class Sampling(metaclass=abc.ABCMeta):
         num_all = self.num_all
         im_factor = self.clad.im_factor
         d = dict((
-            ('shape', shape), ('size', size), ('core', core), ('clad', clad),
-            ('lmax', lmax), ('lmin', lmin), ('limag', limag),
-            ('dw', dw), ('num_n', num_n), ('num_m', num_m),
-            ('num_all', num_all), ('im_factor', im_factor)))
+            ('shape', shape), ('size', size), ('size2', size2), ('core', core),
+            ('clad', clad), ('wl_max', wl_max), ('wl_min', wl_min),
+            ('wl_imag', wl_imag), ('dw', dw), ('num_n', num_n),
+            ('num_m', num_m), ('num_all', num_all), ('im_factor', im_factor)))
         return d
+
+    def plot_convs(self, convs, alpha):
+        x, y = np.meshgrid(self.ws, self.wis, indexing='ij')
+        z = convs[alpha]
+        plt.pcolormesh(x, y, z)
+        plt.colorbar()
+        plt.show()
+
+    def plot_real_betas(self, betas, alpha):
+        x, y = np.meshgrid(self.ws, self.wis, indexing='ij')
+        z = betas[alpha]
+        plt.pcolormesh(x, y, z.real)
+        plt.colorbar()
+        plt.show()
+
+    def plot_imag_betas(self, betas, alpha):
+        x, y = np.meshgrid(self.ws, self.wis, indexing='ij')
+        z = betas[alpha]
+        plt.pcolormesh(x, y, z.imag)
+        plt.colorbar()
+        plt.show()
+
+
+class Waveguide(metaclass=abc.ABCMeta):
+    """A class defining a abstract waveguide.
+
+     Attributes:
+        fill: An instance of Material class for the core
+        clad: An instance of Material class for the clad
+        r: A float indicating the radius of the circular cross section [um].
+    """
+
+    @abc.abstractmethod
+    def __init__(self, params: Dict):
+        """Init abstract Waveguide class.
+
+        Args:
+            params: A dict whose keys and values are as follows:
+                'core': A dict of the setting parameters of the core:
+                    'shape': A string indicating the shape of the core.
+                    'size': A float indicating the radius of the circular cross
+                        section [um].
+                    'fill': A dict of the parameters of the core Material.
+                'clad': A dict of the parameters of the clad Material.
+                'bounds': A dict indicating the bounds of database.interpolation
+                    and its keys and values are as follows:
+                    'wl_max': A float indicating the maximum wavelength [um]
+                    'wl_min': A float indicating the minimum wavelength [um]
+                    'wl_imag': A float indicating the maximum value of
+                        abs(c / f_imag) [um] where f_imag is the imaginary part
+                        of the frequency.
+                'modes': A dict of the settings for calculating modes:
+                    'wl_max': A float indicating the maximum wavelength [um]
+                        (default: 5.0)
+                    'wl_min': A float indicating the minimum wavelength [um]
+                        (default: 0.4)
+                    'wl_imag': A float indicating the maximum value of
+                        abs(c / f_imag) [um] where f_imag is the imaginary part
+                        of the frequency. (default: 5.0)
+                    'dw': A float indicating frequency interval
+                        [rad c / 1um]=[2.99792458e14 rad / s]
+                        (default: 1 / 64).
+                    'num_n': An integer indicating the number of orders of
+                        modes.
+                    'num_m': An integer indicating the number of modes in each
+                        order and polarization.
+                    'ls': A list of characters chosen from "h" (horizontal
+                        polarization) and "v" (vertical polarization).
+        """
+        self.r = params['core']['size']
+        p_fill = params['core']['fill'].copy()
+        p_fill['bound_check'] = False
+        p_clad = params['clad'].copy()
+        p_clad['bound_check'] = False
+        self.fill = Material(p_fill)
+        self.clad = Material(p_clad)
+        self.num_n = params['modes']['num_n']
+        self.num_m = params['modes']['num_n']
+        self.bounds = params['bounds']
+        self.ls = params['modes'].get('ls', ['h', 'v'])
+        betas, convs, self.samples = self.betas_convs_samples(params)
+        self.beta_funcs = self.samples.database.interpolation(
+            betas, convs, self.bounds)
+
+        self.alpha_list = []
+        alpha_candidates = params['modes'].get('alphas', None)
+        for alpha, comp in self.beta_funcs.keys():
+            if comp == 'real':
+                if alpha_candidates is not None:
+                    if alpha in alpha_candidates:
+                        self.alpha_list.append(alpha)
+                else:
+                    self.alpha_list.append(alpha)
+        self.alpha_list.sort()
+        self.alphas = self.get_alphas()
+
+        self.alpha_all = [alpha for l in self.ls for alpha in self.alphas[l]]
+        self.l_all = np.array(
+            [0 if l == 'h' else 1
+             for l in self.ls for _ in self.alphas[l]])
+        self.s_all = np.array(
+            [0 if pol == 'E' else 1
+             for l in self.ls for pol, n, m in self.alphas[l]])
+        self.n_all = np.array(
+            [n for l in self.ls for pol, n, m in self.alphas[l]])
+        self.m_all = np.array(
+            [m for l in self.ls for pol, n, m in self.alphas[l]])
+        self.num_n_all = self.n_all.shape[0]
+
+    @abc.abstractmethod
+    def get_alphas(self) -> Dict:
+        pass
+
+    @abc.abstractmethod
+    def betas_convs_samples(
+            self, params: Dict) -> Tuple[np.ndarray, np.ndarray, Sampling]:
+        pass
+
+    @abc.abstractmethod
+    def beta(self, w: complex, alpha: Tuple[str, int, int]) -> complex:
+        pass
+
+    @abc.abstractmethod
+    def beta_pec(self, w: complex, alpha: Tuple[str, int, int]) -> complex:
+        pass
+
+    @abc.abstractmethod
+    def coef(self, h: complex, w: complex,
+             alpha: Tuple[str, int, int]) -> Tuple:
+        pass
+
+    @abc.abstractmethod
+    def fields(self, x: float, y: float, w: complex, l: str,
+               alpha: Tuple[str, int, int], h: complex,
+               coef: Tuple) -> np.ndarray:
+        """Return the field vectors for the specified mode and point
+
+        Args:
+            x: The x coordinate [um].
+            y: The y coordinate [um].
+            w: The angular frequency.
+            l: "h" (horizontal polarization) or "v" (vertical polarization)
+            alpha: (pol, n, m)
+                pol: 'M' (TM-like mode) or 'E' (TE-like mode).
+                n: The order of the mode.
+                m: The sub order of the mode.
+            h: The complex phase constant.
+            coef: The coefficients of TE- and TM- components
+        Returns:
+            f_vec: An array of complexes [ex, ey, ez, hx, hy, hz].
+        """
+        pass
+
+    @abc.abstractmethod
+    def e_field(self, x: float, y: float, w: complex, l: str,
+                alpha: Tuple[str, int, int], h: complex,
+                coef: Tuple) -> np.ndarray:
+        """Return the field vectors for the specified mode and point
+
+        Args:
+            x: The x coordinate [um].
+            y: The y coordinate [um].
+            l: "h" (horizontal polarization) or "v" (vertical polarization)
+            w: The angular frequency.
+            alpha: (pol, n, m)
+                pol: 'M' (TM-like mode) or 'E' (TE-like mode).
+                n: The order of the mode.
+                m: The sub order of the mode.
+            h: The complex phase constant.
+            coef: The coefficients of TE- and TM- components
+        Returns:
+            e_vec: An array of complexes [ex, ey, ez].
+        """
+        pass
+
+    @abc.abstractmethod
+    def h_field(self, x: float, y: float, w: complex, l: str,
+                alpha: Tuple[str, int, int], h: complex,
+                coef: Tuple) -> np.ndarray:
+        """Return the field vectors for the specified mode and point
+
+        Args:
+            x: The x coordinate [um].
+            y: The y coordinate [um].
+            w: The angular frequency.
+            l: "h" (horizontal polarization) or "v" (vertical polarization)
+            alpha: (pol, n, m)
+                pol: 'M' (TM-like mode) or 'E' (TE-like mode).
+                n: The order of the mode.
+                m: The sub order of the mode.
+            h: The complex phase constant.
+            coef: The coefficients of TE- and TM- components
+        Returns:
+            h_vec: An array of complexes [hx, hy, hz].
+        """
+        pass
+
+    def plot_beta(self, alpha: Tuple[str, int, int], wl_max: float = 1.0,
+                  wl_min: float = 0.4, wi: float = 0.0, comp: str = 'imag',
+                  nw: int = 128):
+        """Plot propagation constants as a function of frequency (wavelength).
+
+        Args:
+            alpha: (pol, n, m)
+                pol: 'E' (TE-like mode) or 'M' (TM-like mode).
+                n: The order of the mode.
+                m: The sub order of the mode.
+            wl_max: The maximum wavelength [um].
+            wl_min: The minimum wavelength [um].
+            wi: The imaginary part of angular frequency.
+            comp: "real" (phase constants) or "imag" (attenuation constants).
+            nw: The number of calculational points within the frequency range.
+        """
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        freq_min = c * 1e-8 / wl_max
+        freq_max = c * 1e-8 / wl_min
+        fs = np.linspace(freq_min, freq_max, nw + 1)
+        ws = 2 * np.pi / (c * 1e-8) * fs
+        pol, n, m = alpha
+        label = r"{}$_{}{}$".format(pol, n, m)
+        if comp == 'real':
+            hs = [self.beta(wr + 1j * wi, alpha).real for wr in ws]
+        elif comp == 'imag':
+            hs = [self.beta(wr + 1j * wi, alpha).imag for wr in ws]
+        elif comp == 'gamma2':
+            hs = []
+            for wr in ws:
+                w = wr + 1j * wi
+                hs.append(
+                    (self.beta(w, alpha).real -
+                     self.clad(w) * w ** 2).real)
+        else:
+            raise ValueError("comp must be 'real', 'imag' or 'gamma2'.")
+        ax.plot(fs, hs, "k-", linewidth=2)
+        ax.plot(fs[::4], hs[::4], label=label,
+                linestyle="None", color="k", markersize=8,
+                markeredgewidth=2, linewidth=2)
+        pol, n, m = alpha
+        if comp == 'real':
+            hs_pec = [self.beta_pec(wr + 1j * wi, alpha).real for wr in ws]
+        elif comp == 'imag':
+            hs_pec = [self.beta_pec(wr + 1j * wi, alpha).imag for wr in ws]
+        elif comp == 'gamma2':
+            hs_pec = []
+            for wr in ws:
+                w = wr + 1j * wi
+                hs_pec.append(
+                    (self.beta_pec(w, alpha).real -
+                     self.clad(w) * w ** 2).real)
+        else:
+            raise ValueError("comp must be 'real', 'imag' or 'gamma2'.")
+        if pol == 'M' and m == 1:
+            ax.plot(fs, hs_pec, "b-", linewidth=2)
+            ax.plot(fs[::4], hs_pec[::4], label="PEC{0}".format(n),
+                    markerfacecolor='b',
+                    linestyle="None", color="b", markersize=8,
+                    markeredgewidth=2, linewidth=2)
+        ax.set_xlim(fs[0], fs[-1])
+        ax.set_xlabel(r'$\nu$ $[\mathrm{100THz}]$', size=20)
+        if comp == 'imag':
+            ax.set_ylabel(r'attenuation constant', size=20)
+        else:
+            ax.set_ylabel(r'phase constant', size=20)
+        plt.tick_params(labelsize=18)
+        plt.legend(bbox_to_anchor=(1.02, 1), loc=2, borderaxespad=0.)
+        fig.subplots_adjust(left=0.11, right=0.83, bottom=0.12, top=0.97)
+        plt.show()
+
+    def plot_e_field(self, w: complex, l: str, alpha: Tuple[str, int, int],
+                     x_max: float = 0.25, y_max: float = 0.25):
+        """Plot the electric field distribution in the cross section.
+
+        Args:
+            w: A complex indicating the angular frequency
+            alpha: A tuple (pol, n, m) where pol is 'M' for TM-like mode or
+                'E' for TE-like mode, n is the order of the mode, and m is
+                the number of modes in the order and the polarization.
+            l: "h" (horizontal polarization) or "v" (vertical polarization)
+            x_max: A float indicating the maximum x coordinate in the figure
+            y_max: A float indicating the maximum y coordinate in the figure
+        """
+        xs = np.linspace(-x_max, x_max, 129)
+        ys = np.linspace(-y_max, y_max, 129)
+        X, Y = np.meshgrid(xs, ys, indexing='ij')
+        h = self.beta(w, alpha)
+        args = self.coef(h, w, alpha)
+        E = np.array(
+            [[self.e_field(x, y, w, l, alpha, h, *args) for y in ys]
+             for x in xs])
+        Ex = E[:, :, 0]
+        Ey = E[:, :, 1]
+        Ez = E[:, :, 2]
+        Es = np.sqrt(np.abs(Ex) ** 2 + np.abs(Ey) ** 2 + np.abs(Ez) ** 2)
+        E_max_abs = Es.max()
+        Es /= E_max_abs
+        if l == 'h':
+            Ex_on_x = Ex[:, 64]
+            Ex_max = Ex_on_x[np.abs(Ex_on_x).argmax()]
+            E_norm = Ex_max.conjugate() / abs(Ex_max) / E_max_abs
+        else:
+            Ey_on_y = Ey[64]
+            Ey_max = Ey_on_y[np.abs(Ey_on_y).argmax()]
+            E_norm = Ey_max.conjugate() / abs(Ey_max) / E_max_abs
+        Ex = (Ex * E_norm).real
+        Ey = (Ey * E_norm).real
+        # Ez = (Ez * E_norm).real
+        fig = plt.figure()
+        ax = fig.add_subplot(111, aspect='equal')
+        pc = ax.pcolormesh(X, Y, Es, shading='gouraud')
+        # circle = Circle((0.0, 0.0), self.r, fill=False, ls='solid', color='w')
+        # ax.add_patch(circle)
+        ax.quiver(X[2::5, 2::5], Y[2::5, 2::5], Ex[2::5, 2::5], Ey[2::5, 2::5],
+                  scale=16.0, width=0.006, color='k',
+                  pivot='middle')
+        ax.set_xlim(-x_max, x_max)
+        ax.set_ylim(-y_max, y_max)
+        ax.set_xlabel(r"$x\ [\mu\mathrm{m}]$", size=20)
+        ax.set_ylabel(r"$y\ [\mu\mathrm{m}]$", size=20)
+        plt.tick_params(labelsize=18)
+        cbar = plt.colorbar(pc)
+        cbar.ax.tick_params(labelsize=14)
+        plt.tight_layout()
+        plt.show()
+
+    def plot_h_field(self, w, l, alpha, x_max=0.25, y_max=0.25):
+        """Plot the magnetic field distribution in the cross section.
+
+        Args:
+            w: A complex indicating the angular frequency
+            l: "h" (horizontal polarization) or "v" (vertical polarization)
+            alpha: A tuple (pol, n, m) where pol is 'M' for TM-like mode or
+                'E' for TE-like mode, n is the order of the mode, and m is
+                the number of modes in the order and the polarization.
+            x_max: A float indicating the maximum x coordinate in the figure
+            y_max: A float indicating the maximum y coordinate in the figure
+        """
+        xs = np.linspace(-x_max, x_max, 129)
+        ys = np.linspace(-y_max, y_max, 129)
+        X, Y = np.meshgrid(xs, ys, indexing='ij')
+        h = self.beta(w, alpha)
+        args = self.coef(h, w, alpha)
+        H = np.array(
+            [[self.h_field(x, y, w, l, alpha, h, *args) for y in ys]
+             for x in xs])
+        Hx = H[:, :, 0]
+        Hy = H[:, :, 1]
+        Hz = H[:, :, 2]
+        Hs = np.sqrt(np.abs(Hx) ** 2 + np.abs(Hy) ** 2 + np.abs(Hz) ** 2)
+        H_max_abs = Hs.max()
+        Hs /= H_max_abs
+        if l == 'h':
+            Hy_on_x = Hy[:, 64]
+            Hy_max = Hy_on_x[np.abs(Hy_on_x).argmax()]
+            H_norm = Hy_max.conjugate() / abs(Hy_max) / H_max_abs
+        else:
+            Hx_on_y = Hx[64]
+            Hx_max = Hx_on_y[np.abs(Hx_on_y).argmax()]
+            H_norm = Hx_max.conjugate() / abs(Hx_max) / H_max_abs
+        Hx = (Hx * H_norm).real
+        Hy = (Hy * H_norm).real
+        # Hz = (Hz * H_norm).real
+        fig = plt.figure()
+        ax = fig.add_subplot(111, aspect='equal')
+        pc = ax.pcolormesh(X, Y, Hs, shading='gouraud')
+        # circle = Circle((0.0, 0.0), self.r, fill=False, ls='solid', color='w')
+        # ax.add_patch(circle)
+        ax.quiver(X[2::5, 2::5], Y[2::5, 2::5], Hx[2::5, 2::5], Hy[2::5, 2::5],
+                  scale=16.0, width=0.006, color='k',
+                  pivot='middle')
+        ax.set_xlim(-x_max, x_max)
+        ax.set_ylim(-y_max, y_max)
+        ax.set_xlabel(r"$x\ [\mu\mathrm{m}]$", size=20)
+        ax.set_ylabel(r"$y\ [\mu\mathrm{m}]$", size=20)
+        plt.tick_params(labelsize=18)
+        cbar = plt.colorbar(pc)
+        cbar.ax.tick_params(labelsize=14)
+        plt.tight_layout()
+        plt.show()
+
+    def plot_e_field_on_x_axis(self, w, l, alpha, comp, x_max=0.3, nx=128):
+        """Plot a component of the electric field on the x axis
+
+        Args:
+            w: A complex indicating the angular frequency
+            l: "h" (horizontal polarization) or "v" (vertical polarization)
+            alpha: A tuple (pol, n, m) where pol is 'M' for TM-like mode or
+                'E' for TE-like mode, n is the order of the mode, and m is
+                the number of modes in the order and the polarization.
+            comp: "x", "y" or "z" indicating the component to be drawn.
+            x_max: A float indicating the maximum x coordinate in the figure
+            nx: An integer indicating the number of calculational points
+                (default: 128)
+        """
+        xs = np.linspace(-x_max, x_max, nx + 1)
+        ys = np.linspace(-x_max, x_max, nx + 1)
+        _, Y = np.meshgrid(xs, ys, indexing='ij')
+        h = self.beta(w, alpha)
+        args = self.coef(h, w, alpha)
+        F = np.array(
+            [[self.fields(x, y, w, l, alpha, h, *args) for y in ys]
+             for x in xs])
+        Ex = F[:, :, 0]
+        Ey = F[:, :, 1]
+        Ez = F[:, :, 2]
+        Es = np.sqrt(np.abs(Ex) ** 2 + np.abs(Ey) ** 2 + np.abs(Ez) ** 2)
+        E_max_abs = Es.max()
+        if l == 'h':
+            Ex_on_x = Ex[:, 64]
+            Ex_max = Ex_on_x[np.abs(Ex_on_x).argmax()]
+            E_norm = Ex_max.conjugate() / abs(Ex_max) / E_max_abs
+        else:
+            Ey_on_y = Ey[64]
+            Ey_max = Ey_on_y[np.abs(Ey_on_y).argmax()]
+            E_norm = Ey_max.conjugate() / abs(Ey_max) / E_max_abs
+        Ex = (Ex * E_norm)[:, nx // 2].real
+        Ey = (Ey * E_norm)[:, nx // 2].real
+        Ez = (Ez * E_norm)[:, nx // 2].real
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        if comp == 'x':
+            ax.plot(xs, Ex, "o-")
+            ax.set_ylabel(r"$E_x$", size=20)
+        elif comp == 'y':
+            ax.plot(xs, Ey, "o-")
+            ax.set_ylabel(r"$E_y$", size=20)
+        elif comp == 'z':
+            ax.plot(xs, Ez, "o-")
+            ax.set_ylabel(r"$E_z$", size=20)
+        else:
+            raise ValueError('comp must be x, y or z')
+        ax.set_xlim(-x_max, x_max)
+        ax.set_xlabel(r"$x\ [\mu\mathrm{m}]$", size=20)
+        plt.tick_params(labelsize=18)
+        plt.tight_layout()
+        plt.show()
+
+    def plot_h_field_on_x_axis(self, w, l, alpha, comp, x_max=0.3, nx=128):
+        """Plot a component of the magnetic field on the x axis
+
+        Args:
+            w: A complex indicating the angular frequency
+            l: "h" (horizontal polarization) or "v" (vertical polarization)
+            alpha: A tuple (pol, n, m) where pol is 'M' for TM-like mode or
+                'E' for TE-like mode, n is the order of the mode, and m is
+                the number of modes in the order and the polarization.
+            comp: "x", "y" or "z" indicating the component to be drawn.
+            x_max: A float indicating the maximum x coordinate in the figure
+            nx: An integer indicating the number of calculational points
+                (default: 128)
+        """
+        xs = np.linspace(-x_max, x_max, nx + 1)
+        ys = np.linspace(-x_max, x_max, nx + 1)
+        _, Y = np.meshgrid(xs, ys, indexing='ij')
+        h = self.beta(w, alpha)
+        a, b = self.coef(h, w, alpha)
+        F = np.array(
+            [[self.fields(x, y, w, l, alpha, h, a, b, False) for y in ys]
+             for x in xs])
+        Hx = F[:, :, 3]
+        Hy = F[:, :, 4]
+        Hz = F[:, :, 5]
+        Hs = np.sqrt(np.abs(Hx) ** 2 + np.abs(Hy) ** 2 + np.abs(Hz) ** 2)
+        H_max_abs = Hs.max()
+        if l == 'h':
+            Hy_on_x = Hy[:, 64]
+            Hy_max = Hy_on_x[np.abs(Hy_on_x).argmax()]
+            H_norm = Hy_max.conjugate() / abs(Hy_max) / H_max_abs
+        else:
+            Hx_on_y = Hx[64]
+            Hx_max = Hx_on_y[np.abs(Hx_on_y).argmax()]
+            H_norm = Hx_max.conjugate() / abs(Hx_max) / H_max_abs
+        Hx = (Hx * H_norm)[:, nx // 2].real
+        Hy = (Hy * H_norm)[:, nx // 2].real
+        Hz = (Hz * H_norm)[:, nx // 2].real
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        if comp == 'x':
+            ax.plot(xs, Hx, "o-")
+            ax.set_ylabel(r"$H_x$", size=20)
+        elif comp == 'y':
+            ax.plot(xs, Hy, "o-")
+            ax.set_ylabel(r"$H_y$", size=20)
+        elif comp == 'z':
+            ax.plot(xs, Hz, "o-")
+            ax.set_ylabel(r"$H_z$", size=20)
+        else:
+            raise ValueError('comp must be x, y or z')
+        ax.set_xlim(-x_max, x_max)
+        ax.set_xlabel(r"$x\ [\mu\mathrm{m}]$", size=20)
+        plt.tick_params(labelsize=18)
+        plt.tight_layout()
+        plt.show()
 
 
 class Database:
@@ -94,65 +590,70 @@ class Database:
     dirname = os.path.join(os.path.expanduser('~'), '.pymwm')
     filename = os.path.join(dirname, 'pymwm_data.h5')
     catalog_columns = OrderedDict((
-        ('id', int), ('shape', str), ('size', float), ('core', str),
-        ('clad', str),
-        ('lmax', float), ('lmin', float), ('limag', float), ('dw', float),
+        ('sn', int), ('shape', str), ('size', float), ('size2', float),
+        ('core', str), ('clad', str),
+        ('wl_max', float), ('wl_min', float), ('wl_imag', float), ('dw', float),
         ('num_n', int), ('num_m', int), ('im_factor', float), ('EM', str),
         ('n', int), ('m', int)))
     data_columns = OrderedDict((
         ('conv', bool), ('beta_real', float), ('beta_imag', float)))
 
     def __init__(self, key: Dict):
-        if not os.path.exists(self.filename):
-            if not os.path.exists(self.dirname):
-                os.mkdir(self.dirname)
-            store = pd.HDFStore(self.filename, complevel=9, complib='blosc')
-            catalog = pd.DataFrame(columns=self.catalog_columns.keys())
-            store['catalog'] = catalog
-            store.close()
         self.shape = key['shape']
         self.size = key['size']
+        self.size2 = key['size2']
         self.core = key['core']
         self.clad = key['clad']
-        self.lmax = key['lmax']
-        self.lmin = key['lmin']
-        self.limag = key['limag']
+        self.wl_max = key['wl_max']
+        self.wl_min = key['wl_min']
+        self.wl_imag = key['wl_imag']
         self.dw = key['dw']
         self.num_n = key['num_n']
         self.num_m = key['num_m']
         self.num_all = key['num_all']
         self.im_factor = key['im_factor']
-        ind_wmin = int(np.floor(2 * np.pi / self.lmax / self.dw))
-        ind_wmax = int(np.ceil(2 * np.pi / self.lmin / self.dw))
-        ind_wimag = int(np.ceil(2 * np.pi / self.limag / self.dw))
-        self.ws = np.arange(ind_wmin, ind_wmax + 1) * self.dw
-        self.wis = -np.arange(ind_wimag + 1) * self.dw
+        ind_w_min = int(np.floor(2 * np.pi / self.wl_max / self.dw))
+        ind_w_max = int(np.ceil(2 * np.pi / self.wl_min / self.dw))
+        ind_w_imag = int(np.ceil(2 * np.pi / self.wl_imag / self.dw))
+        self.ws = np.arange(ind_w_min, ind_w_max + 1) * self.dw
+        self.wis = -np.arange(ind_w_imag + 1) * self.dw
+        self.sn = self.get_sn()
 
-    @property
-    def id(self) -> int:
-        with pd.HDFStore(self.filename, "r") as store:
-            try:
-                catalog = store['catalog']
-            except KeyError:
-                return 0
+    def get_sn(self) -> int:
+        if not os.path.exists(self.filename):
+            if not os.path.exists(self.dirname):
+                os.mkdir(self.dirname)
+            with pd.HDFStore(
+                    self.filename, complevel=9, complib='blosc') as store:
+                catalog = pd.DataFrame(columns=self.catalog_columns.keys())
+                store['catalog'] = catalog
+            return 0
+        with pd.HDFStore(self.filename, 'r') as store:
+            catalog = store['catalog']
+        if len(catalog.index) == 0:
+            return 0
         cond = ((catalog['shape'] == self.shape) &
                 (catalog['size'] == self.size) &
+                (catalog['size2'] == self.size2) &
                 (catalog['core'] == self.core) &
                 (catalog['clad'] == self.clad) &
-                (catalog['lmax'] == self.lmax) &
-                (catalog['lmin'] == self.lmin) &
-                (catalog['limag'] == self.limag) &
+                (catalog['wl_max'] == self.wl_max) &
+                (catalog['wl_min'] == self.wl_min) &
+                (catalog['wl_imag'] == self.wl_imag) &
                 (catalog['dw'] == self.dw) &
                 (catalog['num_n'] == self.num_n) &
                 (catalog['num_m'] == self.num_m) &
                 (catalog['im_factor'] == self.im_factor))
-        ids = catalog[cond].index
-        if len(ids) != self.num_all:
-            raise Exception("Database is broken.")
-        if len(ids):
-            return ids[0]
+        sns = catalog[cond]['sn']
+        if len(sns):
+            if len(sns) != self.num_all:
+                print(sns)
+                print(catalog[cond])
+                print(len(sns), self.num_all)
+                raise Exception("Database is broken.")
+            return min(sns)
         else:
-            return len(catalog.index)
+            return max(catalog['sn']) + 1
 
     @staticmethod
     def set_columns_dtype(df: DataFrame, columns: Dict):
@@ -166,12 +667,16 @@ class Database:
         with pd.HDFStore(self.filename, "r") as store:
             betas = dict()
             convs = dict()
-            for idx in range(self.id, self.id + self.num_all):
-                catalog = store['catalog']
-                em = catalog.loc[idx, 'EM']
-                n = catalog.loc[idx, 'n']
-                m = catalog.loc[idx, 'm']
-                data = store['/id_{}'.format(idx)]
+            catalog = store['catalog']
+            sns = range(self.sn, self.sn + self.num_all)
+            #  If there is no data for sn, IndexError should be raised
+            #  in the following expression.
+            indices = [catalog[catalog['sn'] == sn].index[0] for sn in sns]
+            for i, sn in zip(indices, sns):
+                em = catalog.loc[i, 'EM']
+                n = catalog.loc[i, 'n']
+                m = catalog.loc[i, 'm']
+                data = store['sn_{}'.format(sn)]
                 conv = data['conv']
                 beta_real = data['beta_real']
                 beta_imag = data['beta_imag']
@@ -185,12 +690,31 @@ class Database:
     def save(self, betas: Dict, convs: Dict):
         with pd.HDFStore(self.filename, complevel=9, complib='blosc') as store:
             catalog = store['catalog']
-            idx = self.id
+            cond = ((catalog['shape'] == self.shape) &
+                    (catalog['size'] == self.size) &
+                    (catalog['size2'] == self.size2) &
+                    (catalog['core'] == self.core) &
+                    (catalog['clad'] == self.clad) &
+                    (catalog['wl_max'] == self.wl_max) &
+                    (catalog['wl_min'] == self.wl_min) &
+                    (catalog['wl_imag'] == self.wl_imag) &
+                    (catalog['dw'] == self.dw) &
+                    (catalog['num_n'] <= self.num_n) &
+                    (catalog['num_m'] <= self.num_m) &
+                    (catalog['im_factor'] == self.im_factor))
+            indices = catalog[cond].index
+            sns = catalog[cond]['sn']
+            for i, sn in zip(indices, sns):
+                catalog = catalog.drop(i)
+                store.remove("sn_{}".format(sn))
+
+            sn = self.sn
             for EM, n, m in sorted(convs.keys()):
-                se = pd.Series([idx, self.shape, self.size, self.core,
-                                self.clad, self.lmax, self.lmin, self.limag,
-                                self.dw, self.num_n, self.num_m, self.im_factor,
-                                EM, n, m], index=self.catalog_columns.keys())
+                se = pd.Series(
+                    [sn, self.shape, self.size, self.size2, self.core,
+                     self.clad, self.wl_max, self.wl_min, self.wl_imag, self.dw,
+                     self.num_n, self.num_m, self.im_factor,
+                     EM, n, m], index=self.catalog_columns.keys())
                 catalog = catalog.append(se, ignore_index=True)
                 conv = convs[(EM, n, m)].ravel()
                 beta = betas[(EM, n, m)].ravel()
@@ -199,19 +723,23 @@ class Database:
                      'beta_imag': beta.imag},
                     columns=self.data_columns.keys())
                 self.set_columns_dtype(df, self.data_columns)
-                store.append('id_{}'.format(idx), df)
-                idx += 1
+                store.append('sn_{}'.format(sn), df)
+                sn += 1
             self.set_columns_dtype(catalog, self.catalog_columns)
-            catalog.set_index('id', inplace=True)
             store['catalog'] = catalog
+        os.system("ptrepack --chunkshape=auto --propindexes --complevel=9 " +
+                  "--complib=blosc {0} {0}.new".format(self.filename))
+        os.system("mv {0}.new {0}".format(self.filename))
 
     def delete(self):
         with pd.HDFStore(
                 self.filename, complevel=9, complib='blosc') as store:
             catalog = store['catalog']
-            for idx in range(self.id, self.id + self.num_all):
-                catalog.drop(idx)
-                store.remove("id_{}".format(idx))
+            sns = range(self.sn, self.sn + self.num_all)
+            indices = [catalog[catalog['sn'] == sn].index[0] for sn in sns]
+            for i, sn in zip(indices, sns):
+                catalog.drop(i)
+                store.remove("sn_{}".format(sn))
             store['catalog'] = catalog
         os.system("ptrepack --chunkshape=auto --propindexes --complevel=9 " +
                   "--complib=blosc {0} {0}.new".format(self.filename))
@@ -220,37 +748,38 @@ class Database:
     def interpolation(self, betas: np.ndarray, convs: np.ndarray,
                       bounds: Dict) -> Dict:
         from scipy.interpolate import RectBivariateSpline
-        lmax = bounds['lmax']
-        lmin = bounds['lmin']
-        limag = bounds['limag']
-        wr_min = 2 * np.pi / lmax
-        wr_max = 2 * np.pi / lmin
-        wi_min = -2 * np.pi / limag
+        wl_max = bounds['wl_max']
+        wl_min = bounds['wl_min']
+        wl_imag = bounds['wl_imag']
+        wr_min = 2 * np.pi / wl_max
+        wr_max = 2 * np.pi / wl_min
+        wi_min = -2 * np.pi / wl_imag
         num_n = self.num_n
         num_m = self.num_m
         ws = self.ws
         wis = self.wis[::-1]
-        imin = np.searchsorted(ws, [wr_min], side='right')[0] - 1
-        imax = np.searchsorted(ws, [wr_max])[0]
-        jmin = np.searchsorted(wis, [wi_min], side='right')[0] - 1
-        if imin == -1 or imax == len(self.ws) or jmin == -1:
+        i_min = np.searchsorted(ws, [wr_min], side='right')[0] - 1
+        i_max = np.searchsorted(ws, [wr_max])[0]
+        j_min = np.searchsorted(wis, [wi_min], side='right')[0] - 1
+        if i_min == -1 or i_max == len(self.ws) or j_min == -1:
             raise ValueError(
-                "exceed data bounds: imin={} imax={} jmin={} len(ws)={}".format(
-                    imin, imax, jmin, len(self.ws)))
+                "exceed data bounds: " +
+                "i_min={} i_max={} j_min={} len(ws)={}".format(
+                    i_min, i_max, j_min, len(self.ws)))
         beta_funcs = {}
         for pol in ['M', 'E']:
             for n in range(num_n):
                 for m in range(1, num_m + 1):
                     alpha = (pol, n, m)
                     conv = convs[alpha][:, ::-1]
-                    if np.all(conv[imin: imax + 1, jmin:]):
+                    if np.all(conv[i_min: i_max + 1, j_min:]):
                         data = betas[alpha][:, ::-1]
                         beta_funcs[(alpha, 'real')] = RectBivariateSpline(
-                            ws[imin: imax + 1], wis[jmin:],
-                            data.real[imin: imax + 1, jmin:],
+                            ws[i_min: i_max + 1], wis[j_min:],
+                            data.real[i_min: i_max + 1, j_min:],
                             kx=3, ky=3)
                         beta_funcs[(alpha, 'imag')] = RectBivariateSpline(
-                            ws[imin: imax + 1], wis[jmin:],
-                            data.imag[imin: imax + 1, jmin:],
+                            ws[i_min: i_max + 1], wis[j_min:],
+                            data.imag[i_min: i_max + 1, j_min:],
                             kx=3, ky=3)
         return beta_funcs
