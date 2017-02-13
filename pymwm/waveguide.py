@@ -599,6 +599,11 @@ class Database:
         self.num_m = key['num_m']
         self.num_all = key['num_all']
         self.im_factor = key['im_factor']
+        cond = ''
+        for col in list(self.catalog_columns.keys())[1:-3]:
+            cond += '{0} == @self.{0} & '.format(col)
+        self.cond = cond.rstrip('& ')
+
         ind_w_min = int(np.floor(2 * np.pi / self.wl_max / self.dw))
         ind_w_max = int(np.ceil(2 * np.pi / self.wl_min / self.dw))
         ind_w_imag = int(np.ceil(2 * np.pi / self.wl_imag / self.dw))
@@ -619,23 +624,11 @@ class Database:
             catalog = store['catalog']
         if len(catalog.index) == 0:
             return 0
-        cond = ((catalog['shape'] == self.shape) &
-                (catalog['size'] == self.size) &
-                (catalog['size2'] == self.size2) &
-                (catalog['core'] == self.core) &
-                (catalog['clad'] == self.clad) &
-                (catalog['wl_max'] == self.wl_max) &
-                (catalog['wl_min'] == self.wl_min) &
-                (catalog['wl_imag'] == self.wl_imag) &
-                (catalog['dw'] == self.dw) &
-                (catalog['num_n'] == self.num_n) &
-                (catalog['num_m'] == self.num_m) &
-                (catalog['im_factor'] == self.im_factor))
-        sns = catalog[cond]['sn']
+        sns = catalog.query(self.cond)['sn']
         if len(sns):
             if len(sns) != self.num_all:
                 print(sns)
-                print(catalog[cond])
+                print(catalog[self.cond])
                 print(len(sns), self.num_all)
                 raise Exception("Database is broken.")
             return min(sns)
@@ -677,20 +670,8 @@ class Database:
     def save(self, betas: Dict, convs: Dict):
         with pd.HDFStore(self.filename, complevel=9, complib='blosc') as store:
             catalog = store['catalog']
-            cond = ((catalog['shape'] == self.shape) &
-                    (catalog['size'] == self.size) &
-                    (catalog['size2'] == self.size2) &
-                    (catalog['core'] == self.core) &
-                    (catalog['clad'] == self.clad) &
-                    (catalog['wl_max'] == self.wl_max) &
-                    (catalog['wl_min'] == self.wl_min) &
-                    (catalog['wl_imag'] == self.wl_imag) &
-                    (catalog['dw'] == self.dw) &
-                    (catalog['num_n'] <= self.num_n) &
-                    (catalog['num_m'] <= self.num_m) &
-                    (catalog['im_factor'] == self.im_factor))
-            indices = catalog[cond].index
-            sns = catalog[cond]['sn']
+            indices = catalog.query(self.cond).index
+            sns = catalog.query(self.cond)['sn']
             for i, sn in zip(indices, sns):
                 catalog = catalog.drop(i)
                 store.remove("sn_{}".format(sn))
