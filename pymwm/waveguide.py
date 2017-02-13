@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
-from typing import Dict, Tuple, Any
+from typing import Dict, List, Tuple, Any, Union
 import abc
 from collections import OrderedDict
 import numpy as np
-from scipy.constants import c
 import pandas as pd
 from pandas import DataFrame
 import matplotlib.pyplot as plt
@@ -166,24 +165,24 @@ class Waveguide(metaclass=abc.ABCMeta):
         self.fill = Material(p_fill)
         self.clad = Material(p_clad)
         self.num_n = params['modes']['num_n']
-        self.num_m = params['modes']['num_n']
+        self.num_m = params['modes']['num_m']
         self.bounds = params['bounds']
         self.ls = params['modes'].get('ls', ['h', 'v'])
         betas, convs, self.samples = self.betas_convs_samples(params)
         self.beta_funcs = self.samples.database.interpolation(
             betas, convs, self.bounds)
 
-        self.alpha_list = []
+        alpha_list = []
         alpha_candidates = params['modes'].get('alphas', None)
         for alpha, comp in self.beta_funcs.keys():
             if comp == 'real':
                 if alpha_candidates is not None:
                     if alpha in alpha_candidates:
-                        self.alpha_list.append(alpha)
+                        alpha_list.append(alpha)
                 else:
-                    self.alpha_list.append(alpha)
-        self.alpha_list.sort()
-        self.alphas = self.get_alphas()
+                    alpha_list.append(alpha)
+        alpha_list.sort()
+        self.alphas = self.get_alphas(alpha_list)
 
         self.alpha_all = [alpha for l in self.ls for alpha in self.alphas[l]]
         self.l_all = np.array(
@@ -199,7 +198,7 @@ class Waveguide(metaclass=abc.ABCMeta):
         self.num_n_all = self.n_all.shape[0]
 
     @abc.abstractmethod
-    def get_alphas(self) -> Dict:
+    def get_alphas(self, alpha_list: List[Tuple[str, int, int]]) -> Dict:
         pass
 
     @abc.abstractmethod
@@ -286,30 +285,29 @@ class Waveguide(metaclass=abc.ABCMeta):
         """
         pass
 
-    def plot_beta(self, alpha: Tuple[str, int, int], wl_max: float = 1.0,
+    def plot_beta(self, alpha: Tuple[str, int, int],
+                  fmt: Union[str, None] = '-', wl_max: float = 1.0,
                   wl_min: float = 0.4, wi: float = 0.0, comp: str = 'imag',
-                  nw: int = 128):
-        """Plot propagation constants as a function of frequency (wavelength).
+                  nw: int = 128, **kwargs):
+        """Plot propagation constants as a function of wavelength.
 
         Args:
             alpha: (pol, n, m)
                 pol: 'E' (TE-like mode) or 'M' (TM-like mode).
                 n: The order of the mode.
                 m: The sub order of the mode.
+            fmt: The plot format string.
             wl_max: The maximum wavelength [um].
             wl_min: The minimum wavelength [um].
             wi: The imaginary part of angular frequency.
             comp: "real" (phase constants) or "imag" (attenuation constants).
             nw: The number of calculational points within the frequency range.
         """
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        freq_min = c * 1e-8 / wl_max
-        freq_max = c * 1e-8 / wl_min
-        fs = np.linspace(freq_min, freq_max, nw + 1)
-        ws = 2 * np.pi / (c * 1e-8) * fs
+        wls = np.linspace(wl_max, wl_min, nw + 1)
+        ws = 2 * np.pi / wls
         pol, n, m = alpha
-        label = r"{}$_{}{}$".format(pol, n, m)
+        # label = r"{0}".format(pol) + r"$_{" + r"{}{}".format(n, m) + "}$"
+        label = "({},{},{})".format(pol, n, m)
         if comp == 'real':
             hs = [self.beta(wr + 1j * wi, alpha).real for wr in ws]
         elif comp == 'imag':
@@ -323,11 +321,8 @@ class Waveguide(metaclass=abc.ABCMeta):
                      self.clad(w) * w ** 2).real)
         else:
             raise ValueError("comp must be 'real', 'imag' or 'gamma2'.")
-        ax.plot(fs, hs, "k-", linewidth=2)
-        ax.plot(fs[::4], hs[::4], label=label,
-                linestyle="None", color="k", markersize=8,
-                markeredgewidth=2, linewidth=2)
-        pol, n, m = alpha
+        line, = plt.plot(wls, hs, fmt, label=label, **kwargs)
+        kwargs.setdefault('color', line.get_color())
         if comp == 'real':
             hs_pec = [self.beta_pec(wr + 1j * wi, alpha).real for wr in ws]
         elif comp == 'imag':
@@ -341,22 +336,14 @@ class Waveguide(metaclass=abc.ABCMeta):
                      self.clad(w) * w ** 2).real)
         else:
             raise ValueError("comp must be 'real', 'imag' or 'gamma2'.")
-        if pol == 'M' and m == 1:
-            ax.plot(fs, hs_pec, "b-", linewidth=2)
-            ax.plot(fs[::4], hs_pec[::4], label="PEC{0}".format(n),
-                    markerfacecolor='b',
-                    linestyle="None", color="b", markersize=8,
-                    markeredgewidth=2, linewidth=2)
-        ax.set_xlim(fs[0], fs[-1])
-        ax.set_xlabel(r'$\nu$ $[\mathrm{100THz}]$', size=20)
+        plt.plot(wls, hs_pec, "--", label='PEC', **kwargs)
+        plt.xlabel(r'$\lambda$ $[\mathrm{\mu m}]$')
+        plt.xlim(wl_min, wl_max)
         if comp == 'imag':
-            ax.set_ylabel(r'attenuation constant', size=20)
+            plt.ylabel(r'attenuation constant')
         else:
-            ax.set_ylabel(r'phase constant', size=20)
-        plt.tick_params(labelsize=18)
+            plt.ylabel(r'phase constant')
         plt.legend(bbox_to_anchor=(1.02, 1), loc=2, borderaxespad=0.)
-        fig.subplots_adjust(left=0.11, right=0.83, bottom=0.12, top=0.97)
-        plt.show()
 
     def plot_e_field(self, w: complex, l: str, alpha: Tuple[str, int, int],
                      x_max: float = 0.25, y_max: float = 0.25):
@@ -375,9 +362,9 @@ class Waveguide(metaclass=abc.ABCMeta):
         ys = np.linspace(-y_max, y_max, 129)
         X, Y = np.meshgrid(xs, ys, indexing='ij')
         h = self.beta(w, alpha)
-        args = self.coef(h, w, alpha)
+        coef = self.coef(h, w, alpha)
         E = np.array(
-            [[self.e_field(x, y, w, l, alpha, h, *args) for y in ys]
+            [[self.e_field(x, y, w, l, alpha, h, coef) for y in ys]
              for x in xs])
         Ex = E[:, :, 0]
         Ey = E[:, :, 1]
@@ -430,9 +417,9 @@ class Waveguide(metaclass=abc.ABCMeta):
         ys = np.linspace(-y_max, y_max, 129)
         X, Y = np.meshgrid(xs, ys, indexing='ij')
         h = self.beta(w, alpha)
-        args = self.coef(h, w, alpha)
+        coef = self.coef(h, w, alpha)
         H = np.array(
-            [[self.h_field(x, y, w, l, alpha, h, *args) for y in ys]
+            [[self.h_field(x, y, w, l, alpha, h, coef) for y in ys]
              for x in xs])
         Hx = H[:, :, 0]
         Hy = H[:, :, 1]
@@ -487,13 +474,13 @@ class Waveguide(metaclass=abc.ABCMeta):
         ys = np.linspace(-x_max, x_max, nx + 1)
         _, Y = np.meshgrid(xs, ys, indexing='ij')
         h = self.beta(w, alpha)
-        args = self.coef(h, w, alpha)
-        F = np.array(
-            [[self.fields(x, y, w, l, alpha, h, *args) for y in ys]
+        coef = self.coef(h, w, alpha)
+        E = np.array(
+            [[self.e_field(x, y, w, l, alpha, h, coef) for y in ys]
              for x in xs])
-        Ex = F[:, :, 0]
-        Ey = F[:, :, 1]
-        Ez = F[:, :, 2]
+        Ex = E[:, :, 0]
+        Ey = E[:, :, 1]
+        Ez = E[:, :, 2]
         Es = np.sqrt(np.abs(Ex) ** 2 + np.abs(Ey) ** 2 + np.abs(Ez) ** 2)
         E_max_abs = Es.max()
         if l == 'h':
@@ -544,13 +531,13 @@ class Waveguide(metaclass=abc.ABCMeta):
         ys = np.linspace(-x_max, x_max, nx + 1)
         _, Y = np.meshgrid(xs, ys, indexing='ij')
         h = self.beta(w, alpha)
-        a, b = self.coef(h, w, alpha)
-        F = np.array(
-            [[self.fields(x, y, w, l, alpha, h, a, b, False) for y in ys]
+        coef = self.coef(h, w, alpha)
+        H = np.array(
+            [[self.h_field(x, y, w, l, alpha, h, coef) for y in ys]
              for x in xs])
-        Hx = F[:, :, 3]
-        Hy = F[:, :, 4]
-        Hz = F[:, :, 5]
+        Hx = H[:, :, 0]
+        Hy = H[:, :, 1]
+        Hz = H[:, :, 2]
         Hs = np.sqrt(np.abs(Hx) ** 2 + np.abs(Hy) ** 2 + np.abs(Hz) ** 2)
         H_max_abs = Hs.max()
         if l == 'h':

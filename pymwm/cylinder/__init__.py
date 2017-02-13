@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List
 import numpy as np
 from scipy.special import jv, jvp, kv, kvp, jn_zeros, jnp_zeros
 from pymwm.waveguide import Waveguide
@@ -50,19 +50,19 @@ class Cylinder(Waveguide):
         self.u_pec, self.jnu_pec, self.jnpu_pec = self.u_jnu_jnpu_pec(
             self.num_n, self.num_m)
 
-    def get_alphas(self) -> Dict:
+    def get_alphas(self, alpha_list: List[Tuple[str, int, int]]) -> Dict:
         alphas = {'h': [], 'v': []}
         for alpha in [('E', n, m) for n in range(1, self.num_n)
                       for m in range(1, self.num_m + 1)]:
-            if alpha in self.alpha_list:
+            if alpha in alpha_list:
                 alphas['h'].append(alpha)
                 alphas['v'].append(alpha)
         for alpha in [('M', 0, m) for m in range(1, self.num_m + 1)]:
-            if alpha in self.alpha_list:
+            if alpha in alpha_list:
                 alphas['h'].append(alpha)
         for alpha in [('M', n, m) for n in range(1, self.num_n)
                       for m in range(1, self.num_m + 1)]:
-            if alpha in self.alpha_list:
+            if alpha in alpha_list:
                 alphas['h'].append(alpha)
                 alphas['v'].append(alpha)
         return alphas

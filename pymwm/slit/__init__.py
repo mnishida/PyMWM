@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from logging import getLogger
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 import numpy as np
 from pymwm.waveguide import Waveguide
 from pymwm.slit.samples import Samples, SamplesLowLoss
@@ -47,20 +47,20 @@ class Slit(Waveguide):
                         In the slit case, "h" ("v") corresponds to TE (TM)
                         polarization.
         """
-        num_m = params.setdefault('num_m', 1)
+        num_m = params['modes'].setdefault('num_m', 1)
         if num_m != 1:
             logger.warning("num_m must be 1 if shape is slit." +
                            "The set value is ignored.")
-            params['num_m'] = 1
+            params['modes']['num_m'] = 1
         super().__init__(params)
 
-    def get_alphas(self) -> Dict:
+    def get_alphas(self, alpha_list: List[Tuple[str, int, int]]) -> Dict:
         alphas = {'h': [], 'v': []}
         for alpha in [('E', n, 1) for n in range(1, self.num_n)]:
-            if alpha in self.alpha_list:
+            if alpha in alpha_list:
                 alphas['v'].append(alpha)
         for alpha in [('M', n, 1) for n in range(self.num_n)]:
-            if alpha in self.alpha_list:
+            if alpha in alpha_list:
                 alphas['h'].append(alpha)
         return alphas
 
