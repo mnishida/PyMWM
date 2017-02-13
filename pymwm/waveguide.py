@@ -7,7 +7,6 @@ from collections import OrderedDict
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
-import matplotlib.pyplot as plt
 from pyoptmat import Material
 
 
@@ -90,6 +89,7 @@ class Sampling(metaclass=abc.ABCMeta):
         return d
 
     def plot_convs(self, convs, alpha):
+        import matplotlib.pyplot as plt
         x, y = np.meshgrid(self.ws, self.wis, indexing='ij')
         z = convs[alpha]
         plt.pcolormesh(x, y, z)
@@ -97,6 +97,7 @@ class Sampling(metaclass=abc.ABCMeta):
         plt.show()
 
     def plot_real_betas(self, betas, alpha):
+        import matplotlib.pyplot as plt
         x, y = np.meshgrid(self.ws, self.wis, indexing='ij')
         z = betas[alpha]
         plt.pcolormesh(x, y, z.real)
@@ -104,6 +105,7 @@ class Sampling(metaclass=abc.ABCMeta):
         plt.show()
 
     def plot_imag_betas(self, betas, alpha):
+        import matplotlib.pyplot as plt
         x, y = np.meshgrid(self.ws, self.wis, indexing='ij')
         z = betas[alpha]
         plt.pcolormesh(x, y, z.imag)
@@ -303,6 +305,7 @@ class Waveguide(metaclass=abc.ABCMeta):
             comp: "real" (phase constants) or "imag" (attenuation constants).
             nw: The number of calculational points within the frequency range.
         """
+        import matplotlib.pyplot as plt
         wls = np.linspace(wl_max, wl_min, nw + 1)
         ws = 2 * np.pi / wls
         pol, n, m = alpha
@@ -358,6 +361,7 @@ class Waveguide(metaclass=abc.ABCMeta):
             x_max: A float indicating the maximum x coordinate in the figure
             y_max: A float indicating the maximum y coordinate in the figure
         """
+        import matplotlib.pyplot as plt
         xs = np.linspace(-x_max, x_max, 129)
         ys = np.linspace(-y_max, y_max, 129)
         X, Y = np.meshgrid(xs, ys, indexing='ij')
@@ -413,6 +417,7 @@ class Waveguide(metaclass=abc.ABCMeta):
             x_max: A float indicating the maximum x coordinate in the figure
             y_max: A float indicating the maximum y coordinate in the figure
         """
+        import matplotlib.pyplot as plt
         xs = np.linspace(-x_max, x_max, 129)
         ys = np.linspace(-y_max, y_max, 129)
         X, Y = np.meshgrid(xs, ys, indexing='ij')
@@ -470,6 +475,7 @@ class Waveguide(metaclass=abc.ABCMeta):
             nx: An integer indicating the number of calculational points
                 (default: 128)
         """
+        import matplotlib.pyplot as plt
         xs = np.linspace(-x_max, x_max, nx + 1)
         ys = np.linspace(-x_max, x_max, nx + 1)
         _, Y = np.meshgrid(xs, ys, indexing='ij')
@@ -527,6 +533,7 @@ class Waveguide(metaclass=abc.ABCMeta):
             nx: An integer indicating the number of calculational points
                 (default: 128)
         """
+        import matplotlib.pyplot as plt
         xs = np.linspace(-x_max, x_max, nx + 1)
         ys = np.linspace(-x_max, x_max, nx + 1)
         _, Y = np.meshgrid(xs, ys, indexing='ij')
@@ -698,6 +705,29 @@ class Database:
         os.system("ptrepack --chunkshape=auto --propindexes --complevel=9 " +
                   "--complib=blosc {0} {0}.new".format(self.filename))
         os.system("mv {0}.new {0}".format(self.filename))
+
+    @classmethod
+    def import_data(cls, data_file: str):
+        with pd.HDFStore(data_file, 'r') as data:
+            catalog_from = data['catalog']
+            sns = catalog_from['sn']
+            data_dict = {sn: data['sn_{}'.format(sn)] for sn in sns}
+        with pd.HDFStore(cls.filename, complevel=9, complib='blosc') as store:
+            catalog = store['catalog']
+            sn_new = max(catalog['sn']) + 1
+            for sn in sns:
+                se = catalog_from[catalog_from['sn'] == sn].iloc[0].copy()
+                cond = catalog['shape'] == se['shape']
+                for col in list(cls.catalog_columns.keys())[2:]:
+                    cond &= (catalog[col] == se[col])
+                if len(catalog[cond].index) == 0:
+                    se['sn'] = sn_new
+                    catalog = catalog.append(se, ignore_index=True)
+                    print(catalog[catalog['sn'] == sn_new])
+                    store.append('sn_{}'.format(sn_new), data_dict[sn])
+                    sn_new += 1
+            cls.set_columns_dtype(catalog, cls.catalog_columns)
+            store['catalog'] = catalog
 
     def delete(self):
         with pd.HDFStore(
