@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
-import numpy as np
 cimport numpy as np
 cimport cython
 cimport scipy.linalg.cython_blas as blas

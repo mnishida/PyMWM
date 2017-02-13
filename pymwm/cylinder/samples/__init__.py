@@ -1,49 +1,34 @@
 # -*- coding: utf-8 -*-
-import os
-from bsddb3 import dbshelve
+from typing import Dict, Tuple, List
 import numpy as np
 from scipy.special import jv, jvp, kv, kvp, jn_zeros, jnp_zeros
+from pyoptmat import Material
+from pymwm.waveguide import Sampling
 
 
-class Samples(object):
+class Samples(Sampling):
     """A class defining samples of phase constants of cylindrical waveguide
     modes.
 
     Attributes:
-        fill: An instance of Material class for the core
-        clad: An instance of Material class for the clad
         r: A float indicating the radius of the circular cross section [um].
-        params: A dict whose keys and values are as follows:
-            'lmax': A float indicating the maximum wavelength [um]
-            'lmin': A float indicating the minimum wavelength [um]
-            'limag': A float indicating the minimum value of
-                abs(c / fimag) [um] where fimag is the imaginary part of
-                the frequency.
-            'dw': A float indicating frequency interval
-                [rad * c / 1um]=[2.99792458e14 rad / s].
-            'num_n': An integer indicating the number of orders of modes.
-            'num_m': An integer indicating the number of modes in each
-                order and polarization.
-        ws: A 1D array indicating the real part of the angular frequencies
-            to be calculated [rad (c / 1um)]=[2.99792458e14 rad / s].
-        wis: A 1D array indicating the imaginary part of the angular
-            frequencies to be calculated [rad * (c / 1um)].
     """
 
-    def __init__(self, r, fill, clad, params):
+    def __init__(self, size: float, fill: Material, clad: Material,
+                 params: Dict):
         """Init Samples class.
 
         Args:
-            r: A float indicating the radius of the circular cross section [um]
+            size: A float indicating the radius of the cross section [um]
             fill: An instance of Material class for the core
             clad: An instance of Material class for the clad
             params: A dict whose keys and values are as follows:
-                'lmax': A float indicating the maximum wavelength [um]
-                    (defulat: 5.0)
-                'lmin': A float indicating the minimum wavelength [um]
-                    (defulat: 0.4)
-                'limag': A float indicating the minimum value of
-                    abs(c / fimag) [um] where fimag is the imaginary part of
+                'wl_max': A float indicating the maximum wavelength [um]
+                    (default: 5.0)
+                'wl_min': A float indicating the minimum wavelength [um]
+                    (default: 0.4)
+                'wl_imag': A float indicating the minimum value of
+                    abs(c / f_imag) [um] where f_imag is the imaginary part of
                     the frequency. (default: 5.0)
                 'dw': A float indicating frequency interval
                     [rad c / 1um]=[2.99792458e14 rad / s] (default: 1 / 64).
@@ -51,109 +36,16 @@ class Samples(object):
                 'num_m': An integer indicating the number of modes in each
                     order and polarization.
         """
-        dirname = os.path.join(os.path.expanduser('~'), '.pymwm')
-        if not os.path.exists(dirname):
-            os.mkdir(dirname)
-        self.r = r
-        self.fill = fill
-        self.clad = clad
-        self.params = params
-        p = self.params
-        dw = p.setdefault('dw', 1.0 / 64)
-        lmax = p.setdefault('lmax', 5.0)
-        lmin = p.setdefault('lmin', 0.4)
-        limag = p.setdefault('limag', 5.0)
-        ind_wmin = int(np.floor(2 * np.pi / lmax / dw))
-        ind_wmax = int(np.ceil(2 * np.pi / lmin / dw))
-        ind_wimag = int(np.ceil(2 * np.pi / limag / dw))
-        self.ws = np.arange(ind_wmin, ind_wmax + 1) * dw
-        self.wis = -np.arange(ind_wimag + 1) * dw
+        super().__init__(size, fill, clad, params)
+        self.r = size
 
     @property
-    def key(self):
-        p = self.params
-        return "{0}_{1}_{2}_{3}_{4}_{5}_{6}".format(
-            p['lmax'], p['lmin'], p['limag'], p['dw'], p['num_n'], p['num_m'],
-            self.clad.im_factor).encode('utf-8')
+    def shape(self):
+        return 'cylinder'
 
     @property
-    def filename(self):
-        dirname = os.path.join(os.path.expanduser('~'), '.pymwm')
-        filename = os.path.join(dirname, 'cylinder')
-        if self.clad.model == 'dielectric':
-            clad = "clad_{0}_e_{1}".format(
-                self.clad.model, self.clad.params['e'])
-        else:
-            clad = "clad_{0}".format(self.clad.model)
-        if self.fill.model == 'dielectric':
-            core = "core_{0}_e_{1}".format(
-                self.fill.model, self.fill.params['e'])
-        else:
-            core = "core_{0}".format(self.fill.model)
-        cond = "_size_{0}_{1}_{2}".format(
-            self.r, core, clad)
-        return filename + cond + ".db"
-
-    def interpolation(self, betas, convs, bounds):
-        from scipy.interpolate import RectBivariateSpline
-        lmax = bounds['lmax']
-        lmin = bounds['lmin']
-        limag = bounds['limag']
-        wr_min = 2 * np.pi / lmax
-        wr_max = 2 * np.pi / lmin
-        wi_min = -2 * np.pi / limag
-        num_n = self.params['num_n']
-        num_m = self.params['num_m']
-        ws = self.ws
-        wis = self.wis[::-1]
-        beta_funcs = {}
-        for pol in ['M', 'E']:
-            for n in range(num_n):
-                for m in range(1, num_m + 1):
-                    alpha = (pol, n, m)
-                    imin = np.searchsorted(ws, wr_min, side='right') - 1
-                    imax = np.searchsorted(ws, wr_max)
-                    jmin = np.searchsorted(wis, wi_min, side='right') - 1
-                    if imin == -1 or imax == len(self.ws) or jmin == -1:
-                        print(imin, imax, jmin, len(self.ws))
-                        raise ValueError("exceed data bounds")
-                    conv = convs[alpha][:, ::-1]
-                    if np.all(conv[imin: imax + 1, jmin:]):
-                        data = betas[alpha][:, ::-1]
-                        beta_funcs[(alpha, 'real')] = RectBivariateSpline(
-                            ws[imin: imax + 1], wis[jmin:],
-                            data.real[imin: imax + 1, jmin:],
-                            kx=3, ky=3)
-                        beta_funcs[(alpha, 'imag')] = RectBivariateSpline(
-                            ws[imin: imax + 1], wis[jmin:],
-                            data.imag[imin: imax + 1, jmin:],
-                            kx=3, ky=3)
-        return beta_funcs
-
-    def load(self):
-        s = dbshelve.open(self.filename, 'r')
-        try:
-            betas = s[self.key]['betas']
-            convs = s[self.key]['convs']
-        finally:
-            s.close()
-        return betas, convs
-
-    def save(self, betas, convs):
-        s = dbshelve.open(self.filename)
-        try:
-            s[self.key] = {'betas': betas, 'convs': convs}
-        finally:
-            s.close()
-
-    def delete(self):
-        s = dbshelve.open(self.filename)
-        try:
-            del s[self.key]
-        except KeyError:
-            print("KeyError: not exists")
-        finally:
-            s.close()
+    def num_all(self):
+        return self.params['num_n'] * (2 * self.params['num_m'] + 1)
 
     def beta2_pec(self, w, n):
         """Return squares of phase constants for a PEC waveguide
@@ -166,7 +58,7 @@ class Samples(object):
                 num_m+1 elements are for TM-like modes and the rest are for
                 TE-like modes.
         """
-        wcomp = w.real + 1j * w.imag
+        w_comp = w.real + 1j * w.imag
         # The number of TM-like modes for each order is taken lager than
         # the number of TE-like modes since TM-like modes are almost identical
         # to those for PEC waveguide and can be calculated easily.
@@ -174,10 +66,10 @@ class Samples(object):
         # makes it easier to find new roots.
         num_m = self.params['num_m']
         chi = jn_zeros(n, num_m + 1)
-        h2sM = self.fill(wcomp) * wcomp ** 2 - chi ** 2 / self.r ** 2
+        h2s_mag = self.fill(w_comp) * w_comp ** 2 - chi ** 2 / self.r ** 2
         chi = jnp_zeros(n, num_m)
-        h2sE = self.fill(wcomp) * wcomp ** 2 - chi ** 2 / self.r ** 2
-        h2s = np.hstack((h2sM, h2sE))
+        h2s_elec = self.fill(w_comp) * w_comp ** 2 - chi ** 2 / self.r ** 2
+        h2s = np.hstack((h2s_mag, h2s_elec))
         return h2s
 
     def beta2_pec_per_mode(self, w, key):
@@ -195,39 +87,40 @@ class Samples(object):
                 num_m+1 elements are for TM-like modes and the rest are for
                 TE-like modes.
         """
-        wcomp = w.real + 1j * w.imag
+        w_comp = w.real + 1j * w.imag
         pol, n, m = key
         if pol == 'M':
             chi = jn_zeros(n, m)[-1]
-            h2 = self.fill(wcomp) * wcomp ** 2 - chi ** 2 / self.r ** 2
+            h2 = self.fill(w_comp) * w_comp ** 2 - chi ** 2 / self.r ** 2
         else:
             chi = jnp_zeros(n, m)[-1]
-            h2 = self.fill(wcomp) * wcomp ** 2 - chi ** 2 / self.r ** 2
+            h2 = self.fill(w_comp) * w_comp ** 2 - chi ** 2 / self.r ** 2
         return h2
 
-    def u(self, h2, w, e1):
+    def u(self, h2: complex, w: complex, e1: complex) -> complex:
         # return np.sqrt(e1 * w ** 2 - h2) * self.r
         return (1 + 1j) * np.sqrt(-0.5j * (e1 * w ** 2 - h2)) * self.r
 
-    def v(self, h2, w, e2):
+    def v(self, h2: complex, w: complex, e2: complex) -> complex:
         # This definition is very important!!
         # Other definitions can not give good results in some cases
         return (1 - 1j) * np.sqrt(0.5j * (- e2 * w ** 2 + h2)) * self.r
 
-    def eigeq(self, h2, args):
+    def eig_eq(self, h2: complex, w: complex, pol: str, n: int,
+               e1: complex, e2: complex):
         """Return the value of the characteristic equation
 
         Args:
-            h2: A complex indicating the square of the phase constant.
-            args: A tuple (w, pol, n, e1, e2), where w indicates the angular
-                frequency, pol indicates the polarization, n indicates the
-                order of the modes, e1 indicates the permittivity of the core,
-                and e2 indicates the permittivity of the clad.
+            h2: The square of the phase constant.
+            w: The angular frequency
+            pol: The polarization
+            n: The order of the modes
+            e1: The permittivity of the core
+            e2: The permittivity of the clad.
         Returns:
             val: A complex indicating the left-hand value of the characteristic
                 equation.
         """
-        w, pol, n, e1, e2 = args
         h2comp = h2.real + 1j * h2.imag
         u = self.u(h2comp, w, e1)
         v = self.v(h2comp, w, e2)
@@ -294,15 +187,11 @@ class Samples(object):
                    dre_dh2)
         return val
 
-    def func_jac(self, h2, args):
+    def func_jac(self, h2, *args):
         """Return the value and Jacobian of the characteristic equation
 
         Args:
             h2: A complex indicating the square of the phase constant.
-            args: A tuple (w, n, e1, e2), where w indicates the angular
-                frequency, n indicates  the order of the modes, e1 indicates
-                the permittivity of the core, and e2 indicates the permittivity
-                of the clad.
         Returns:
             val: 2 complexes indicating the left-hand value and Jacobian
                 of the characteristic equation.
@@ -369,9 +258,9 @@ class Samples(object):
         vals = []
         success = []
 
-        # def func(h2vec, args):
+        # def func(h2vec, *args):
         #     h2 = h2vec[0] + h2vec[1] * 1j
-        #     f, ja = self.func_jac(h2, args)
+        #     f, ja = self.func_jac(h2, *args)
         #     prod_denom = 1.0
         #     sum_denom = 0.0
         #     for h2_0 in roots:
@@ -387,13 +276,13 @@ class Samples(object):
         #                          [ja.imag, ja.real]])
         #     return f_array, ja_array
 
-        def func(h2vec, args):
+        def func(h2vec, *pars):
             h2 = h2vec[0] + h2vec[1] * 1j
-            f = self.eigeq(h2, args)
+            f = self.eig_eq(h2, *pars)
             prod_denom = 1.0
             for h2_0 in roots:
                 denom = h2 - h2_0
-                while (abs(denom) < 1e-14):
+                while abs(denom) < 1e-14:
                     denom += 1.0e-14
                 prod_denom *= 1.0 / denom
             f *= prod_denom
@@ -402,13 +291,13 @@ class Samples(object):
 
         for i, xi in enumerate(xis):
             if i < num_m + 1:
-                args = ((w, 'M', n, e1, e2),)
+                args = (w, 'M', n, e1, e2)
             else:
-                args = ((w, 'E', n, e1, e2),)
+                args = (w, 'E', n, e1, e2)
             # result = root(func, (xi.real, xi.imag), args=args, jac=True,
             #               method='hybr', options={'xtol': 1.0e-9})
-            result = root(func, (xi.real, xi.imag), args=args, jac=False,
-                          method='hybr', options={'xtol': 1.0e-9})
+            result = root(func, np.array([xi.real, xi.imag]), args=args,
+                          jac=False, method='hybr', options={'xtol': 1.0e-9})
             x = result.x[0] + result.x[1] * 1j
             v = self.v(x, w, e2)
             if result.success:
@@ -421,7 +310,7 @@ class Samples(object):
             vals.append(x)
         return np.array(vals), success
 
-    def beta2_wmin(self, n):
+    def beta2_w_min(self, n):
         """Return roots and convergences of the characteristic equation at
             the lowest angular frequency, ws[0].
 
@@ -436,16 +325,17 @@ class Samples(object):
             success = np.ones_like(xs, dtype=bool)
             return xs, success
         w_0 = 0.1
-        xis = self.beta2_pec(w_0, n)
         e1 = self.fill(w_0)
         e2_0 = -1.0e7 + self.clad(w_0).imag * 1j
         de2 = (self.clad(w_0) - e2_0) / 1000
+        xis = xs = self.beta2_pec(w_0, n)
+        success = np.ones_like(xs, dtype=bool)
         for i in range(1001):
             e2 = e2_0 + de2 * i
             xs, success = self.beta2(w_0, n, e1, e2, xis)
-            for i, ok in enumerate(success):
+            for _, ok in enumerate(success):
                 if not ok:
-                    xs[i] = xis[i]
+                    xs[_] = xis[_]
             xis = xs
         dw = (self.ws[0] - w_0) / 1000
         for i in range(1001):
@@ -453,13 +343,13 @@ class Samples(object):
             e1 = self.fill(w)
             e2 = self.clad(w)
             xs, success = self.beta2(w, n, e1, e2, xis)
-            for i, ok in enumerate(success):
+            for _, ok in enumerate(success):
                 if not ok:
-                    xs[i] = xis[i]
+                    xs[_] = xis[_]
             xis = xs
         return xs, success
 
-    def beta2_wmax(self, n):
+    def beta2_w_max(self, n):
         """Return roots and convergences of the characteristic equation at
             the highest angular frequency, ws[-1].
 
@@ -470,53 +360,30 @@ class Samples(object):
             success: A 1D array indicating the convergence information for xs.
         """
         w = self.ws[-1]
-        xis = self.beta2_pec(w, n)
+        xis = xs = self.beta2_pec(w, n)
+        success = np.ones_like(xs, dtype=bool)
         if self.clad.model == 'pec':
-            success = np.ones_like(xis, dtype=bool)
-            return xis, success
+            return xs, success
         e1 = self.fill(w)
         e2_0 = -1.0e7 + self.clad(w).imag * 1j
         de2 = (self.clad(w) - e2_0) / 100000
         for i in range(100001):
             e2 = e2_0 + de2 * i
             xs, success = self.beta2(w, n, e1, e2, xis)
-            for i, ok in enumerate(success):
+            for _, ok in enumerate(success):
                 if not ok:
-                    xs[i] = xis[i]
+                    xs[_] = xis[_]
             xis = xs
         return xs, success
 
-    def beta_from_beta2(self, x):
+    @staticmethod
+    def beta_from_beta2(x):
         return (1 + 1j) * np.sqrt(-0.5j * x)
         # val = np.sqrt(x)
         # if ((abs(val.real) > abs(val.imag) and val.real < 0) or
         #    (abs(val.real) < abs(val.imag) and val.imag < 0)):
         #     val *= -1
         # return val
-
-    def plot_convs(self, convs, alpha):
-        import matplotlib.pyplot as plt
-        X, Y = np.meshgrid(self.ws, self.wis, indexing='ij')
-        Z = convs[alpha]
-        plt.pcolormesh(X, Y, Z)
-        plt.colorbar()
-        plt.show()
-
-    def plot_real_betas(self, betas, alpha):
-        import matplotlib.pyplot as plt
-        X, Y = np.meshgrid(self.ws, self.wis, indexing='ij')
-        Z = betas[alpha]
-        plt.pcolormesh(X, Y, Z.real)
-        plt.colorbar()
-        plt.show()
-
-    def plot_imag_betas(self, betas, alpha):
-        import matplotlib.pyplot as plt
-        X, Y = np.meshgrid(self.ws, self.wis, indexing='ij')
-        Z = betas[alpha]
-        plt.pcolormesh(X, Y, Z.imag)
-        plt.colorbar()
-        plt.show()
 
     def _betas_convs(self, n, xs_array, success_array):
         num_m = self.params['num_m']
@@ -546,7 +413,7 @@ class Samples(object):
                         iwr, iwi][i + num_m + 1]
         return betas, convs
 
-    def __call__(self, n):
+    def __call__(self, n: int):
         """Return a dict of the roots of the characteristic equation
 
         Args:
@@ -567,12 +434,8 @@ class Samples(object):
         success_array = np.zeros((len(self.ws), len(self.wis),
                                   2 * num_m + 1), dtype=bool)
         iwr = iwi = 0
-        wr = self.ws[iwr]
         wi = self.wis[iwi]
-        w = wr + 1j * wi
-        e1 = self.fill(w)
-        e2 = self.clad(w)
-        xis, success = self.beta2_wmin(n)
+        xis, success = self.beta2_w_min(n)
         xs_array[iwr, iwi] = xis
         success_array[iwr, iwi] = success
         for iwr in range(1, len(self.ws)):
@@ -671,18 +534,14 @@ class SamplesLowLoss(Samples):
         clad: An instance of Material class for the clad
         r: A float indicating the width of the slit [um].
         params: A dict whose keys and values are as follows:
-            'lmax': A float indicating the maximum wavelength [um]
-            'lmin': A float indicating the minimum wavelength [um]
-            'limag': A float indicating the minimum value of
-                abs(c / fimag) [um] where fimag is the imaginary part of
+            'wl_max': A float indicating the maximum wavelength [um]
+            'wl_min': A float indicating the minimum wavelength [um]
+            'wl_imag': A float indicating the minimum value of
+                abs(c / f_imag) [um] where f_imag is the imaginary part of
                 the frequency.
             'dw': A float indicating frequency interval
                 [rad * c / 1um]=[2.99792458e14 rad / s].
             'num_n': An integer indicating the number of orders of modes.
-        ws: A 1D array indicating the real part of the angular frequencies
-            to be calculated [rad (c / 1um)]=[2.99792458e14 rad / s].
-        wis: A 1D array indicating the imaginary part of the angular
-            frequencies to be calculated [rad * (c / 1um)].
     """
 
     def __init__(self, r, fill, clad, params):
@@ -693,12 +552,12 @@ class SamplesLowLoss(Samples):
             fill: An instance of Material class for the core
             clad: An instance of Material class for the clad
             params: A dict whose keys and values are as follows:
-                'lmax': A float indicating the maximum wavelength [um]
-                    (defulat: 5.0)
-                'lmin': A float indicating the minimum wavelength [um]
-                    (defulat: 0.4)
-                'limag': A float indicating the minimum value of
-                    abs(c / fimag) [um] where fimag is the imaginary part of
+                'wl_max': A float indicating the maximum wavelength [um]
+                    (default: 5.0)
+                'wl_min': A float indicating the minimum wavelength [um]
+                    (default: 0.4)
+                'wl_imag': A float indicating the minimum value of
+                    abs(c / f_imag) [um] where f_imag is the imaginary part of
                     the frequency. (default: 5.0)
                 'dw': A float indicating frequency interval
                     [rad c / 1um]=[2.99792458e14 rad / s] (default: 1 / 64).
@@ -708,22 +567,21 @@ class SamplesLowLoss(Samples):
         """
         super(SamplesLowLoss, self).__init__(r, fill, clad, params)
 
-    def __call__(self, args):
+    def __call__(self, arg: Tuple[int, int, List[np.ndarray]]):
         """Return a dict of the roots of the characteristic equation
 
         Args:
-            args: A tuple (iwr, iwi, n, x0s)
-                iwr: An integer indicating the ordinal of the Re(w).
-                iwi: An integer indicating the ordinal of the Im(w).
-                xis_list: A list of num_n 1D arrays indicating the initial
-                    guess of roots whose length is 2*num_m+1
+            arg: (iwr, iwi, xis_list)
+                iwr: The ordinal of the Re(w).
+                iwi: The ordinal of the Im(w).
+                xis_list: The initial guess of roots whose length is 2*num_m+1
         Returns:
             xs_list: A list of num_n 1D arrays indicating the roots, whose
                 length is 2*num_m+1
             success_list: A list of num_n 1D arrays indicating the convergence
                 information for xs, whose length is 2*num_m+1
         """
-        iwr, iwi, xis_list = args
+        iwr, iwi, xis_list = arg
         im_factor = self.clad.im_factor
         self.clad.im_factor = 1.0
         wr = self.ws[iwr]
@@ -733,16 +591,17 @@ class SamplesLowLoss(Samples):
         xs_list = []
         success_list = []
         for n, x0s in enumerate(xis_list):
-            xis = x0s
+            xis = xs = x0s
+            success = np.ones_like(xs, dtype=bool)
             for i in range(1, 16):
                 self.clad.im_factor = 0.7 ** i
                 if i == 15 or self.clad.im_factor < im_factor:
                     self.clad.im_factor = im_factor
                 e2 = self.clad(w)
                 xs, success = self.beta2(w, n, e1, e2, xis)
-                for i, ok in enumerate(success):
+                for _, ok in enumerate(success):
                     if not ok:
-                        xs[i] = xis[i]
+                        xs[_] = xis[_]
                 xis = xs
             xs_list.append(xs)
             success_list.append(success)
