@@ -100,6 +100,7 @@ setup(name='pymwm',
           'numpy',
           'scipy',
           'cython',
+          'pandas',
           'matplotlib',
           'pyoptmat',
           # -*- Extra requirements: -*-
