@@ -288,13 +288,19 @@ class Cylinder(Waveguide):
 
     @staticmethod
     def upart_diag(n, uc, jnuc, jnpuc, u, jnu, jnpu):
-        if abs(uc - u) < 1e-16:
-            return (jnu * jnpu / u + (
-                jnpu ** 2 + (1 - n ** 2 / u ** 2) * jnu ** 2) / 2)
-        if abs(uc + u) < 1e-16:
+        if abs(uc - u) < 1e-10:
+            u0 = (u + uc) / 2
+            jnu0 = jv(n, u0)
+            jnpu0 = jvp(n, u0)
+            return (jnu0 * jnpu0 / u0 + (
+                jnpu0 ** 2 + (1 - n ** 2 / u0 ** 2) * jnu0 ** 2) / 2)
+        if abs(uc + u) < 1e-10:
+            u0 = (u - uc) / 2
+            jnu0 = jv(n, u0)
+            jnpu0 = jvp(n, u0)
             return (-1) ** (n - 1) * (
-                jnu * jnpu / u + (
-                    jnpu ** 2 + (1 - n ** 2 / u ** 2) * jnu ** 2) / 2)
+                jnu0 * jnpu0 / u0 + (
+                    jnpu0 ** 2 + (1 - n ** 2 / u0 ** 2) * jnu0 ** 2) / 2)
         return (uc * jnuc * jnpu -
                 u * jnu * jnpuc) / (uc ** 2 - u ** 2)
 
@@ -304,13 +310,19 @@ class Cylinder(Waveguide):
 
     @staticmethod
     def vpart_diag(n, vc, knvc, knpvc, v, knv, knpv):
-        if abs(vc - v) < 1e-16:
-            return (knv * knpv / v + (
-                knpv ** 2 - (1 + n ** 2 / v ** 2) * knv ** 2) / 2)
-        if abs(vc + v) < 1e-16:
+        if abs(vc - v) < 1e-10:
+            v0 = (v + vc) / 2
+            knv0 = kv(n, v0)
+            knpv0 = kvp(n, v0)
+            return (knv0 * knpv0 / v0 + (
+                knpv0 ** 2 - (1 + n ** 2 / v0 ** 2) * knv0 ** 2) / 2)
+        if abs(vc + v) < 1e-10:
+            v0 = (v - vc) / 2
+            knv0 = kv(n, v0)
+            knpv0 = kvp(n, v0)
             return (-1) ** (n - 1) * (
-                knv * knpv / v + (
-                    knpv ** 2 - (1 + n ** 2 / v ** 2) * knv ** 2) / 2)
+                knv0 * knpv0 / v0 + (
+                    knpv0 ** 2 - (1 + n ** 2 / v0 ** 2) * knv0 ** 2) / 2)
         return (vc * knvc * knpv -
                 v * knv * knpvc) / (vc ** 2 - v ** 2)
 

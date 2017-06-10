@@ -43,16 +43,26 @@ cdef cdouble upart_diag(int n, cdouble uc, cdouble jnuc, cdouble jnpuc,
                         cdouble u, cdouble jnu, cdouble jnpu) nogil:
     cdef:
         int n2 = n * n
-        cdouble u2, jnu2, jnpu2
-    u2 = u * u
-    jnu2 = jnu * jnu
-    jnpu2 = jnpu * jnpu
-    if cabs(uc - u) < 1e-15:
-        return jnu * jnpu / u + (jnpu2 + (1.0 - n2 / u2) * jnu2) / 2.0
-    if cabs(uc + u) < 1e-15:
-        return ((1 - ((n - 1) % 2) * 2) *
-                (jnu * jnpu / u + (jnpu2 + (1.0 - n2 / u2) * jnu2) / 2.0))
-    return (uc * jnuc * jnpu - u * jnu * jnpuc) / (uc * uc - u2)
+        int sign 
+        cdouble u2, jnu2, jnpu2, u0, jnu0, jnpu0
+    if cabs(uc * uc - u * u) > 1e-10:
+        u2 = u * u
+        jnu2 = jnu * jnu
+        jnpu2 = jnpu * jnpu
+        return (uc * jnuc * jnpu - u * jnu * jnpuc) / (uc * uc - u2)
+    if u.real > u.imag:
+        u0 = (u + uc) / 2
+        sign = 1
+    else:
+        u0 = (u - uc) / 2
+        sign = 1 - ((n - 1) % 2) * 2
+    jnu0 = c_besselJ(n, u0)
+    jnpu0 = c_besselJp(n, u0)
+    u2 = u0 * u0
+    jnu2 = jnu0 * jnu0
+    jnpu2 = jnpu0 * jnpu0
+    return (sign *
+            (jnu0 * jnpu0 / u0 + (jnpu2 + (1.0 - n2 / u2) * jnu2) / 2.0))
 
 
 @cython.boundscheck(False)
@@ -70,19 +80,28 @@ cdef cdouble vpart_diag(int n, cdouble vc, cdouble knvc, cdouble knpvc,
                         cdouble v, cdouble knv, cdouble knpv) nogil:
     cdef:
         int n2 = n * n
-        cdouble v2, knv2, knpv2
-    v2 = v * v
-    knv2 = knv * knv
-    knpv2 = knpv * knpv
-    if cabs(vc - v) < 1e-15:
-        return (knv * knpv / v +
-		(knpv2 - (1.0 + n2 / v2) * knv2) / 2.0)
-    if cabs(vc + v) < 1e-15:
-        return (1 - ((n - 1) % 2) * 2) * (
-            knv * knpv / v +
-	    (knpv2 - (1.0 + n2 / v2) * knv2) / 2.0)
-    return (vc * knvc * knpv -
-            v * knv * knpvc) / (vc * vc - v2)
+        int sign
+        cdouble v2, knv2, knpv2, v0, knv0, knpv0
+    if cabs(vc * vc - v * v) > 1e-10:
+        v2 = v * v
+        knv2 = knv * knv
+        knpv2 = knpv * knpv
+        return (vc * knvc * knpv -
+                v * knv * knpvc) / (vc * vc - v2)
+    if v.real > v.imag:
+        v0 = (v + vc) / 2
+        sign = 1
+    else:
+        v0 = (v - vc) / 2
+        sign = 1 - ((n - 1) % 2) * 2
+    knv0 = c_besselK(n, v0)
+    knpv0 = c_besselKp(n, v0)
+    v2 = v0 * v0
+    knv2 = knv0 * knv0
+    knpv2 = knpv0 * knpv0
+    return sign * (
+        knv0 * knpv0 / v0 +
+	(knpv2 - (1.0 + n2 / v2) * knv2) / 2.0)
 
 
 @cython.boundscheck(False)
