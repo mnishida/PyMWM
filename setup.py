@@ -34,9 +34,9 @@ platform = get_platform()
 if platform.startswith('win'):
     extra_compile_args = []
     extra_link_args = [
-        path.join(complex_bessel, 'src', 'amos_iso_c_fortran_wrapper.o'),
-        path.join(complex_bessel, 'src', 'machine.o'),
-        path.join(complex_bessel, 'src', 'zbesh.o')
+        path.join(complex_bessel, 'src', 'amos_iso_c_fortran_wrapper.obj'),
+        path.join(complex_bessel, 'src', 'machine.obj'),
+        path.join(complex_bessel, 'src', 'zbesh.obj')
     ]
     mkl_include = os.path.abspath(os.path.join(
         os.sep, 'Program Files (x86)', 'IntelSWTools',
