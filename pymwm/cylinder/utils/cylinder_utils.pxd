@@ -1,20 +1,22 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 
-ctypedef double complex cdouble
+import numpy as np
+cimport numpy as np
+ctypedef np.complex128_t cdouble;
 
 from libc.stdio cimport printf
 from libc.stdlib cimport malloc, free
 from libc.math cimport sqrt, sin, cos, atan2, M_PI
 
-cdef extern from "complex.h" nogil:
-    cdouble csqrt (cdouble z)
-    double cabs (cdouble z)
-    cdouble conj (cdouble z)
-    cdouble cexp (cdouble z)
-    double creal (cdouble z)
-    double cimag (cdouble z)
-#     cdouble cpow(cdouble x, cdouble n)
+cdef extern from "<complex>" namespace "std"  nogil:
+    cdouble csqrt "sqrt" (cdouble z)
+    double cabs "abs" (cdouble z)
+    cdouble cconj "conj" (cdouble z)
+    cdouble cexp "exp" (cdouble z)
+    double creal "real" (cdouble z)
+    double cimag "imag" (cdouble z)
+#     cdouble cpow "pow"(cdouble x, cdouble n)
 
 cdef extern from "c_complex_bessel.h" nogil:
     cdouble c_besselJ(int n, cdouble z) nogil

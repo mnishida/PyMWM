@@ -75,7 +75,8 @@ extentions = [
               extra_compile_args=extra_compile_args,
               extra_link_args=extra_link_args,
               library_dirs=library_dirs,
-              libraries=libraries),
+              libraries=libraries,
+              language="c++"),
     Extension("pymwm.slit.utils.slit_utils",
               sources=[slit_pyx],
               depends=[],
@@ -83,7 +84,8 @@ extentions = [
               extra_compile_args=extra_compile_args,
               extra_link_args=['-shared'],
               library_dirs=library_dirs,
-              libraries=libraries)
+              libraries=libraries,
+              language="c++")
 ]
 ext_modules = cythonize(extentions)
 

@@ -7,8 +7,8 @@ __pycache__/
 # C extensions
 *.o
 *.so
-pymwm/cylinder/utils/cylinder_utils.c
-pymwm/slit/utils/slit_utils.c
+pymwm/cylinder/utils/cylinder_utils.cpp
+pymwm/slit/utils/slit_utils.cpp
 
 # Distribution / packaging
 .Python
