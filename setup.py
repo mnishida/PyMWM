@@ -1,6 +1,7 @@
 # from setuptools import setup, find_packages
 from setuptools import setup
 from numpy.distutils.core import Extension
+from distutils.util import get_platform
 from Cython.Build import cythonize
 from os import path
 import subprocess
@@ -10,8 +11,7 @@ import pymwm
 long_description = """
 PyMWM is a metallic waveguide mode solver witten in Python.
 """
-extra_compile_args = ['-fPIC', '-m64', '-fopenmp', '-march=native', '-O3',
-                      '-ftree-vectorizer-verbose=2', '-Wl,--no-as-needed']
+
 blas_params = np.__config__.blas_opt_info
 blas_library_dirs = blas_params['library_dirs']
 blas_libraries = blas_params['libraries']
@@ -29,15 +29,32 @@ cylinder_src = [
     cylinder_pyx,
     c_complex_bessel
 ]
-cmd = "gfortran -c {0}.f90 -o {0}.o -fPIC -m64 -march=native -O3".format(
-    path.join(complex_bessel, 'src', 'amos_iso_c_fortran_wrapper'))
-subprocess.call(cmd, shell=True)
-cmd = "gfortran -c {0}.for -o {0}.o -fPIC -m64 -march=native -O3".format(
-    path.join(complex_bessel, 'src', 'machine'))
-subprocess.call(cmd, shell=True)
-cmd = "gfortran -c {0}.for -o {0}.o -fPIC -m64 -march=native -O3".format(
-    path.join(complex_bessel, 'src', 'zbesh'))
-subprocess.call(cmd, shell=True)
+platform = get_platform()
+if platform.startswith('win'):
+    extra_compile_args = []
+    extra_link_args = []
+    cmd = "gfortran -c {0}.f90 -o {0}.o -m64 -march=native -O3".format(
+        path.join(complex_bessel, 'src', 'amos_iso_c_fortran_wrapper'))
+    subprocess.call(cmd, shell=True)
+    cmd = "gfortran -c {0}.for -o {0}.o -m64 -march=native -O3".format(
+        path.join(complex_bessel, 'src', 'machine'))
+    subprocess.call(cmd, shell=True)
+    cmd = "gfortran -c {0}.for -o {0}.o -m64 -march=native -O3".format(
+        path.join(complex_bessel, 'src', 'zbesh'))
+    subprocess.call(cmd, shell=True)
+else:
+    extra_compile_args = ['-fPIC', '-m64', '-fopenmp', '-march=native', '-O3',
+                          '-ftree-vectorizer-verbose=2', '-Wl,--no-as-needed']
+    extra_link_args = ['-shared']
+    cmd = "gfortran -c {0}.f90 -o {0}.o -fPIC -m64 -march=native -O3".format(
+        path.join(complex_bessel, 'src', 'amos_iso_c_fortran_wrapper'))
+    subprocess.call(cmd, shell=True)
+    cmd = "gfortran -c {0}.for -o {0}.o -fPIC -m64 -march=native -O3".format(
+        path.join(complex_bessel, 'src', 'machine'))
+    subprocess.call(cmd, shell=True)
+    cmd = "gfortran -c {0}.for -o {0}.o -fPIC -m64 -march=native -O3".format(
+        path.join(complex_bessel, 'src', 'zbesh'))
+    subprocess.call(cmd, shell=True)
 extra_link_args = [
     '-shared',
     path.join(complex_bessel, 'src', 'amos_iso_c_fortran_wrapper.o'),
