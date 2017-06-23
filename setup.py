@@ -48,6 +48,7 @@ if platform.startswith('win'):
     mkl_library_dirs = [os.path.abspath(os.path.join(
         os.sep, 'Program Files (x86)', 'IntelSWTools',
         'compilers_and_libraries', 'windows', 'mkl', 'lib', 'intel64'))]
+    library_dirs = intel_library_dirs + mkl_library_dirs
     mkl_libraries = ['mkl_rt']
     # libraries = mkl_libraries + ['gfortran']
     libraries = mkl_libraries
@@ -74,6 +75,7 @@ else:
     mkl_library_dirs = [os.path.abspath(os.path.join(
         os.sep, 'opt', 'intel', 'mkl', 'lib', 'intel64'))]
     mkl_libraries = ['mkl_rt']
+    library_dirs = mkl_library_dirs
     libraries = mkl_libraries + ['gfortran', 'dl', 'm']
     cmd = "gfortran -c {0}.f90 -o {0}.o -fPIC -m64 -march=native -O3".format(
         path.join(complex_bessel, 'src', 'amos_iso_c_fortran_wrapper'))
@@ -87,7 +89,6 @@ else:
 slit_pyx = path.join('pymwm', 'slit', 'utils', 'slit_utils.pyx')
 # library_dirs = blas_library_dirs + lapack_library_dirs
 # libraries = blas_libraries + lapack_libraries + ['gfortran', 'dl', 'm']
-library_dirs = mkl_library_dirs
 extentions = [
     Extension("pymwm.cylinder.utils.cylinder_utils",
               sources=cylinder_src,
