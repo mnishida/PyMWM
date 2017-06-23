@@ -8,6 +8,7 @@ ctypedef np.complex128_t cdouble;
 from libc.stdio cimport printf
 from libc.stdlib cimport malloc, free
 from libc.math cimport sqrt, sin, cos, atan2, M_PI
+from scipy.special.cython_special cimport jv, kv
 
 cdef extern from "<complex>" namespace "std" nogil:
     cdouble csqrt "sqrt" (cdouble z)
@@ -18,11 +19,11 @@ cdef extern from "<complex>" namespace "std" nogil:
     double cimag "imag" (cdouble z)
 #     cdouble cpow "pow"(cdouble x, cdouble n)
 
-cdef extern from "c_complex_bessel.h" nogil:
-    cdouble c_besselJ(int n, cdouble z) nogil
-    cdouble c_besselJp(int n, cdouble z) nogil
-    cdouble c_besselK(int n, cdouble z) nogil
-    cdouble c_besselKp(int n, cdouble z) nogil
+# cdef extern from "c_complex_bessel.h" nogil:
+#     cdouble c_besselJ(int n, cdouble z) nogil
+#     cdouble c_besselJp(int n, cdouble z) nogil
+#     cdouble c_besselK(int n, cdouble z) nogil
+#     cdouble c_besselKp(int n, cdouble z) nogil
 
 cdef void jk_to_coefs(int n, int pol, cdouble h,
                       cdouble u, cdouble jnu, cdouble jnpu,

@@ -9,6 +9,30 @@ cimport scipy.linalg.cython_blas as blas
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
+cdef cdouble c_besselJ(int n, cdouble z) nogil: 
+    return jv(n, z)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef cdouble c_besselJp(int n, cdouble z) nogil:
+    return 0.5 * (jv(n - 1, z) - jv(n + 1, z))
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef cdouble c_besselK(int n, cdouble z) nogil:
+    return kv(n, z)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef cdouble c_besselKp(int n, cdouble z) nogil:
+    return -0.5 * (kv(n - 1, z) + kv(n + 1, z))
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 cdef void jk_to_coefs(int n, int pol, cdouble h,
                       cdouble u, cdouble jnu, cdouble jnpu,
                       cdouble v, cdouble knv, cdouble knpv,
