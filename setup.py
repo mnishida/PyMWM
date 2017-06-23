@@ -47,13 +47,13 @@ if platform.startswith('win'):
     mkl_libraries = ['mkl_rt']
     # libraries = mkl_libraries + ['gfortran']
     libraries = mkl_libraries
-    cmd = "ifort -c {0}.f90 -o {0}.o -O3".format(
+    cmd = "ifort {0}.f90 /c /exe:{0}.o /O3 /QxHost".format(
         path.join(complex_bessel, 'src', 'amos_iso_c_fortran_wrapper'))
     subprocess.call(cmd, shell=True)
-    cmd = "ifort -c {0}.for -o {0}.o -O3".format(
+    cmd = "ifort {0}.for /c /exe:{0}.o /O3 /QxHost".format(
         path.join(complex_bessel, 'src', 'machine'))
     subprocess.call(cmd, shell=True)
-    cmd = "ifort -c {0}.for -o {0}.o -O3".format(
+    cmd = "ifort {0}.for /c /exe:{0}.o /O3 /QxHost".format(
         path.join(complex_bessel, 'src', 'zbesh'))
     subprocess.call(cmd, shell=True)
 else:
