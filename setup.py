@@ -41,6 +41,10 @@ if platform.startswith('win'):
     mkl_include = os.path.abspath(os.path.join(
         os.sep, 'Program Files (x86)', 'IntelSWTools',
         'compilers_and_libraries', 'windows', 'mkl', 'include'))
+    intel_library_dirs = [os.path.abspath(os.path.join(
+        os.sep, 'Program Files (x86)', 'IntelSWTools',
+        'compilers_and_libraries', 'windows', 'compiler', 'lib',
+        'intel64'))]
     mkl_library_dirs = [os.path.abspath(os.path.join(
         os.sep, 'Program Files (x86)', 'IntelSWTools',
         'compilers_and_libraries', 'windows', 'mkl', 'lib', 'intel64'))]
