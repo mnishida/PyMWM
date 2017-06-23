@@ -9,7 +9,7 @@ from libc.stdio cimport printf
 from libc.stdlib cimport malloc, free
 from libc.math cimport sqrt, sin, cos, atan2, M_PI
 
-cdef extern from "<complex>" namespace "std"  nogil:
+cdef extern from "<complex>" namespace "std" nogil:
     cdouble csqrt "sqrt" (cdouble z)
     double cabs "abs" (cdouble z)
     cdouble cconj "conj" (cdouble z)
