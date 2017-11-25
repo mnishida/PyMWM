@@ -69,24 +69,31 @@ cdef cdouble upart_diag(int n, cdouble uc, cdouble jnuc, cdouble jnpuc,
         int n2 = n * n
         int sign 
         cdouble u2, jnu2, jnpu2, u0, jnu0, jnpu0
-    if cabs(uc * uc - u * u) > 1e-10:
+    if cabs(uc - u) < 1e-10:
+        u0 = (u + uc) / 2
+        sign = 1
+        jnu0 = c_besselJ(n, u0)
+        jnpu0 = c_besselJp(n, u0)
+        u2 = u0 * u0
+        jnu2 = jnu0 * jnu0
+        jnpu2 = jnpu0 * jnpu0
+        return (sign *
+                (jnu0 * jnpu0 / u0 + (jnpu2 + (1.0 - n2 / u2) * jnu2) / 2.0))
+    elif cabs(uc + u) < 1e-10:
+        u0 = (u - uc) / 2
+        sign = 1 - ((n - 1) % 2) * 2
+        jnu0 = c_besselJ(n, u0)
+        jnpu0 = c_besselJp(n, u0)
+        u2 = u0 * u0
+        jnu2 = jnu0 * jnu0
+        jnpu2 = jnpu0 * jnpu0
+        return (sign *
+                (jnu0 * jnpu0 / u0 + (jnpu2 + (1.0 - n2 / u2) * jnu2) / 2.0))
+    else:
         u2 = u * u
         jnu2 = jnu * jnu
         jnpu2 = jnpu * jnpu
         return (uc * jnuc * jnpu - u * jnu * jnpuc) / (uc * uc - u2)
-    if u.real > u.imag:
-        u0 = (u + uc) / 2
-        sign = 1
-    else:
-        u0 = (u - uc) / 2
-        sign = 1 - ((n - 1) % 2) * 2
-    jnu0 = c_besselJ(n, u0)
-    jnpu0 = c_besselJp(n, u0)
-    u2 = u0 * u0
-    jnu2 = jnu0 * jnu0
-    jnpu2 = jnpu0 * jnpu0
-    return (sign *
-            (jnu0 * jnpu0 / u0 + (jnpu2 + (1.0 - n2 / u2) * jnu2) / 2.0))
 
 
 @cython.boundscheck(False)
@@ -106,26 +113,34 @@ cdef cdouble vpart_diag(int n, cdouble vc, cdouble knvc, cdouble knpvc,
         int n2 = n * n
         int sign
         cdouble v2, knv2, knpv2, v0, knv0, knpv0
-    if cabs(vc * vc - v * v) > 1e-10:
+    if cabs(vc - v) < 1e-10:
+        v0 = (v + vc) / 2
+        sign = 1
+        knv0 = c_besselK(n, v0)
+        knpv0 = c_besselKp(n, v0)
+        v2 = v0 * v0
+        knv2 = knv0 * knv0
+        knpv2 = knpv0 * knpv0
+        return sign * (
+            knv0 * knpv0 / v0 +
+            (knpv2 - (1.0 + n2 / v2) * knv2) / 2.0)
+    elif cabs(vc + v) < 1e-10:
+        v0 = (v - vc) / 2
+        sign = 1 - ((n - 1) % 2) * 2
+        knv0 = c_besselK(n, v0)
+        knpv0 = c_besselKp(n, v0)
+        v2 = v0 * v0
+        knv2 = knv0 * knv0
+        knpv2 = knpv0 * knpv0
+        return sign * (
+            knv0 * knpv0 / v0 +
+            (knpv2 - (1.0 + n2 / v2) * knv2) / 2.0)
+    else:
         v2 = v * v
         knv2 = knv * knv
         knpv2 = knpv * knpv
         return (vc * knvc * knpv -
                 v * knv * knpvc) / (vc * vc - v2)
-    if v.real > v.imag:
-        v0 = (v + vc) / 2
-        sign = 1
-    else:
-        v0 = (v - vc) / 2
-        sign = 1 - ((n - 1) % 2) * 2
-    knv0 = c_besselK(n, v0)
-    knpv0 = c_besselKp(n, v0)
-    v2 = v0 * v0
-    knv2 = knv0 * knv0
-    knpv2 = knpv0 * knpv0
-    return sign * (
-        knv0 * knpv0 / v0 +
-	(knpv2 - (1.0 + n2 / v2) * knv2) / 2.0)
 
 
 @cython.boundscheck(False)
@@ -199,9 +214,7 @@ cdef void coefs_C(
     cdouble *As, cdouble *Bs) nogil:
     cdef:
         int i, s, n, m, en
-        double norm
-        # cdouble norm2
-        cdouble uc, vc, jnuc, jnpuc, knvc, knpvc, ac, bc
+        cdouble norm
         cdouble h, u, v, jnu, jnpu, knv, knpv, a, b
         cdouble ab[2]
         cdouble val_u, val_v, ud, uod, vd, vod
@@ -216,33 +229,19 @@ cdef void coefs_C(
         v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r
         knv = c_besselK(n, v)
         knpv = c_besselKp(n, v)
-        uc = u.conjugate()
-        jnuc = jnu.conjugate()
-        jnpuc = jnpu.conjugate()
-        vc = v.conjugate()
-        knvc = knv.conjugate()
-        knpvc = knpv.conjugate()        
         jk_to_coefs(n, s, h, u, jnu, jnpu, v, knv, knpv, w, r, e1, e2, ab)
         a = ab[0]
         b = ab[1]
-        ac = a.conjugate()
-        bc = b.conjugate()
         val_u = 2 * M_PI * r * r / en
-        val_v = cabs((u * jnu) / (v * knv))
+        val_v = (u * jnu) / (v * knv)
         val_v *= val_u * val_v
-        ud = upart_diag(n, uc, jnuc, jnpuc, u, jnu, jnpu)
-        vd = vpart_diag(n, vc, knvc, knpvc, v, knv, knpv)
-        uod = upart_off(n, uc, jnuc, u, jnu)
-        vod = vpart_off(n, vc, knvc, v, knv)
-        # norm2 = (
-        #     val_u * (
-        #         a * (ac * ud + bc * uod) + b * (bc * ud + ac * uod)))
-        norm = sqrt(
-            creal(val_u * (
-                a * (ac * ud + bc * uod) + b * (bc * ud + ac * uod)) -
-             val_v * (
-                 a * (ac * vd + bc * vod) + b * (bc * vd + ac * vod))
-            ))
+        ud = upart_diag(n, u, jnu, jnpu, u, jnu, jnpu)
+        vd = vpart_diag(n, v, knv, knpv, v, knv, knpv)
+        uod = upart_off(n, u, jnu, u, jnu)
+        vod = vpart_off(n, v, knv, v, knv)
+        norm = csqrt(val_u * (
+            a * (a * ud + b * uod) + b * (b * ud + a * uod)) - val_v * (
+            a * (a * vd + b * vod) + b * (b * vd + a * vod)))
         As[i] = a / norm
         Bs[i] = b / norm
 

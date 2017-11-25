@@ -50,6 +50,7 @@ class TestCylinderCoefs(unittest.TestCase):
         As1, Bs1 = wg.coefs_numpy(hs, w)
         Y1 = wg.Ys(w, hs, As1, Bs1)
         As2, Bs2, Y2 = wg.ABY(w, hs)
+        print(As1, As2)
         self.assertTrue(np.allclose(As1, As2))
         self.assertTrue(np.allclose(Bs1, Bs2))
         self.assertTrue(np.allclose(Y1, Y2))

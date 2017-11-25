@@ -213,7 +213,7 @@ class Cylinder(Waveguide):
         pol, n, m = alpha
         w = w.real + 1j * w.imag
         h = h.real + 1j * h.imag
-        if self.clad.model == 'pec':
+        if e2.real < -1e6:
             if pol == 'E':
                 norm = self.norm(w, h, alpha, 1.0 + 0.0j, 0.0j)
                 ai, bi = 1.0 / norm, 0.0
@@ -254,37 +254,49 @@ class Cylinder(Waveguide):
                 u = jn_zeros(n, m)[-1]
                 jnu = 0.0
                 jnpu = jvp(n, u)
-            return np.sqrt(np.abs(a) ** 2 * np.pi * radius ** 2 / en *
+            return np.sqrt(a ** 2 * np.pi * radius ** 2 / en *
                            (1 - n ** 2 / u ** 2) * jnu ** 2 +
-                           np.abs(b) ** 2 * np.pi * radius ** 2 / en *
+                           b ** 2 * np.pi * radius ** 2 / en *
                            jnpu ** 2)
-        ac = a.conjugate()
-        bc = b.conjugate()
+        # ac = a.conjugate()
+        # bc = b.conjugate()
         u = self.samples.u(h ** 2, w, self.fill(w))
         jnu = jv(n, u)
         jnpu = jvp(n, u)
         v = self.samples.v(h ** 2, w, self.clad(w))
         knv = kv(n, v)
         knpv = kvp(n, v)
-        uc = u.conjugate()
-        jnuc = jnu.conjugate()
-        jnpuc = jnpu.conjugate()
-        vc = v.conjugate()
-        knvc = knv.conjugate()
-        knpvc = knpv.conjugate()
+        # uc = u.conjugate()
+        # jnuc = jnu.conjugate()
+        # jnpuc = jnpu.conjugate()
+        # vc = v.conjugate()
+        # knvc = knv.conjugate()
+        # knpvc = knpv.conjugate()
         val_u = 2 * np.pi * self.r ** 2 / en
-        val_v = val_u * (uc * u * jnuc * jnu) / (vc * v * knvc * knv)
-        upart_diag = self.upart_diag(n, uc, jnuc, jnpuc, u, jnu, jnpu)
-        vpart_diag = self.vpart_diag(n, vc, knvc, knpvc, v, knv, knpv)
-        upart_off = self.upart_off(n, uc, jnuc, u, jnu)
-        vpart_off = self.vpart_off(n, vc, knvc, v, knv)
-        return np.sqrt(np.real(
+        val_v = val_u * ((u * jnu) / (v * knv)) ** 2
+        # val_v = val_u * (uc * u * jnuc * jnu) / (vc * v * knvc * knv)
+        upart_diag = self.upart_diag(n, u, jnu, jnpu, u, jnu, jnpu)
+        vpart_diag = self.vpart_diag(n, v, knv, knpv, v, knv, knpv)
+        upart_off = self.upart_off(n, u, jnu, u, jnu)
+        vpart_off = self.vpart_off(n, v, knv, v, knv)
+        return np.sqrt(
             val_u * (
-                a * (ac * upart_diag + bc * upart_off) +
-                b * (bc * upart_diag + ac * upart_off)) -
+                a * (a * upart_diag + b * upart_off) +
+                b * (b * upart_diag + a * upart_off)) -
             val_v * (
-                a * (ac * vpart_diag + bc * vpart_off) +
-                b * (bc * vpart_diag + ac * vpart_off))))
+                a * (a * vpart_diag + b * vpart_off) +
+                b * (b * vpart_diag + a * vpart_off)))
+        # upart_diag = self.upart_diag(n, uc, jnuc, jnpuc, u, jnu, jnpu)
+        # vpart_diag = self.vpart_diag(n, vc, knvc, knpvc, v, knv, knpv)
+        # upart_off = self.upart_off(n, uc, jnuc, u, jnu)
+        # vpart_off = self.vpart_off(n, vc, knvc, v, knv)
+        # return np.sqrt(np.real(
+        #     val_u * (
+        #         a * (ac * upart_diag + bc * upart_off) +
+        #         b * (bc * upart_diag + ac * upart_off)) -
+        #     val_v * (
+        #         a * (ac * vpart_diag + bc * vpart_off) +
+        #         b * (bc * vpart_diag + ac * vpart_off))))
 
     @staticmethod
     def upart_diag(n, uc, jnuc, jnpuc, u, jnu, jnpu):
