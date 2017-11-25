@@ -200,7 +200,7 @@ cdef void coefs_C(
     cdef:
         int i, s, n, m, en
         double norm
-        cdouble norm2
+        # cdouble norm2
         cdouble uc, vc, jnuc, jnpuc, knvc, knpvc, ac, bc
         cdouble h, u, v, jnu, jnpu, knv, knpv, a, b
         cdouble ab[2]
@@ -234,9 +234,9 @@ cdef void coefs_C(
         vd = vpart_diag(n, vc, knvc, knpvc, v, knv, knpv)
         uod = upart_off(n, uc, jnuc, u, jnu)
         vod = vpart_off(n, vc, knvc, v, knv)
-        norm2 = (
-            val_u * (
-                a * (ac * ud + bc * uod) + b * (bc * ud + ac * uod)))
+        # norm2 = (
+        #     val_u * (
+        #         a * (ac * ud + bc * uod) + b * (bc * ud + ac * uod)))
         norm = sqrt(
             creal(val_u * (
                 a * (ac * ud + bc * uod) + b * (bc * ud + ac * uod)) -
