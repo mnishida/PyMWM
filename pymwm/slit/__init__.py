@@ -211,7 +211,7 @@ class Slit(Waveguide):
         return np.sinc(x1)
 
     def norm(self, w, h, alpha, a, b):
-        a2_b2 = np.abs(a) ** 2 + np.abs(b) ** 2
+        a2_b2 = a ** 2 + b ** 2
         e1 = self.fill(w)
         e2 = self.clad(w)
         pol, n, m = alpha
@@ -221,9 +221,9 @@ class Slit(Waveguide):
             else:
                 return np.sqrt(a2_b2 * self.r / 2)
         u = self.samples.u(h ** 2, w, e1)
-        uc = u.conjugate()
+        # uc = u.conjugate()
         v = self.samples.v(h ** 2, w, e2)
-        vc = v.conjugate()
+        # vc = v.conjugate()
         if n % 2 == 0:
             if pol == 'E':
                 b_a = np.sin(u)
@@ -238,9 +238,8 @@ class Slit(Waveguide):
             else:
                 b_a = - u / v * np.cos(u)
                 parity = -1
-        val = np.sqrt(np.real(a2_b2 * self.r * (
-            np.abs(b_a) ** 2 / (v + vc) +
-            (self.sinc(u - uc) + parity * self.sinc(u + uc)) / 2)))
+        val = np.sqrt(a2_b2 * self.r * (
+            b_a ** 2 / (2 * v) + (1.0 + parity * self.sinc(2 * u)) / 2))
         return val
 
     def Y(self, w, h, alpha, a, b):

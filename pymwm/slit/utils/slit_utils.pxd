@@ -20,11 +20,11 @@ cdef extern from "<complex>" namespace "std"  nogil:
 #     cdouble cpow "pow"(cdouble x, cdouble n)
 
 cdef coefs_pec_C(long *s_all, long *n_all, int num_n_all,
-              double r, double *As, double *Bs)
+              double r, cdouble *As, cdouble *Bs)
 
 cdef cdouble csinc(cdouble x) nogil
 
 cdef void coefs_C(
     cdouble *hs, cdouble w, long *s_all, long *n_all,
     int num_n_all, double r, cdouble e1, cdouble e2,
-    double *As, double *Bs) nogil
+    cdouble *As, cdouble *Bs) nogil

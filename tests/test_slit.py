@@ -99,8 +99,8 @@ class TestSlit(unittest.TestCase):
         l1 = l2 = 0
         n1 = n2 = 1
         m1 = m2 = 1
-        self.assertEqual(wg.norm(w, h1, alpha1, a1, b1), 1.0)
-        self.assertEqual(wg.norm(w, h2, alpha2, a2, b2), 1.0)
+        self.assertAlmostEqual(wg.norm(w, h1, alpha1, a1, b1), 1.0)
+        self.assertAlmostEqual(wg.norm(w, h2, alpha2, a2, b2), 1.0)
         print(wg.Yab(w, h1, s1, l1, n1, m1, a1, b1, h2, s2, l2, n2, m2, a2, b2))
         self.assertEqual(
             wg.Yab(w, h1, s1, l1, n1, m1, a1, b1,

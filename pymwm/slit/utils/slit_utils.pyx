@@ -13,11 +13,11 @@ def coefs_cython(object hole, cdouble[::1] hs, cdouble w):
     cdef:
         long[::1] s_all = hole.s_all
         long[::1] n_all = hole.n_all
-    As_array = np.empty(hole.num_n_all)
-    Bs_array = np.empty(hole.num_n_all)
+    As_array = np.empty(hole.num_n_all, dtype=np.complex)
+    Bs_array = np.empty(hole.num_n_all, dtype=np.complex)
     cdef:
-        double[::1] As = As_array
-        double[::1] Bs = Bs_array
+        cdouble[::1] As = As_array
+        cdouble[::1] Bs = Bs_array
         cdouble e1 = hole.fill(w)
         cdouble e2 = hole.clad(w)
     if creal(e2) < -1e6:
@@ -34,7 +34,7 @@ def coefs_cython(object hole, cdouble[::1] hs, cdouble w):
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef coefs_pec_C(long *s_all, long *n_all, int num_n_all,
-              double r, double *As, double *Bs):
+              double r, cdouble *As, cdouble *Bs):
     cdef:
         int i, n
         double sqrt_r = sqrt(r)
@@ -67,12 +67,11 @@ cdef cdouble csinc(cdouble x) nogil:
 cdef void coefs_C(
     cdouble *hs, cdouble w, long *s_all, long *n_all,
     int num_n_all, double r, cdouble e1, cdouble e2,
-    double *As, double *Bs) nogil:
+    cdouble *As, cdouble *Bs) nogil:
     cdef:
         int i, s, n, parity
-        double norm, a, b
-        cdouble uc, vc, ac, bc
-        cdouble h, u, v
+        double a, b
+        cdouble h, u, v, norm
         cdouble B_A
     for i in range(num_n_all):
         n = n_all[i]
@@ -80,8 +79,6 @@ cdef void coefs_C(
         s = s_all[i]
         u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r / 2
         v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r / 2
-        uc = u.conjugate()
-        vc = v.conjugate()
         if n % 2 == 0:
             if s == 0:
                 B_A = csin(u)
@@ -104,8 +101,8 @@ cdef void coefs_C(
                 parity = -1
                 a = 0.0
                 b = 1.0
-        norm = sqrt(creal(r * (cabs(B_A) ** 2  / (v + vc) +
-                          (csinc(u - uc) + parity * csinc(u + uc)) / 2)))
+        norm = csqrt(r * (B_A ** 2  / (2 * v) +
+                          (1.0 + parity * csinc(2 * u)) / 2))
         As[i] = a / norm
         Bs[i] = b / norm
 
@@ -121,12 +118,12 @@ def ABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
         double sqrt_r = sqrt(r)
         double sqrt_2 = sqrt(2.0)
         cdouble h, u, v, y_in, y_out, B_A
-    As_array = np.empty(num_n_all)
-    Bs_array = np.empty(num_n_all)
+    As_array = np.empty(num_n_all, dtype=np.complex)
+    Bs_array = np.empty(num_n_all, dtype=np.complex)
     Ys_array = np.empty(num_n_all, dtype=np.complex)
     cdef:
-        double[:] As = As_array
-        double[:] Bs = Bs_array
+        cdouble[:] As = As_array
+        cdouble[:] Bs = Bs_array
         cdouble[:] Ys = Ys_array
     if creal(e2) < -1e6:
         coefs_pec_C(&s_all[0], &n_all[0], num_n_all, r, &As[0], &Bs[0])
@@ -181,14 +178,14 @@ def uvABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
         cdouble h, u, v, y_in, y_out, B_A
     us_array = np.empty(num_n_all, dtype=np.complex)
     vs_array = np.empty(num_n_all, dtype=np.complex)
-    As_array = np.empty(num_n_all)
-    Bs_array = np.empty(num_n_all)
+    As_array = np.empty(num_n_all, dtype=np.complex)
+    Bs_array = np.empty(num_n_all, dtype=np.complex)
     Ys_array = np.empty(num_n_all, dtype=np.complex)
     cdef:
         cdouble[:] us = us_array
         cdouble[:] vs = vs_array
-        double[:] As = As_array
-        double[:] Bs = Bs_array
+        cdouble[:] As = As_array
+        cdouble[:] Bs = Bs_array
         cdouble[:] Ys = Ys_array
     if creal(e2) < -1e6:
         coefs_pec_C(&s_all[0], &n_all[0], num_n_all, r, &As[0], &Bs[0])
