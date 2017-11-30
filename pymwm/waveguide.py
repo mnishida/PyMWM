@@ -703,7 +703,7 @@ class Database:
             self.set_columns_dtype(catalog, self.catalog_columns)
             store['catalog'] = catalog
         os.system("ptrepack --chunkshape=auto --propindexes --complevel=9 " +
-                  "--complib=blosc {0} {0}.new".format(self.filename))
+                  "--complib=blosc {0}: {0}.new:".format(self.filename))
         os.system("mv {0}.new {0}".format(self.filename))
 
     @classmethod
@@ -740,7 +740,7 @@ class Database:
                 store.remove("sn_{}".format(sn))
             store['catalog'] = catalog
         os.system("ptrepack --chunkshape=auto --propindexes --complevel=9 " +
-                  "--complib=blosc {0} {0}.new".format(self.filename))
+                  "--complib=blosc {0}: {0}.new:".format(self.filename))
         os.system("mv {0}.new {0}".format(self.filename))
 
     def interpolation(self, betas: np.ndarray, convs: np.ndarray,
