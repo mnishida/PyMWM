@@ -3,8 +3,8 @@ from logging import getLogger
 from typing import Dict, Tuple, List
 import numpy as np
 from pymwm.waveguide import Waveguide
-from pymwm.slit.samples import Samples, SamplesLowLoss
-from pymwm.slit.utils import coefs_cython, ABY_cython, uvABY_cython
+from .samples import Samples, SamplesLowLoss
+from .utils import coefs_cython, ABY_cython, uvABY_cython
 
 logger = getLogger(__package__)
 
