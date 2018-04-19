@@ -618,6 +618,14 @@ class Database:
         self.wis = -np.arange(ind_w_imag + 1) * self.dw
         self.sn = self.get_sn()
 
+    def load_catalog(self) -> DataFrame:
+        if not os.path.exists(self.filename):
+            print("File Not Found.")
+            catalog = pd.DataFrame(columns=self.catalog_columns.keys())
+        with pd.HDFStore(self.filename, 'r') as store:
+            catalog = store['catalog']
+        return catalog
+
     def get_sn(self) -> int:
         if not os.path.exists(self.filename):
             if not os.path.exists(self.dirname):
@@ -682,7 +690,6 @@ class Database:
             for i, sn in zip(indices, sns):
                 catalog = catalog.drop(i)
                 store.remove("sn_{}".format(sn))
-
             sn = self.sn
             for EM, n, m in sorted(convs.keys()):
                 se = pd.Series(
@@ -702,6 +709,8 @@ class Database:
                 sn += 1
             self.set_columns_dtype(catalog, self.catalog_columns)
             store['catalog'] = catalog
+
+    def compress(self):
         os.system("ptrepack --chunkshape=auto --propindexes --complevel=9 " +
                   "--complib=blosc {0}: {0}.new:".format(self.filename))
         os.system("mv {0}.new {0}".format(self.filename))
@@ -729,19 +738,28 @@ class Database:
             cls.set_columns_dtype(catalog, cls.catalog_columns)
             store['catalog'] = catalog
 
-    def delete(self):
+    def delete(self, sns: List):
+        with pd.HDFStore(
+                self.filename, complevel=9, complib='blosc') as store:
+            catalog = store['catalog']
+            indices = [catalog[catalog['sn'] == sn].index[0] for sn in sns]
+            for i, sn in zip(indices, sns):
+                catalog.drop(i, inplace=True)
+                store.remove("sn_{}".format(sn))
+            store['catalog'] = catalog
+        self.sn = self.get_sn()
+
+    def delete_current(self):
         with pd.HDFStore(
                 self.filename, complevel=9, complib='blosc') as store:
             catalog = store['catalog']
             sns = range(self.sn, self.sn + self.num_all)
             indices = [catalog[catalog['sn'] == sn].index[0] for sn in sns]
             for i, sn in zip(indices, sns):
-                catalog.drop(i)
+                catalog.drop(i, inplace=True)
                 store.remove("sn_{}".format(sn))
             store['catalog'] = catalog
-        os.system("ptrepack --chunkshape=auto --propindexes --complevel=9 " +
-                  "--complib=blosc {0}: {0}.new:".format(self.filename))
-        os.system("mv {0}.new {0}".format(self.filename))
+        self.sn = self.get_sn()
 
     def interpolation(self, betas: np.ndarray, convs: np.ndarray,
                       bounds: Dict) -> Dict:

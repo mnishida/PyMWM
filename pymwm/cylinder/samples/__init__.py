@@ -455,6 +455,7 @@ class Samples(Sampling):
             xs_array[iwr, iwi] = xs
             success_array[iwr, iwi] = success
             xis = xs
+            # print(iwr, iwi, success)
         for iwi in range(1, len(self.wis)):
             wi = self.wis[iwi]
             for iwr in range(len(self.ws)):
@@ -480,6 +481,7 @@ class Samples(Sampling):
                         xs[i] = xis[i]
                 xs_array[iwr, iwi] = xs
                 success_array[iwr, iwi] = success
+                # print(iwr, iwi, success)
         return xs_array, success_array
 
     def betas_convs(self, xs_success_list):
