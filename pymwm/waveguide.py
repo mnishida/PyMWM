@@ -62,10 +62,10 @@ class Sampling(metaclass=abc.ABCMeta):
     @property
     def key(self) -> Dict:
         p = self.params
-        dw = p.setdefault('dw', 1.0 / 64)
-        wl_max = p.setdefault('wl_max', 5.0)
-        wl_min = p.setdefault('wl_min', 0.4)
-        wl_imag = p.setdefault('wl_imag', 5.0)
+        dw = p.get('dw', 1.0 / 64)
+        wl_max = p.get('wl_max', 5.0)
+        wl_min = p.get('wl_min', 0.4)
+        wl_imag = p.get('wl_imag', 5.0)
         shape = self.shape
         size = self.size
         size2 = self.size2
@@ -610,7 +610,6 @@ class Database:
         for col in list(self.catalog_columns.keys())[1:-3]:
             cond += '{0} == @self.{0} & '.format(col)
         self.cond = cond.rstrip('& ')
-
         ind_w_min = int(np.floor(2 * np.pi / self.wl_max / self.dw))
         ind_w_max = int(np.ceil(2 * np.pi / self.wl_min / self.dw))
         ind_w_imag = int(np.ceil(2 * np.pi / self.wl_imag / self.dw))
