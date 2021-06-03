@@ -92,7 +92,7 @@ class Sampling(metaclass=abc.ABCMeta):
         import matplotlib.pyplot as plt
         x, y = np.meshgrid(self.ws, self.wis, indexing='ij')
         z = convs[alpha]
-        plt.pcolormesh(x, y, z)
+        plt.pcolormesh(x, y, z, shading="gouraud")
         plt.colorbar()
         plt.show()
 
@@ -100,7 +100,7 @@ class Sampling(metaclass=abc.ABCMeta):
         import matplotlib.pyplot as plt
         x, y = np.meshgrid(self.ws, self.wis, indexing='ij')
         z = betas[alpha]
-        plt.pcolormesh(x, y, z.real)
+        plt.pcolormesh(x, y, z.real, shading="gouraud")
         plt.colorbar()
         plt.show()
 
@@ -108,7 +108,7 @@ class Sampling(metaclass=abc.ABCMeta):
         import matplotlib.pyplot as plt
         x, y = np.meshgrid(self.ws, self.wis, indexing='ij')
         z = betas[alpha]
-        plt.pcolormesh(x, y, z.imag)
+        plt.pcolormesh(x, y, z.imag, shading="gouraud")
         plt.colorbar()
         plt.show()
 

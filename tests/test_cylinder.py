@@ -1,27 +1,25 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import unittest
 import numpy as np
+import numpy.testing as npt
 import pymwm
 
 
-class TestCylinder(unittest.TestCase):
+params = {'core': {'shape': 'cylinder', 'size': 0.15,
+                   'fill': {'RI': 1.0}},
+          'clad': {'model': 'gold_dl'},
+          'bounds': {'wl_max': 5.0, 'wl_min': 0.575,
+                     'wl_imag': 10.0},
+          'modes': {'num_n': 6, 'num_m': 2}}
 
-    def setUp(self):
-        self.params = {'core': {'shape': 'cylinder', 'size': 0.15,
-                                'fill': {'RI': 1.0}},
-                       'clad': {'model': 'gold_dl'},
-                       'bounds': {'wl_max': 5.0, 'wl_min': 0.575,
-                                  'wl_imag': 10.0},
-                       'modes': {'num_n': 6, 'num_m': 2}}
 
-    def test_attributes(self):
-        wg = pymwm.create(self.params)
-        self.assertEqual(wg.r, 0.15)
-        w = 2 * np.pi / 5.0
-        self.assertEqual(wg.fill(w), 1.0)
-        drude_lorentz = -1272.3759476327962 + 351.2509006022277j
-        self.assertAlmostEqual(wg.clad(w), drude_lorentz)
+def test_attributes():
+    wg = pymwm.create(params)
+    assert wg.r == 0.15
+    w = 2 * np.pi / 5.0
+    assert wg.fill(w) == 1.0
+    drude_lorentz = -1272.37592771801 + 351.25089220304176j
+    npt.assert_almost_equal(wg.clad(w), drude_lorentz)
     #
     # def test_Yab_pec(self):
     #     params = self.params.copy()
@@ -123,7 +121,3 @@ class TestCylinder(unittest.TestCase):
     #         print(Yab)
     #         print(Y)
     #         self.assertAlmostEqual(Yab, Y)
-
-
-if __name__ == '__main__':
-    unittest.main()

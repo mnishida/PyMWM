@@ -20,7 +20,7 @@ class TestSlit(unittest.TestCase):
         self.assertEqual(wg.r, 0.15)
         w = 2 * np.pi / 5.0
         self.assertEqual(wg.fill(w), 1.0)
-        drude_lorentz = -1272.3759476327962+351.25090060222772j
+        drude_lorentz = -1272.37592771801+351.25089220304176j
         self.assertAlmostEqual(wg.clad(w), drude_lorentz)
 
     def test_Yab_pec(self):

@@ -191,7 +191,7 @@ class TestCylinderSamples(unittest.TestCase):
             0.1884476108781034)
         self.assertAlmostEqual(
             beta_funcs[(('E', 1, 2), 'imag')](2 * np.pi, 0.0)[0, 0],
-            29.744944304266852)
+            29.74494425189081)
         self.assertAlmostEqual(
             beta_funcs[(('E', 2, 1), 'real')](2 * np.pi, 0.0)[0, 0],
             0.10224849620607172)

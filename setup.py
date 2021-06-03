@@ -151,6 +151,7 @@ setup(name='pymwm',
           'pandas',
           'matplotlib',
           'pyoptmat',
+          'pytest',
           # -*- Extra requirements: -*-
           # 'numpy>=1.7',
           # 'scipy>=0.12',

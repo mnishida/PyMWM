@@ -52,6 +52,9 @@ class Cylinder(Waveguide):
 
     def get_alphas(self, alpha_list: List[Tuple[str, int, int]]) -> Dict:
         alphas = {'h': [], 'v': []}
+        for alpha in [('E', 0, m) for m in range(1, self.num_m + 1)]:
+            if alpha in alpha_list:
+                alphas['v'].append(alpha)
         for alpha in [('E', n, m) for n in range(1, self.num_n)
                       for m in range(1, self.num_m + 1)]:
             if alpha in alpha_list:

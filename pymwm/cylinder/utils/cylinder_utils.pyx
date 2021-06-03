@@ -159,8 +159,8 @@ def coefs_cython(object hole, cdouble[::1] hs, cdouble w):
         long[::1] s_all = hole.s_all
         long[::1] n_all = hole.n_all
         long[::1] m_all = hole.m_all
-    As_array = np.empty(hole.num_n_all, dtype=np.complex)
-    Bs_array = np.empty(hole.num_n_all, dtype=np.complex)
+    As_array = np.empty(hole.num_n_all, dtype=complex)
+    Bs_array = np.empty(hole.num_n_all, dtype=complex)
     cdef:
         cdouble[::1] As = As_array
         cdouble[::1] Bs = Bs_array
@@ -261,9 +261,9 @@ def ABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
         cdouble uc, vc, jnuc, jnpuc, knvc, knpvc, ac, bc
         cdouble ab[2]
         cdouble val_u, val_v, ud, uod, vd, vod
-    As_array = np.empty(num_n_all, dtype=np.complex)
-    Bs_array = np.empty(num_n_all, dtype=np.complex)
-    Ys_array = np.empty(num_n_all, dtype=np.complex)
+    As_array = np.empty(num_n_all, dtype=complex)
+    Bs_array = np.empty(num_n_all, dtype=complex)
+    Ys_array = np.empty(num_n_all, dtype=complex)
     cdef:
         cdouble[:] As = As_array
         cdouble[:] Bs = Bs_array
@@ -333,11 +333,11 @@ def uvABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
         cdouble uc, vc, jnuc, jnpuc, knvc, knpvc, ac, bc
         cdouble ab[2]
         cdouble val_u, val_v, ud, uod, vd, vod
-    us_array = np.empty(num_n_all, dtype=np.complex)
-    vs_array = np.empty(num_n_all, dtype=np.complex)
-    As_array = np.empty(num_n_all, dtype=np.complex)
-    Bs_array = np.empty(num_n_all, dtype=np.complex)
-    Ys_array = np.empty(num_n_all, dtype=np.complex)
+    us_array = np.empty(num_n_all, dtype=complex)
+    vs_array = np.empty(num_n_all, dtype=complex)
+    As_array = np.empty(num_n_all, dtype=complex)
+    Bs_array = np.empty(num_n_all, dtype=complex)
+    Ys_array = np.empty(num_n_all, dtype=complex)
     cdef:
         cdouble[:] us = us_array
         cdouble[:] vs = vs_array
