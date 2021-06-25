@@ -141,6 +141,8 @@ class Waveguide(metaclass=abc.ABCMeta):
                     'wl_imag': A float indicating the maximum value of
                         abs(c / f_imag) [um] where f_imag is the imaginary part
                         of the frequency.
+                    'beta_imag_max': A float indicating the maximum allowed value
+                        of the imaginary part of beta. 
                 'modes': A dict of the settings for calculating modes:
                     'wl_max': A float indicating the maximum wavelength [um]
                         (default: 5.0)
@@ -766,6 +768,7 @@ class Database:
         wl_max = bounds['wl_max']
         wl_min = bounds['wl_min']
         wl_imag = bounds['wl_imag']
+        beta_imag_max = bounds.get('beta_imag_max', None)
         wr_min = 2 * np.pi / wl_max
         wr_max = 2 * np.pi / wl_min
         wi_min = -2 * np.pi / wl_imag
@@ -789,6 +792,10 @@ class Database:
                     conv = convs[alpha][:, ::-1]
                     if np.all(conv[i_min: i_max + 1, j_min:]):
                         data = betas[alpha][:, ::-1]
+                        if beta_imag_max is not None:
+                            imag_max = data[i_min: i_max + 1, j_min:].imag.max()
+                            if  imag_max > beta_imag_max:
+                                continue
                         beta_funcs[(alpha, 'real')] = RectBivariateSpline(
                             ws[i_min: i_max + 1], wis[j_min:],
                             data.real[i_min: i_max + 1, j_min:],
