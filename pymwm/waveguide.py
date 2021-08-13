@@ -138,7 +138,7 @@ class Waveguide(metaclass=abc.ABCMeta):
                     and its keys and values are as follows:
                     'wl_max': A float indicating the maximum wavelength [um]
                     'wl_min': A float indicating the minimum wavelength [um]
-                    'wl_imag': A float indicating the maximum value of
+                    'wl_imag': A float indicating the minimum value of
                         abs(c / f_imag) [um] where f_imag is the imaginary part
                         of the frequency.
                     'beta_imag_max': A float indicating the maximum allowed value
@@ -148,7 +148,7 @@ class Waveguide(metaclass=abc.ABCMeta):
                         (default: 5.0)
                     'wl_min': A float indicating the minimum wavelength [um]
                         (default: 0.4)
-                    'wl_imag': A float indicating the maximum value of
+                    'wl_imag': A float indicating the minimum value of
                         abs(c / f_imag) [um] where f_imag is the imaginary part
                         of the frequency. (default: 5.0)
                     'dw': A float indicating frequency interval

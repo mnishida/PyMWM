@@ -19,12 +19,6 @@ cdef extern from "<complex>" namespace "std" nogil:
     double cimag "imag" (cdouble z)
 #     cdouble cpow "pow"(cdouble x, cdouble n)
 
-# cdef extern from "c_complex_bessel.h" nogil:
-#     cdouble c_besselJ(int n, cdouble z) nogil
-#     cdouble c_besselJp(int n, cdouble z) nogil
-#     cdouble c_besselK(int n, cdouble z) nogil
-#     cdouble c_besselKp(int n, cdouble z) nogil
-
 cdef void jk_to_coefs(int n, int pol, cdouble h,
                       cdouble u, cdouble jnu, cdouble jnpu,
                       cdouble v, cdouble knv, cdouble knpv,

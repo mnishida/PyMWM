@@ -319,7 +319,7 @@ class Samples(Sampling):
             return xs, success
         w_0 = 0.1
         e1 = self.fill(w_0)
-        e2_0 = -1.0e7 + self.clad(w_0).imag * 1j
+        e2_0 = -5.0e5 + self.clad(w_0).imag * 1j
         de2 = (self.clad(w_0) - e2_0) / 1000
         xis = xs = self.beta2_pec(w_0, num_n)
         success = np.ones_like(xs, dtype=bool)
