@@ -5,4 +5,3 @@ mkl
 pandas
 ray
 matplotlib
-pyoptmat
