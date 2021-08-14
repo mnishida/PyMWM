@@ -10,9 +10,11 @@ from setuptools import find_packages, setup
 
 import pymwm
 
+dirname = os.path.dirname(__file__)
+
 
 def read(filename):
-    filename = os.path.join(os.path.dirname(__file__), filename)
+    filename = os.path.join(dirname, filename)
     text_type = type("")
     with io.open(filename, mode="r", encoding="utf-8") as fd:
         return re.sub(text_type(r":[a-z]+:`~?(.*?)`"), text_type(r"``\1``"), fd.read())
@@ -41,7 +43,7 @@ else:
 extentions = [
     Extension(
         f"pymwm.{shape}.utils.{shape}_utils",
-        sources=[os.path.join("pymwm", shape, "utils", f"{shape}_utils.pyx")],
+        sources=[os.path.join(dirname, "pymwm", shape, "utils", f"{shape}_utils.pyx")],
         depends=[],
         include_dirs=[np.get_include(), "."],
         extra_compile_args=extra_compile_args,
