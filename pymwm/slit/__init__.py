@@ -47,31 +47,33 @@ class Slit(Waveguide):
                         In the slit case, "h" ("v") corresponds to TE (TM)
                         polarization.
         """
-        num_m = params['modes'].setdefault('num_m', 1)
+        num_m = params["modes"].setdefault("num_m", 1)
         if num_m != 1:
-            logger.warning("num_m must be 1 if shape is slit." +
-                           "The set value is ignored.")
-            params['modes']['num_m'] = 1
+            logger.warning(
+                "num_m must be 1 if shape is slit." + "The set value is ignored."
+            )
+            params["modes"]["num_m"] = 1
         super().__init__(params)
 
     def get_alphas(self, alpha_list: List[Tuple[str, int, int]]) -> Dict:
-        alphas = {'h': [], 'v': []}
-        for alpha in [('E', n, 1) for n in range(1, self.num_n)]:
+        alphas = {"h": [], "v": []}
+        for alpha in [("E", n, 1) for n in range(1, self.num_n)]:
             if alpha in alpha_list:
-                alphas['v'].append(alpha)
-        for alpha in [('M', n, 1) for n in range(self.num_n)]:
+                alphas["v"].append(alpha)
+        for alpha in [("M", n, 1) for n in range(self.num_n)]:
             if alpha in alpha_list:
-                alphas['h'].append(alpha)
+                alphas["h"].append(alpha)
         return alphas
 
     def betas_convs_samples(
-            self, params: Dict) -> Tuple[np.ndarray, np.ndarray, Samples]:
+        self, params: Dict
+    ) -> Tuple[np.ndarray, np.ndarray, Samples]:
         im_factor = 1.0
         if self.clad.im_factor != 1.0:
             im_factor = self.clad.im_factor
             self.clad.im_factor = 1.0
-        p_modes = params['modes'].copy()
-        num_n_0 = p_modes['num_n']
+        p_modes = params["modes"].copy()
+        num_n_0 = p_modes["num_n"]
         smp = Samples(self.r, self.fill, self.clad, p_modes)
         try:
             betas, convs = smp.database.load()
@@ -85,7 +87,7 @@ class Slit(Waveguide):
                     break
                 else:
                     continue
-            p_modes['num_n'] = num_n
+            p_modes["num_n"] = num_n
             smp = Samples(self.r, self.fill, self.clad, p_modes)
             try:
                 betas, convs = smp.database.load()
@@ -94,11 +96,12 @@ class Slit(Waveguide):
             except IndexError:
                 continue
         if not success:
-            p_modes['num_n'] = num_n_0
+            p_modes["num_n"] = num_n_0
             smp = Samples(self.r, self.fill, self.clad, p_modes)
             from multiprocessing import Pool
+
             p = Pool(2)
-            xs_success_list = p.map(smp, [('M', num_n_0), ('E', num_n_0)])
+            xs_success_list = p.map(smp, [("M", num_n_0), ("E", num_n_0)])
             # betas_list = list(map(smp,
             #                       [('M', num_n), ('E', num_n)]))
             # betas = {key: val for betas, convs in betas_list
@@ -114,17 +117,17 @@ class Slit(Waveguide):
                 betas, convs = smp.database.load()
             except IndexError:
                 self.clad.im_factor = im_factor
-                num_n = p_modes['num_n']
+                num_n = p_modes["num_n"]
                 args = []
                 for iwr in range(len(smp.ws)):
                     for iwi in range(len(smp.wis)):
                         xis_list = [
-                            [betas[('M', n, 1)][iwr, iwi] ** 2
-                             for n in range(num_n)],
-                            [betas[('E', n, 1)][iwr, iwi] ** 2
-                             for n in range(num_n)]]
+                            [betas[("M", n, 1)][iwr, iwi] ** 2 for n in range(num_n)],
+                            [betas[("E", n, 1)][iwr, iwi] ** 2 for n in range(num_n)],
+                        ]
                         args.append((iwr, iwi, xis_list))
                 from multiprocessing import Pool
+
                 p = Pool(16)
                 xs_success_list = p.map(smp, args)
                 # xs_success_list = list(map(smp, smp.args)
@@ -146,8 +149,8 @@ class Slit(Waveguide):
         """
         wr = w.real
         wi = w.imag
-        hr = self.beta_funcs[(alpha, 'real')](wr, wi)[0, 0]
-        hi = self.beta_funcs[(alpha, 'imag')](wr, wi)[0, 0]
+        hr = self.beta_funcs[(alpha, "real")](wr, wi)[0, 0]
+        hi = self.beta_funcs[(alpha, "imag")](wr, wi)[0, 0]
         # if hr < 0:
         #     hr = 1e-16
         # if hi < 0:
@@ -169,8 +172,7 @@ class Slit(Waveguide):
         """
         w_comp = w.real + 1j * w.imag
         pol, n, m = alpha
-        val = np.sqrt(self.fill(w_comp) * w_comp ** 2 -
-                      (n * np.pi / self.r) ** 2)
+        val = np.sqrt(self.fill(w_comp) * w_comp ** 2 - (n * np.pi / self.r) ** 2)
         if abs(val.real) > abs(val.imag):
             if val.real < 0:
                 val *= -1
@@ -197,7 +199,7 @@ class Slit(Waveguide):
         pol, n, m = alpha
         w = w.real + 1j * w.imag
         h = h.real + 1j * h.imag
-        if pol == 'E':
+        if pol == "E":
             norm = self.norm(w, h, alpha, 1.0 + 0.0j, 0.0j)
             ai, bi = 1.0 / norm, 0.0
         else:
@@ -216,7 +218,7 @@ class Slit(Waveguide):
         e2 = self.clad(w)
         pol, n, m = alpha
         if self.clad(w).real < -1e6:
-            if pol == 'M' and n == 0:
+            if pol == "M" and n == 0:
                 return np.sqrt(a2_b2 * self.r)
             else:
                 return np.sqrt(a2_b2 * self.r / 2)
@@ -225,21 +227,24 @@ class Slit(Waveguide):
         v = self.samples.v(h ** 2, w, e2)
         # vc = v.conjugate()
         if n % 2 == 0:
-            if pol == 'E':
+            if pol == "E":
                 b_a = np.sin(u)
                 parity = -1
             else:
                 b_a = u / v * np.sin(u)
                 parity = 1
         else:
-            if pol == 'E':
+            if pol == "E":
                 b_a = np.cos(u)
                 parity = 1
             else:
-                b_a = - u / v * np.cos(u)
+                b_a = -u / v * np.cos(u)
                 parity = -1
-        val = np.sqrt(a2_b2 * self.r * (
-            b_a ** 2 / (2 * v) + (1.0 + parity * self.sinc(2 * u)) / 2))
+        val = np.sqrt(
+            a2_b2
+            * self.r
+            * (b_a ** 2 / (2 * v) + (1.0 + parity * self.sinc(2 * u)) / 2)
+        )
         return val
 
     def Y(self, w, h, alpha, a, b):
@@ -264,38 +269,42 @@ class Slit(Waveguide):
         y_tm_in = self.y_tm_inner(w, h)
         y_tm_out = self.y_tm_outer(w, h)
         if e2.real < -1e6:
-            if pol == 'E':
+            if pol == "E":
                 return y_te
             else:
                 return y_tm_in
         u = self.samples.u(h ** 2, w, e1)
         v = self.samples.v(h ** 2, w, e2)
-        if pol == 'E':
+        if pol == "E":
             y_in = y_out = y_te
         else:
             y_in = y_tm_in
             y_out = y_tm_out
         if n % 2 == 0:
-            if pol == 'E':
+            if pol == "E":
                 b_a = np.sin(u)
                 parity = -1
             else:
                 b_a = u / v * np.sin(u)
                 parity = 1
         else:
-            if pol == 'E':
+            if pol == "E":
                 b_a = np.cos(u)
                 parity = 1
             else:
-                b_a = - u / v * np.cos(u)
+                b_a = -u / v * np.cos(u)
                 parity = -1
-        val = (a ** 2 + b ** 2) * self.r * (
-            y_out * b_a ** 2 / (2 * v) +
-            (1.0 + parity * self.sinc(2 * u)) * y_in / 2)
+        val = (
+            (a ** 2 + b ** 2)
+            * self.r
+            * (
+                y_out * b_a ** 2 / (2 * v)
+                + (1.0 + parity * self.sinc(2 * u)) * y_in / 2
+            )
+        )
         return val
 
-    def Yab(self, w, h1, s1, l1, n1, m1, a1, b1,
-            h2, s2, l2, n2, m2, a2, b2):
+    def Yab(self, w, h1, s1, l1, n1, m1, a1, b1, h2, s2, l2, n2, m2, a2, b2):
         """Return the admittance matrix element of the waveguide modes
 
         Args:
@@ -358,12 +367,13 @@ class Slit(Waveguide):
                 b_a = np.cos(u)
                 parity = 1
             else:
-                b_ac = - uc / vc * np.cos(uc)
-                b_a = - u / v * np.cos(u)
+                b_ac = -uc / vc * np.cos(uc)
+                b_a = -u / v * np.cos(u)
                 parity = -1
-        val *= (y_out * b_ac * b_a / (v + vc) +
-                y_in * (self.sinc(u - uc) +
-                        parity * self.sinc(u + uc)) / 2)
+        val *= (
+            y_out * b_ac * b_a / (v + vc)
+            + y_in * (self.sinc(u - uc) + parity * self.sinc(u + uc)) / 2
+        )
         return val
 
     @staticmethod
@@ -403,7 +413,7 @@ class Slit(Waveguide):
         v = self.samples.v(h ** 2, w, self.clad(w))
         gd = u / (self.r / 2)
         gm = v / (self.r / 2)
-        if pol == 'E':
+        if pol == "E":
             y_te = self.y_te(w, h)
             ex = ez = 0.0
             hy = 0.0
@@ -485,7 +495,7 @@ class Slit(Waveguide):
         v = self.samples.v(h ** 2, w, self.clad(w))
         gd = u / (self.r / 2)
         gm = v / (self.r / 2)
-        if pol == 'E':
+        if pol == "E":
             ex = ez = 0.0
             if n % 2 == 1:
                 # parity even
@@ -511,8 +521,7 @@ class Slit(Waveguide):
                 else:
                     b_a = u / v * np.exp(v) * np.sin(u)
                     ex = b * b_a * np.exp(-gm * abs(x))
-                    ez = (-1j * gm * x / abs(x) / h * b * b_a *
-                          np.exp(-gm * abs(x)))
+                    ez = -1j * gm * x / abs(x) / h * b * b_a * np.exp(-gm * abs(x))
             else:
                 # parity odd
                 if abs(x) <= self.r / 2:
@@ -549,7 +558,7 @@ class Slit(Waveguide):
         v = self.samples.v(h ** 2, w, self.clad(w))
         gd = u / (self.r / 2)
         gm = v / (self.r / 2)
-        if pol == 'E':
+        if pol == "E":
             y_te = self.y_te(w, h)
             hy = 0.0
             if n % 2 == 1:
@@ -560,8 +569,7 @@ class Slit(Waveguide):
                 else:
                     b_a = np.exp(v) * np.cos(u)
                     hx = y_te * a * b_a * np.exp(-gm * abs(x))
-                    hz = (1j * gm / w * x / abs(x) *
-                          a * b_a * np.exp(-gm * abs(x)))
+                    hz = 1j * gm / w * x / abs(x) * a * b_a * np.exp(-gm * abs(x))
             else:
                 # parity odd
                 if abs(x) <= self.r / 2:
@@ -570,8 +578,18 @@ class Slit(Waveguide):
                 else:
                     b_a = np.exp(v) * np.sin(u)
                     hx = y_te * a * b_a * x / abs(x) * np.exp(-gm * abs(x))
-                    hz = (1j * gm / w * x / abs(x) *
-                          a * b_a * x / abs(x) * np.exp(-gm * abs(x)))
+                    hz = (
+                        1j
+                        * gm
+                        / w
+                        * x
+                        / abs(x)
+                        * a
+                        * b_a
+                        * x
+                        / abs(x)
+                        * np.exp(-gm * abs(x))
+                    )
         else:
             hx = hz = 0.0
             if n % 2 == 0:
@@ -598,7 +616,7 @@ class Slit(Waveguide):
         As = []
         Bs = []
         for h, s, n, m in zip(hs, self.s_all, self.n_all, self.m_all):
-            pol = 'E' if s == 0 else 'M'
+            pol = "E" if s == 0 else "M"
             ai, bi = self.coef(h, w, (pol, n, m))
             As.append(ai)
             Bs.append(bi)
@@ -610,36 +628,30 @@ class Slit(Waveguide):
     def Ys(self, w, hs, As, Bs):
         vals = []
         for h, s, n, a, b in zip(hs, self.s_all, self.n_all, As, Bs):
-            pol = 'E' if s == 0 else 'M'
+            pol = "E" if s == 0 else "M"
             vals.append(self.Y(w, h, (pol, n, 1), a, b))
         return np.array(vals)
 
     def hAB(self, w):
-        hs = np.array([self.beta(w, alpha)
-                       for alpha in self.alpha_all])
+        hs = np.array([self.beta(w, alpha) for alpha in self.alpha_all])
         As, Bs = self.coefs(hs, w)
         return hs, As, Bs
 
     def ABY(self, w, hs):
         e1 = self.fill(w)
         e2 = self.clad(w)
-        return ABY_cython(
-            w, self.r, self.s_all, self.n_all, hs, e1, e2)
+        return ABY_cython(w, self.r, self.s_all, self.n_all, hs, e1, e2)
 
     def hABY(self, w):
         e1 = self.fill(w)
         e2 = self.clad(w)
-        hs = np.array([self.beta(w, alpha)
-                       for alpha in self.alpha_all])
-        As, Bs, Y = ABY_cython(
-            w, self.r, self.s_all, self.n_all, hs, e1, e2)
+        hs = np.array([self.beta(w, alpha) for alpha in self.alpha_all])
+        As, Bs, Y = ABY_cython(w, self.r, self.s_all, self.n_all, hs, e1, e2)
         return hs, As, Bs, Y
 
     def huvABY(self, w):
         e1 = self.fill(w)
         e2 = self.clad(w)
-        hs = np.array([self.beta(w, alpha)
-                       for alpha in self.alpha_all])
-        us, vs, As, Bs, Y = uvABY_cython(
-            w, self.r, self.s_all, self.n_all, hs, e1, e2)
+        hs = np.array([self.beta(w, alpha) for alpha in self.alpha_all])
+        us, vs, As, Bs, Y = uvABY_cython(w, self.r, self.s_all, self.n_all, hs, e1, e2)
         return hs, us, vs, As, Bs, Y

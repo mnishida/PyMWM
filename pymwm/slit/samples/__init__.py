@@ -16,8 +16,7 @@ class Samples(Sampling):
         r: A float indicating the radius of the circular cross section [um].
     """
 
-    def __init__(self, size: float, fill: Material, clad: Material,
-                 params: Dict):
+    def __init__(self, size: float, fill: Material, clad: Material, params: Dict):
         """Init Samples class.
 
         Args:
@@ -38,21 +37,22 @@ class Samples(Sampling):
                 'num_m': An integer indicating the number of modes in each
                     order and polarization (= 1 in the slit case).
         """
-        num_m = params.setdefault('num_m', 1)
+        num_m = params.setdefault("num_m", 1)
         if num_m != 1:
-            logger.warning("num_m must be 1 if shape is slit." +
-                           "The set value is ignored.")
-            params['num_m'] = 1
+            logger.warning(
+                "num_m must be 1 if shape is slit." + "The set value is ignored."
+            )
+            params["num_m"] = 1
         super().__init__(size, fill, clad, params)
         self.r = size
 
     @property
     def shape(self):
-        return 'slit'
+        return "slit"
 
     @property
     def num_all(self):
-        return 2 * self.params['num_n']
+        return 2 * self.params["num_n"]
 
     def beta2_pec(self, w, num_n):
         """Return squares of phase constants for a PEC waveguide
@@ -76,10 +76,11 @@ class Samples(Sampling):
     def v(self, h2: complex, w: complex, e2: complex) -> complex:
         # This definition is very important!!
         # Other definitions can not give good results in some cases
-        return (1 - 1j) * np.sqrt(0.5j * (- e2 * w ** 2 + h2)) * self.r / 2
+        return (1 - 1j) * np.sqrt(0.5j * (-e2 * w ** 2 + h2)) * self.r / 2
 
-    def eig_eq(self, h2: complex, w: complex, pol: str, n: int,
-               e1: complex, e2: complex):
+    def eig_eq(
+        self, h2: complex, w: complex, pol: str, n: int, e1: complex, e2: complex
+    ):
         """Return the value of the characteristic equation
 
         Args:
@@ -96,7 +97,7 @@ class Samples(Sampling):
         h2comp = h2.real + 1j * h2.imag
         u = self.u(h2comp, w, e1)
         v = self.v(h2comp, w, e2)
-        if pol == 'E':
+        if pol == "E":
             if n % 2 == 0:
                 return u / v + np.tan(u)
             else:
@@ -126,7 +127,7 @@ class Samples(Sampling):
         u = ur + 1j * ui
         v = vr + 1j * vi
         val2 = u ** 2 + v ** 2 - w2
-        if pol == 'E':
+        if pol == "E":
             if n % 2 == 0:
                 val = u / np.tan(u) + v
             else:
@@ -158,24 +159,26 @@ class Samples(Sampling):
         v = vr + 1j * vi
         sin = np.sin(u)
         cos = np.cos(u)
-        if pol == 'E':
+        if pol == "E":
             if n % 2 == 0:
                 dv_du = (cos - u / sin) / sin
                 dv_dv = 1.0
             else:
                 dv_du = (sin + u / cos) / cos
-                dv_dv = - 1.0
+                dv_dv = -1.0
         else:
             if n % 2 == 0:
                 dv_du = (sin + u / cos) / cos
-                dv_dv = - e1 / e2
+                dv_dv = -e1 / e2
             else:
                 dv_du = (cos - u / sin) / sin
                 dv_dv = e1 / e2
-        vals = [[dv_du.real, dv_du.imag, dv_dv.real, dv_dv.imag],
-                [dv_du.imag, dv_du.real, dv_dv.imag, dv_dv.real],
-                [2 * u.real, 2 * u.imag, 2 * v.real, 2 * v.imag],
-                [2 * u.imag, 2 * u.real, 2 * v.imag, 2 * v.real]]
+        vals = [
+            [dv_du.real, dv_du.imag, dv_dv.real, dv_dv.imag],
+            [dv_du.imag, dv_du.real, dv_dv.imag, dv_dv.real],
+            [2 * u.real, 2 * u.imag, 2 * v.real, 2 * v.imag],
+            [2 * u.imag, 2 * u.real, 2 * v.imag, 2 * v.real],
+        ]
         return np.array(vals)
 
     def func_jac(self, uv, args):
@@ -202,7 +205,7 @@ class Samples(Sampling):
         sin = np.sin(u)
         cos = np.cos(u)
         tan = np.tan(u)
-        if pol == 'E':
+        if pol == "E":
             if n % 2 == 0:
                 f1 = u / tan + v
                 dv_du = (cos - u / sin) / sin
@@ -210,26 +213,36 @@ class Samples(Sampling):
             else:
                 f1 = u * tan - v
                 dv_du = (sin + u / cos) / cos
-                dv_dv = - 1.0
+                dv_dv = -1.0
         else:
             if n % 2 == 0:
                 f1 = u * tan - e1 * (v / e2)
                 dv_du = (sin + u / cos) / cos
-                dv_dv = - e1 / e2
+                dv_dv = -e1 / e2
             else:
                 f1 = u / tan + e1 * (v / e2)
                 dv_du = (cos - u / sin) / sin
                 dv_dv = e1 / e2
         fs = np.array([f1.real, f1.imag, f2.real, f2.imag])
         jas = np.array(
-            [[dv_du.real, dv_du.imag, dv_dv.real, dv_dv.imag],
-             [dv_du.imag, dv_du.real, dv_dv.imag, dv_dv.real],
-             [2 * u.real, 2 * u.imag, 2 * v.real, 2 * v.imag],
-             [2 * u.imag, 2 * u.real, 2 * v.imag, 2 * v.real]])
+            [
+                [dv_du.real, dv_du.imag, dv_dv.real, dv_dv.imag],
+                [dv_du.imag, dv_du.real, dv_dv.imag, dv_dv.real],
+                [2 * u.real, 2 * u.imag, 2 * v.real, 2 * v.imag],
+                [2 * u.imag, 2 * u.real, 2 * v.imag, 2 * v.real],
+            ]
+        )
         return fs, jas
 
-    def beta2(self, w: complex, pol: str, num_n: int, e1: complex, e2: complex,
-              xis: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def beta2(
+        self,
+        w: complex,
+        pol: str,
+        num_n: int,
+        e1: complex,
+        e2: complex,
+        xis: np.ndarray,
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """Return roots and convergences of the characteristic equation
 
         Args:
@@ -244,19 +257,20 @@ class Samples(Sampling):
             xs: The roots, whose length is 2.
             success: The convergence information for xs.
         """
-        if self.clad.model == 'pec':
+        if self.clad.model == "pec":
             xs = self.beta2_pec(w, num_n)
             success = np.ones(num_n, dtype=bool)
-            if pol == 'E':
+            if pol == "E":
                 success[0] = False
             return xs, success
         from scipy.optimize import root
+
         roots = []
         vals = []
         success = []
         for n in range(num_n):
             xi = xis[n]
-            if pol == 'E' and n == 0:
+            if pol == "E" and n == 0:
                 vals.append(xi)
                 success.append(False)
                 continue
@@ -274,8 +288,12 @@ class Samples(Sampling):
                 f_array = np.array([f.real, f.imag])
                 return f_array
 
-            result = root(func, np.array([xi.real, xi.imag]), method='hybr',
-                          options={'xtol': 1.0e-9})
+            result = root(
+                func,
+                np.array([xi.real, xi.imag]),
+                method="hybr",
+                options={"xtol": 1.0e-9},
+            )
             x = result.x[0] + result.x[1] * 1j
             if result.success:
                 roots.append(x)
@@ -311,10 +329,10 @@ class Samples(Sampling):
             xs: A 1D array indicating the roots, whose length is 2.
             success: A 1D array indicating the convergence information for xs.
         """
-        if self.clad.model == 'pec':
+        if self.clad.model == "pec":
             xs = self.beta2_pec(self.ws[0], num_n)
             success = np.ones(num_n, dtype=bool)
-            if pol == 'E':
+            if pol == "E":
                 success[0] = False
             return xs, success
         w_0 = 0.1
@@ -354,10 +372,10 @@ class Samples(Sampling):
             success: A 1D array indicating the convergence information for xs.
         """
         w_0 = self.ws[-1]
-        if self.clad.model == 'pec':
+        if self.clad.model == "pec":
             xs = self.beta2_pec(w_0, num_n)
             success = np.ones(num_n, dtype=bool)
-            if pol == 'E':
+            if pol == "E":
                 success[0] = False
             return xs, success
         xs = self.beta2_pec(w_0, num_n)
@@ -390,14 +408,14 @@ class Samples(Sampling):
     def betas_convs(self, xs_success_list):
         betas = {}
         convs = {}
-        for i_pol, pol in enumerate(['M', 'E']):
+        for i_pol, pol in enumerate(["M", "E"]):
             xs_array, success_array = xs_success_list[i_pol]
             num_n = xs_array.shape[2]
             for n in range(num_n):
-                betas[(pol, n, 1)] = np.zeros((len(self.ws), len(self.wis)),
-                                              dtype=complex)
-                convs[(pol, n, 1)] = np.zeros((len(self.ws), len(self.wis)),
-                                              dtype=bool)
+                betas[(pol, n, 1)] = np.zeros(
+                    (len(self.ws), len(self.wis)), dtype=complex
+                )
+                convs[(pol, n, 1)] = np.zeros((len(self.ws), len(self.wis)), dtype=bool)
             for iwi in range(len(self.wis)):
                 for iwr in range(len(self.ws)):
                     w = self.ws[iwr] + 1j * self.wis[iwi]
@@ -408,7 +426,9 @@ class Samples(Sampling):
                         betas[(pol, n, 1)][iwr, iwi] = self.beta_from_beta2(x)
                         convs[(pol, n, 1)][iwr, iwi] = (
                             success_array[iwr, iwi][n]
-                            if v.real > abs(v.imag) else False)
+                            if v.real > abs(v.imag)
+                            else False
+                        )
         return betas, convs
 
     def __call__(self, arg: Tuple[str, int]) -> Tuple[np.ndarray, np.ndarray]:
@@ -464,9 +484,11 @@ class Samples(Sampling):
                 if iwr == 0:
                     xis = xs_array[iwr, iwi - 1]
                 else:
-                    xis = (xs_array[iwr, iwi - 1] +
-                           xs_array[iwr - 1, iwi] -
-                           xs_array[iwr - 1, iwi - 1])
+                    xis = (
+                        xs_array[iwr, iwi - 1]
+                        + xs_array[iwr - 1, iwi]
+                        - xs_array[iwr - 1, iwi - 1]
+                    )
                 xs, success = self.beta2(w, pol, num_n, e1, e2, xis)
                 for i, ok in enumerate(success):
                     # if ok:
@@ -539,7 +561,7 @@ class SamplesLowLoss(Samples):
             success_list: A list of num_n 1D arrays indicating the convergence
                 information for xs, whose length is 2*num_m+1
         """
-        num_n = self.params['num_n']
+        num_n = self.params["num_n"]
         iwr, iwi, xis_list = arg
         im_factor = self.clad.im_factor
         self.clad.im_factor = 1.0
@@ -551,9 +573,9 @@ class SamplesLowLoss(Samples):
         success_list = []
         for i_pol, x0s in enumerate(xis_list):
             if i_pol == 0:
-                pol = 'M'
+                pol = "M"
             else:
-                pol = 'E'
+                pol = "E"
             xis = xs = x0s
             success = np.ones_like(xs, dtype=bool)
             for i in range(1, 16):
@@ -573,18 +595,14 @@ class SamplesLowLoss(Samples):
     def betas_convs(self, xs_success_list):
         num_iwr = len(self.ws)
         num_iwi = len(self.wis)
-        num_n = self.params['num_n']
+        num_n = self.params["num_n"]
         betas = {}
         convs = {}
         for n in range(num_n):
-            betas[('M', n, 1)] = np.zeros((len(self.ws), len(self.wis)),
-                                          dtype=complex)
-            convs[('M', n, 1)] = np.zeros((len(self.ws), len(self.wis)),
-                                          dtype=bool)
-            betas[('E', n, 1)] = np.zeros((len(self.ws), len(self.wis)),
-                                          dtype=complex)
-            convs[('E', n, 1)] = np.zeros((len(self.ws), len(self.wis)),
-                                          dtype=bool)
+            betas[("M", n, 1)] = np.zeros((len(self.ws), len(self.wis)), dtype=complex)
+            convs[("M", n, 1)] = np.zeros((len(self.ws), len(self.wis)), dtype=bool)
+            betas[("E", n, 1)] = np.zeros((len(self.ws), len(self.wis)), dtype=complex)
+            convs[("E", n, 1)] = np.zeros((len(self.ws), len(self.wis)), dtype=bool)
         for iwr in range(num_iwr):
             for iwi in range(num_iwi):
                 j = iwr * num_iwi + iwi
@@ -593,14 +611,14 @@ class SamplesLowLoss(Samples):
                 for n in range(num_n):
                     x = xs_success_list[j][0][0][n]
                     v = self.v(x, w, e2)
-                    betas[('M', n, 1)][iwr, iwi] = self.beta_from_beta2(x)
-                    convs[('M', n, 1)][iwr, iwi] = (
-                        xs_success_list[j][1][0][n]
-                        if v.real > abs(v.imag) else False)
+                    betas[("M", n, 1)][iwr, iwi] = self.beta_from_beta2(x)
+                    convs[("M", n, 1)][iwr, iwi] = (
+                        xs_success_list[j][1][0][n] if v.real > abs(v.imag) else False
+                    )
                     x = xs_success_list[j][0][1][n]
                     v = self.v(x, w, e2)
-                    betas[('E', n, 1)][iwr, iwi] = self.beta_from_beta2(x)
-                    convs[('E', n, 1)][iwr, iwi] = (
-                        xs_success_list[j][1][1][n]
-                        if v.real > abs(v.imag) else False)
+                    betas[("E", n, 1)][iwr, iwi] = self.beta_from_beta2(x)
+                    convs[("E", n, 1)][iwr, iwi] = (
+                        xs_success_list[j][1][1][n] if v.real > abs(v.imag) else False
+                    )
         return betas, convs

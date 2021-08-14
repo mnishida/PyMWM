@@ -5,12 +5,12 @@ import numpy.testing as npt
 import pymwm
 
 
-params = {'core': {'shape': 'cylinder', 'size': 0.15,
-                   'fill': {'RI': 1.0}},
-          'clad': {'model': 'gold_dl'},
-          'bounds': {'wl_max': 5.0, 'wl_min': 0.575,
-                     'wl_imag': 10.0},
-          'modes': {'num_n': 6, 'num_m': 2}}
+params = {
+    "core": {"shape": "cylinder", "size": 0.15, "fill": {"RI": 1.0}},
+    "clad": {"model": "gold_dl"},
+    "bounds": {"wl_max": 5.0, "wl_min": 0.575, "wl_imag": 10.0},
+    "modes": {"num_n": 6, "num_m": 2},
+}
 
 
 def test_attributes():

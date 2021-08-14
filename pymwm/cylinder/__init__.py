@@ -48,37 +48,41 @@ class Cylinder(Waveguide):
         """
         super().__init__(params)
         self.u_pec, self.jnu_pec, self.jnpu_pec = self.u_jnu_jnpu_pec(
-            self.num_n, self.num_m)
+            self.num_n, self.num_m
+        )
 
     def get_alphas(self, alpha_list: List[Tuple[str, int, int]]) -> Dict:
-        alphas = {'h': [], 'v': []}
-        for alpha in [('E', 0, m) for m in range(1, self.num_m + 1)]:
+        alphas = {"h": [], "v": []}
+        for alpha in [("E", 0, m) for m in range(1, self.num_m + 1)]:
             if alpha in alpha_list:
-                alphas['v'].append(alpha)
-        for alpha in [('E', n, m) for n in range(1, self.num_n)
-                      for m in range(1, self.num_m + 1)]:
+                alphas["v"].append(alpha)
+        for alpha in [
+            ("E", n, m) for n in range(1, self.num_n) for m in range(1, self.num_m + 1)
+        ]:
             if alpha in alpha_list:
-                alphas['h'].append(alpha)
-                alphas['v'].append(alpha)
-        for alpha in [('M', 0, m) for m in range(1, self.num_m + 1)]:
+                alphas["h"].append(alpha)
+                alphas["v"].append(alpha)
+        for alpha in [("M", 0, m) for m in range(1, self.num_m + 1)]:
             if alpha in alpha_list:
-                alphas['h'].append(alpha)
-        for alpha in [('M', n, m) for n in range(1, self.num_n)
-                      for m in range(1, self.num_m + 1)]:
+                alphas["h"].append(alpha)
+        for alpha in [
+            ("M", n, m) for n in range(1, self.num_n) for m in range(1, self.num_m + 1)
+        ]:
             if alpha in alpha_list:
-                alphas['h'].append(alpha)
-                alphas['v'].append(alpha)
+                alphas["h"].append(alpha)
+                alphas["v"].append(alpha)
         return alphas
 
     def betas_convs_samples(
-            self, params: Dict) -> Tuple[np.ndarray, np.ndarray, Samples]:
+        self, params: Dict
+    ) -> Tuple[np.ndarray, np.ndarray, Samples]:
         im_factor = 1.0
         if self.clad.im_factor != 1.0:
             im_factor = self.clad.im_factor
             self.clad.im_factor = 1.0
-        p_modes = params['modes'].copy()
-        num_n_0 = p_modes['num_n']
-        num_m_0 = p_modes['num_m']
+        p_modes = params["modes"].copy()
+        num_n_0 = p_modes["num_n"]
+        num_m_0 = p_modes["num_m"]
         smp = Samples(self.r, self.fill, self.clad, p_modes)
         try:
             betas, convs = smp.database.load()
@@ -86,15 +90,16 @@ class Cylinder(Waveguide):
         except IndexError:
             betas = convs = None
             success = False
-        for num_n, num_m in [(n, m) for n in range(num_n_0, 17)
-                             for m in range(num_m_0, 5)]:
+        for num_n, num_m in [
+            (n, m) for n in range(num_n_0, 17) for m in range(num_m_0, 5)
+        ]:
             if (num_n, num_m) == (num_n_0, num_m_0):
                 if success:
                     break
                 else:
                     continue
-            p_modes['num_n'] = num_n
-            p_modes['num_m'] = num_m
+            p_modes["num_n"] = num_n
+            p_modes["num_m"] = num_m
             smp = Samples(self.r, self.fill, self.clad, p_modes)
             try:
                 betas, convs = smp.database.load()
@@ -103,10 +108,11 @@ class Cylinder(Waveguide):
             except IndexError:
                 continue
         if not success:
-            p_modes['num_n'] = num_n_0
-            p_modes['num_m'] = num_m_0
+            p_modes["num_n"] = num_n_0
+            p_modes["num_m"] = num_m_0
             smp = Samples(self.r, self.fill, self.clad, p_modes)
             from multiprocessing import Pool
+
             p = Pool(num_n_0)
             xs_success_list = p.map(smp, range(num_n_0))
             # betas_list = list(map(smp, range(num_n)))
@@ -123,8 +129,8 @@ class Cylinder(Waveguide):
                 betas, convs = smp.database.load()
             except IndexError:
                 self.clad.im_factor = im_factor
-                num_n = p_modes['num_n']
-                num_m = p_modes['num_m']
+                num_n = p_modes["num_n"]
+                num_m = p_modes["num_m"]
                 args = []
                 for iwr in range(len(smp.ws)):
                     for iwi in range(len(smp.wis)):
@@ -132,14 +138,13 @@ class Cylinder(Waveguide):
                         for n in range(num_n):
                             xis = []
                             for i in range(num_m + 1):
-                                xis.append(
-                                    betas[('M', n, i + 1)][iwr, iwi] ** 2)
+                                xis.append(betas[("M", n, i + 1)][iwr, iwi] ** 2)
                             for i in range(num_m):
-                                xis.append(
-                                    betas[('E', n, i + 1)][iwr, iwi] ** 2)
+                                xis.append(betas[("E", n, i + 1)][iwr, iwi] ** 2)
                             xis_list.append(xis)
                         args.append((iwr, iwi, xis_list))
                 from multiprocessing import Pool
+
                 p = Pool(16)
                 xs_success_list = p.map(smp, args)
                 # xs_success_list = list(map(smp, smp.args)
@@ -161,8 +166,8 @@ class Cylinder(Waveguide):
         """
         wr = w.real
         wi = w.imag
-        hr = self.beta_funcs[(alpha, 'real')](wr, wi)[0, 0]
-        hi = self.beta_funcs[(alpha, 'imag')](wr, wi)[0, 0]
+        hr = self.beta_funcs[(alpha, "real")](wr, wi)[0, 0]
+        hi = self.beta_funcs[(alpha, "imag")](wr, wi)[0, 0]
         # if hr < 0:
         #     hr = 1e-16
         # if hi < 0:
@@ -217,7 +222,7 @@ class Cylinder(Waveguide):
         w = w.real + 1j * w.imag
         h = h.real + 1j * h.imag
         if e2.real < -1e6:
-            if pol == 'E':
+            if pol == "E":
                 norm = self.norm(w, h, alpha, 1.0 + 0.0j, 0.0j)
                 ai, bi = 1.0 / norm, 0.0
             else:
@@ -230,15 +235,15 @@ class Cylinder(Waveguide):
             knpv = kvp(n, v)
             jnu = jv(n, u)
             jnpu = jvp(n, u)
-            ci = - n * (u ** 2 + v ** 2) * jnu * knv / (u * v)
-            if pol == 'E':
+            ci = -n * (u ** 2 + v ** 2) * jnu * knv / (u * v)
+            if pol == "E":
                 ci *= (h / w) ** 2
-                ci /= (e1 * jnpu * v * knv + e2 * knpv * u * jnu)
+                ci /= e1 * jnpu * v * knv + e2 * knpv * u * jnu
                 norm = self.norm(w, h, alpha, 1.0 + 0.0j, ci)
                 ai = 1.0 / norm
                 bi = ci / norm
             else:
-                ci /= (jnpu * v * knv + knpv * u * jnu)
+                ci /= jnpu * v * knv + knpv * u * jnu
                 norm = self.norm(w, h, alpha, ci, 1.0 + 0.0j)
                 bi = 1.0 / norm
                 ai = ci / norm
@@ -249,7 +254,7 @@ class Cylinder(Waveguide):
         en = 1 if n == 0 else 2
         if self.clad(w).real < -1e6:
             radius = self.r
-            if pol == 'E':
+            if pol == "E":
                 u = jnp_zeros(n, m)[-1]
                 jnu = jv(n, u)
                 jnpu = 0.0
@@ -257,10 +262,10 @@ class Cylinder(Waveguide):
                 u = jn_zeros(n, m)[-1]
                 jnu = 0.0
                 jnpu = jvp(n, u)
-            return np.sqrt(a ** 2 * np.pi * radius ** 2 / en *
-                           (1 - n ** 2 / u ** 2) * jnu ** 2 +
-                           b ** 2 * np.pi * radius ** 2 / en *
-                           jnpu ** 2)
+            return np.sqrt(
+                a ** 2 * np.pi * radius ** 2 / en * (1 - n ** 2 / u ** 2) * jnu ** 2
+                + b ** 2 * np.pi * radius ** 2 / en * jnpu ** 2
+            )
         # ac = a.conjugate()
         # bc = b.conjugate()
         u = self.samples.u(h ** 2, w, self.fill(w))
@@ -283,12 +288,17 @@ class Cylinder(Waveguide):
         upart_off = self.upart_off(n, u, jnu, u, jnu)
         vpart_off = self.vpart_off(n, v, knv, v, knv)
         return np.sqrt(
-            val_u * (
-                a * (a * upart_diag + b * upart_off) +
-                b * (b * upart_diag + a * upart_off)) -
-            val_v * (
-                a * (a * vpart_diag + b * vpart_off) +
-                b * (b * vpart_diag + a * vpart_off)))
+            val_u
+            * (
+                a * (a * upart_diag + b * upart_off)
+                + b * (b * upart_diag + a * upart_off)
+            )
+            - val_v
+            * (
+                a * (a * vpart_diag + b * vpart_off)
+                + b * (b * vpart_diag + a * vpart_off)
+            )
+        )
         # upart_diag = self.upart_diag(n, uc, jnuc, jnpuc, u, jnu, jnpu)
         # vpart_diag = self.vpart_diag(n, vc, knvc, knpvc, v, knv, knpv)
         # upart_off = self.upart_off(n, uc, jnuc, u, jnu)
@@ -307,17 +317,19 @@ class Cylinder(Waveguide):
             u0 = (u + uc) / 2
             jnu0 = jv(n, u0)
             jnpu0 = jvp(n, u0)
-            return (jnu0 * jnpu0 / u0 + (
-                jnpu0 ** 2 + (1 - n ** 2 / u0 ** 2) * jnu0 ** 2) / 2)
+            return (
+                jnu0 * jnpu0 / u0
+                + (jnpu0 ** 2 + (1 - n ** 2 / u0 ** 2) * jnu0 ** 2) / 2
+            )
         if abs(uc + u) < 1e-10:
             u0 = (u - uc) / 2
             jnu0 = jv(n, u0)
             jnpu0 = jvp(n, u0)
             return (-1) ** (n - 1) * (
-                jnu0 * jnpu0 / u0 + (
-                    jnpu0 ** 2 + (1 - n ** 2 / u0 ** 2) * jnu0 ** 2) / 2)
-        return (uc * jnuc * jnpu -
-                u * jnu * jnpuc) / (uc ** 2 - u ** 2)
+                jnu0 * jnpu0 / u0
+                + (jnpu0 ** 2 + (1 - n ** 2 / u0 ** 2) * jnu0 ** 2) / 2
+            )
+        return (uc * jnuc * jnpu - u * jnu * jnpuc) / (uc ** 2 - u ** 2)
 
     @staticmethod
     def upart_off(n, uc, jnuc, u, jnu):
@@ -329,17 +341,19 @@ class Cylinder(Waveguide):
             v0 = (v + vc) / 2
             knv0 = kv(n, v0)
             knpv0 = kvp(n, v0)
-            return (knv0 * knpv0 / v0 + (
-                knpv0 ** 2 - (1 + n ** 2 / v0 ** 2) * knv0 ** 2) / 2)
+            return (
+                knv0 * knpv0 / v0
+                + (knpv0 ** 2 - (1 + n ** 2 / v0 ** 2) * knv0 ** 2) / 2
+            )
         if abs(vc + v) < 1e-10:
             v0 = (v - vc) / 2
             knv0 = kv(n, v0)
             knpv0 = kvp(n, v0)
             return (-1) ** (n - 1) * (
-                knv0 * knpv0 / v0 + (
-                    knpv0 ** 2 - (1 + n ** 2 / v0 ** 2) * knv0 ** 2) / 2)
-        return (vc * knvc * knpv -
-                v * knv * knpvc) / (vc ** 2 - v ** 2)
+                knv0 * knpv0 / v0
+                + (knpv0 ** 2 - (1 + n ** 2 / v0 ** 2) * knv0 ** 2) / 2
+            )
+        return (vc * knvc * knpv - v * knv * knpvc) / (vc ** 2 - v ** 2)
 
     @staticmethod
     def vpart_off(n, vc, knvc, v, knv):
@@ -364,7 +378,7 @@ class Cylinder(Waveguide):
         e2 = self.clad(w)
         en = 1 if n == 0 else 2
         if e2.real < -1e6:
-            if pol == 'E':
+            if pol == "E":
                 val = h / w
             else:
                 val = e1 * w / h
@@ -381,14 +395,13 @@ class Cylinder(Waveguide):
             vpart_diag = self.vpart_diag(n, v, knv, knpv, v, knv, knpv)
             upart_off = self.upart_off(n, u, jnu, u, jnu)
             vpart_off = self.vpart_off(n, v, knv, v, knv)
-            val = (val_u * (h / w * a *
-                            (a * upart_diag + b * upart_off) +
-                            e1 * w / h * b *
-                            (b * upart_diag + a * upart_off)) -
-                   val_v * (h / w * a *
-                            (a * vpart_diag + b * vpart_off) +
-                            e2 * w / h * b *
-                            (b * vpart_diag + a * vpart_off)))
+            val = val_u * (
+                h / w * a * (a * upart_diag + b * upart_off)
+                + e1 * w / h * b * (b * upart_diag + a * upart_off)
+            ) - val_v * (
+                h / w * a * (a * vpart_diag + b * vpart_off)
+                + e2 * w / h * b * (b * vpart_diag + a * vpart_off)
+            )
         return val
 
     def Yab(self, w, h1, s1, l1, n1, m1, a1, b1, h2, s2, l2, n2, m2, a2, b2):
@@ -449,14 +462,13 @@ class Cylinder(Waveguide):
             vpart_diag = self.vpart_diag(n, vc, knvc, knpvc, v, knv, knpv)
             upart_off = self.upart_off(n, uc, jnuc, u, jnu)
             vpart_off = self.vpart_off(n, vc, knvc, v, knv)
-            val = (val_u * (h2 / w * a *
-                            (ac * upart_diag + bc * upart_off) +
-                            e1 * w / h2 * b *
-                            (bc * upart_diag + ac * upart_off)) -
-                   val_v * (h2 / w * a *
-                            (ac * vpart_diag + bc * vpart_off) +
-                            e2 * w / h2 * b *
-                            (bc * vpart_diag + ac * vpart_off)))
+            val = val_u * (
+                h2 / w * a * (ac * upart_diag + bc * upart_off)
+                + e1 * w / h2 * b * (bc * upart_diag + ac * upart_off)
+            ) - val_v * (
+                h2 / w * a * (ac * vpart_diag + bc * vpart_off)
+                + e2 * w / h2 * b * (bc * vpart_diag + ac * vpart_off)
+            )
         return val
 
     @staticmethod
@@ -496,7 +508,7 @@ class Cylinder(Waveguide):
         v = self.samples.v(h ** 2, w, self.clad(w))
         ur = u * r / self.r
         vr = v * r / self.r
-        if l == 'h':
+        if l == "h":
             fr = np.cos(n * p)
             fp = -np.sin(n * p)
         else:
@@ -517,7 +529,7 @@ class Cylinder(Waveguide):
             hz = -u / (1j * h * self.r) * y_te * a * jv(n, ur) * fp
         else:
             y_tm = self.y_tm_outer(w, h)
-            val = - u * jv(n, u) / (v * kv(n, v))
+            val = -u * jv(n, u) / (v * kv(n, v))
             er_te = -(kv(n - 1, vr) - kv(n + 1, vr)) / 2 * fr * val
             er_tm = kvp(n, vr) * fr * val
             er = a * er_te + b * er_tm
@@ -559,7 +571,7 @@ class Cylinder(Waveguide):
         v = self.samples.v(h ** 2, w, self.clad(w))
         ur = u * r / self.r
         vr = v * r / self.r
-        if l == 'h':
+        if l == "h":
             fr = np.cos(n * p)
             fp = -np.sin(n * p)
         else:
@@ -574,7 +586,7 @@ class Cylinder(Waveguide):
             ep = a * ep_te + b * ep_tm
             ez = u / (1j * h * self.r) * b * jv(n, ur) * fr
         else:
-            val = - u * jv(n, u) / (v * kv(n, v))
+            val = -u * jv(n, u) / (v * kv(n, v))
             er_te = -(kv(n - 1, vr) - kv(n + 1, vr)) / 2 * fr * val
             er_tm = kvp(n, vr) * fr * val
             er = a * er_te + b * er_tm
@@ -611,7 +623,7 @@ class Cylinder(Waveguide):
         v = self.samples.v(h ** 2, w, self.clad(w))
         ur = u * r / self.r
         vr = v * r / self.r
-        if l == 'h':
+        if l == "h":
             fr = np.cos(n * p)
             fp = -np.sin(n * p)
         else:
@@ -629,7 +641,7 @@ class Cylinder(Waveguide):
             hz = -u / (1j * h * self.r) * y_te * a * jv(n, ur) * fp
         else:
             y_tm = self.y_tm_outer(w, h)
-            val = - u * jv(n, u) / (v * kv(n, v))
+            val = -u * jv(n, u) / (v * kv(n, v))
             er_te = -(kv(n - 1, vr) - kv(n + 1, vr)) / 2 * fr * val
             er_tm = kvp(n, vr) * fr * val
             ep_te = kvp(n, vr) * fp * val
@@ -659,7 +671,7 @@ class Cylinder(Waveguide):
         As = []
         Bs = []
         for h, s, n, m in zip(hs, self.s_all, self.n_all, self.m_all):
-            pol = 'E' if s == 0 else 'M'
+            pol = "E" if s == 0 else "M"
             ai, bi = self.coef(h, w, (pol, n, m))
             As.append(ai)
             Bs.append(bi)
@@ -671,7 +683,7 @@ class Cylinder(Waveguide):
     def Ys(self, w, hs, As, Bs):
         vals = []
         for h, s, n, a, b in zip(hs, self.s_all, self.n_all, As, Bs):
-            pol = 'E' if s == 0 else 'M'
+            pol = "E" if s == 0 else "M"
             vals.append(self.Y(w, h, (pol, n, 1), a, b))
         return np.array(vals)
 
@@ -690,8 +702,7 @@ class Cylinder(Waveguide):
     #     return np.array(mat)
 
     def hAB(self, w):
-        hs = np.array([self.beta(w, alpha)
-                       for alpha in self.alpha_all])
+        hs = np.array([self.beta(w, alpha) for alpha in self.alpha_all])
         As, Bs = self.coefs(hs, w)
         return hs, As, Bs
 
@@ -699,8 +710,18 @@ class Cylinder(Waveguide):
         e1 = self.fill(w)
         e2 = self.clad(w)
         return ABY_cython(
-            w, self.r, self.s_all, self.n_all, self.m_all, hs, e1, e2,
-            self.u_pec, self.jnu_pec, self.jnpu_pec)
+            w,
+            self.r,
+            self.s_all,
+            self.n_all,
+            self.m_all,
+            hs,
+            e1,
+            e2,
+            self.u_pec,
+            self.jnu_pec,
+            self.jnpu_pec,
+        )
 
     # def ABYmat(self, w, hs):
     #     e1 = self.fill(w)
@@ -713,21 +734,39 @@ class Cylinder(Waveguide):
     def hABY(self, w):
         e1 = self.fill(w)
         e2 = self.clad(w)
-        hs = np.array([self.beta(w, alpha)
-                       for alpha in self.alpha_all])
+        hs = np.array([self.beta(w, alpha) for alpha in self.alpha_all])
         As, Bs, Y = ABY_cython(
-            w, self.r, self.s_all, self.n_all,
-            self.m_all, hs, e1, e2, self.u_pec, self.jnu_pec, self.jnpu_pec)
+            w,
+            self.r,
+            self.s_all,
+            self.n_all,
+            self.m_all,
+            hs,
+            e1,
+            e2,
+            self.u_pec,
+            self.jnu_pec,
+            self.jnpu_pec,
+        )
         return hs, As, Bs, Y
 
     def huvABY(self, w):
         e1 = self.fill(w)
         e2 = self.clad(w)
-        hs = np.array([self.beta(w, alpha)
-                       for alpha in self.alpha_all])
+        hs = np.array([self.beta(w, alpha) for alpha in self.alpha_all])
         us, vs, As, Bs, Y = uvABY_cython(
-            w, self.r, self.s_all, self.n_all,
-            self.m_all, hs, e1, e2, self.u_pec, self.jnu_pec, self.jnpu_pec)
+            w,
+            self.r,
+            self.s_all,
+            self.n_all,
+            self.m_all,
+            hs,
+            e1,
+            e2,
+            self.u_pec,
+            self.jnu_pec,
+            self.jnpu_pec,
+        )
         return hs, us, vs, As, Bs, Y
 
     # def hABYmat(self, w):
