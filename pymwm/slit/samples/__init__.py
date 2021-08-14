@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 from logging import getLogger
-from typing import Dict, Tuple, List
+from typing import Dict, List, Tuple
+
 import numpy as np
 from pyoptmat import Material
+
 from pymwm.waveguide import Sampling
 
 logger = getLogger(__package__)

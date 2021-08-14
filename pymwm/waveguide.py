@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import os
-from typing import Dict, List, Tuple, Any, Union
 import abc
+import os
 from collections import OrderedDict
+from typing import Any, Dict, List, Tuple, Union
+
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
@@ -137,10 +138,10 @@ class Sampling(metaclass=abc.ABCMeta):
 class Waveguide(metaclass=abc.ABCMeta):
     """A class defining a abstract waveguide.
 
-     Attributes:
-        fill: An instance of Material class for the core
-        clad: An instance of Material class for the clad
-        r: A float indicating the radius of the circular cross section [um].
+    Attributes:
+       fill: An instance of Material class for the core
+       clad: An instance of Material class for the clad
+       r: A float indicating the radius of the circular cross section [um].
     """
 
     @abc.abstractmethod
@@ -163,7 +164,7 @@ class Waveguide(metaclass=abc.ABCMeta):
                         abs(c / f_imag) [um] where f_imag is the imaginary part
                         of the frequency.
                     'beta_imag_max': A float indicating the maximum allowed value
-                        of the imaginary part of beta. 
+                        of the imaginary part of beta.
                 'modes': A dict of the settings for calculating modes:
                     'wl_max': A float indicating the maximum wavelength [um]
                         (default: 5.0)
@@ -208,15 +209,19 @@ class Waveguide(metaclass=abc.ABCMeta):
         alpha_list.sort()
         self.alphas = self.get_alphas(alpha_list)
 
-        self.alpha_all = [alpha for l in self.ls for alpha in self.alphas[l]]
+        self.alpha_all = [alpha for dir in self.ls for alpha in self.alphas[dir]]
         self.l_all = np.array(
-            [0 if l == "h" else 1 for l in self.ls for _ in self.alphas[l]]
+            [0 if dir == "h" else 1 for dir in self.ls for _ in self.alphas[dir]]
         )
         self.s_all = np.array(
-            [0 if pol == "E" else 1 for l in self.ls for pol, n, m in self.alphas[l]]
+            [
+                0 if pol == "E" else 1
+                for dir in self.ls
+                for pol, n, m in self.alphas[dir]
+            ]
         )
-        self.n_all = np.array([n for l in self.ls for pol, n, m in self.alphas[l]])
-        self.m_all = np.array([m for l in self.ls for pol, n, m in self.alphas[l]])
+        self.n_all = np.array([n for dir in self.ls for pol, n, m in self.alphas[dir]])
+        self.m_all = np.array([m for dir in self.ls for pol, n, m in self.alphas[dir]])
         self.num_n_all = self.n_all.shape[0]
 
     @abc.abstractmethod
@@ -247,7 +252,7 @@ class Waveguide(metaclass=abc.ABCMeta):
         x: float,
         y: float,
         w: complex,
-        l: str,
+        dir: str,
         alpha: Tuple[str, int, int],
         h: complex,
         coef: Tuple,
@@ -258,7 +263,7 @@ class Waveguide(metaclass=abc.ABCMeta):
             x: The x coordinate [um].
             y: The y coordinate [um].
             w: The angular frequency.
-            l: "h" (horizontal polarization) or "v" (vertical polarization)
+            dir: "h" (horizontal polarization) or "v" (vertical polarization)
             alpha: (pol, n, m)
                 pol: 'M' (TM-like mode) or 'E' (TE-like mode).
                 n: The order of the mode.
@@ -276,7 +281,7 @@ class Waveguide(metaclass=abc.ABCMeta):
         x: float,
         y: float,
         w: complex,
-        l: str,
+        dir: str,
         alpha: Tuple[str, int, int],
         h: complex,
         coef: Tuple,
@@ -286,7 +291,7 @@ class Waveguide(metaclass=abc.ABCMeta):
         Args:
             x: The x coordinate [um].
             y: The y coordinate [um].
-            l: "h" (horizontal polarization) or "v" (vertical polarization)
+            dir: "h" (horizontal polarization) or "v" (vertical polarization)
             w: The angular frequency.
             alpha: (pol, n, m)
                 pol: 'M' (TM-like mode) or 'E' (TE-like mode).
@@ -305,7 +310,7 @@ class Waveguide(metaclass=abc.ABCMeta):
         x: float,
         y: float,
         w: complex,
-        l: str,
+        dir: str,
         alpha: Tuple[str, int, int],
         h: complex,
         coef: Tuple,
@@ -316,7 +321,7 @@ class Waveguide(metaclass=abc.ABCMeta):
             x: The x coordinate [um].
             y: The y coordinate [um].
             w: The angular frequency.
-            l: "h" (horizontal polarization) or "v" (vertical polarization)
+            dir: "h" (horizontal polarization) or "v" (vertical polarization)
             alpha: (pol, n, m)
                 pol: 'M' (TM-like mode) or 'E' (TE-like mode).
                 n: The order of the mode.
@@ -398,7 +403,7 @@ class Waveguide(metaclass=abc.ABCMeta):
     def plot_e_field(
         self,
         w: complex,
-        l: str,
+        dir: str,
         alpha: Tuple[str, int, int],
         x_max: float = 0.25,
         y_max: float = 0.25,
@@ -410,7 +415,7 @@ class Waveguide(metaclass=abc.ABCMeta):
             alpha: A tuple (pol, n, m) where pol is 'M' for TM-like mode or
                 'E' for TE-like mode, n is the order of the mode, and m is
                 the number of modes in the order and the polarization.
-            l: "h" (horizontal polarization) or "v" (vertical polarization)
+            dir: "h" (horizontal polarization) or "v" (vertical polarization)
             x_max: A float indicating the maximum x coordinate in the figure
             y_max: A float indicating the maximum y coordinate in the figure
         """
@@ -422,7 +427,7 @@ class Waveguide(metaclass=abc.ABCMeta):
         h = self.beta(w, alpha)
         coef = self.coef(h, w, alpha)
         E = np.array(
-            [[self.e_field(x, y, w, l, alpha, h, coef) for y in ys] for x in xs]
+            [[self.e_field(x, y, w, dir, alpha, h, coef) for y in ys] for x in xs]
         )
         Ex = E[:, :, 0]
         Ey = E[:, :, 1]
@@ -430,7 +435,7 @@ class Waveguide(metaclass=abc.ABCMeta):
         Es = np.sqrt(np.abs(Ex) ** 2 + np.abs(Ey) ** 2 + np.abs(Ez) ** 2)
         E_max_abs = Es.max()
         Es /= E_max_abs
-        if l == "h":
+        if dir == "h":
             Ex_on_x = Ex[:, 64]
             Ex_max = Ex_on_x[np.abs(Ex_on_x).argmax()]
             E_norm = Ex_max.conjugate() / abs(Ex_max) / E_max_abs
@@ -466,12 +471,12 @@ class Waveguide(metaclass=abc.ABCMeta):
         plt.tight_layout()
         plt.show()
 
-    def plot_h_field(self, w, l, alpha, x_max=0.25, y_max=0.25):
+    def plot_h_field(self, w, dir, alpha, x_max=0.25, y_max=0.25):
         """Plot the magnetic field distribution in the cross section.
 
         Args:
             w: A complex indicating the angular frequency
-            l: "h" (horizontal polarization) or "v" (vertical polarization)
+            dir: "h" (horizontal polarization) or "v" (vertical polarization)
             alpha: A tuple (pol, n, m) where pol is 'M' for TM-like mode or
                 'E' for TE-like mode, n is the order of the mode, and m is
                 the number of modes in the order and the polarization.
@@ -486,7 +491,7 @@ class Waveguide(metaclass=abc.ABCMeta):
         h = self.beta(w, alpha)
         coef = self.coef(h, w, alpha)
         H = np.array(
-            [[self.h_field(x, y, w, l, alpha, h, coef) for y in ys] for x in xs]
+            [[self.h_field(x, y, w, dir, alpha, h, coef) for y in ys] for x in xs]
         )
         Hx = H[:, :, 0]
         Hy = H[:, :, 1]
@@ -494,7 +499,7 @@ class Waveguide(metaclass=abc.ABCMeta):
         Hs = np.sqrt(np.abs(Hx) ** 2 + np.abs(Hy) ** 2 + np.abs(Hz) ** 2)
         H_max_abs = Hs.max()
         Hs /= H_max_abs
-        if l == "h":
+        if dir == "h":
             Hy_on_x = Hy[:, 64]
             Hy_max = Hy_on_x[np.abs(Hy_on_x).argmax()]
             H_norm = Hy_max.conjugate() / abs(Hy_max) / H_max_abs
@@ -530,12 +535,12 @@ class Waveguide(metaclass=abc.ABCMeta):
         plt.tight_layout()
         plt.show()
 
-    def plot_e_field_on_x_axis(self, w, l, alpha, comp, x_max=0.3, nx=128):
+    def plot_e_field_on_x_axis(self, w, dir, alpha, comp, x_max=0.3, nx=128):
         """Plot a component of the electric field on the x axis
 
         Args:
             w: A complex indicating the angular frequency
-            l: "h" (horizontal polarization) or "v" (vertical polarization)
+            dir: "h" (horizontal polarization) or "v" (vertical polarization)
             alpha: A tuple (pol, n, m) where pol is 'M' for TM-like mode or
                 'E' for TE-like mode, n is the order of the mode, and m is
                 the number of modes in the order and the polarization.
@@ -552,14 +557,14 @@ class Waveguide(metaclass=abc.ABCMeta):
         h = self.beta(w, alpha)
         coef = self.coef(h, w, alpha)
         E = np.array(
-            [[self.e_field(x, y, w, l, alpha, h, coef) for y in ys] for x in xs]
+            [[self.e_field(x, y, w, dir, alpha, h, coef) for y in ys] for x in xs]
         )
         Ex = E[:, :, 0]
         Ey = E[:, :, 1]
         Ez = E[:, :, 2]
         Es = np.sqrt(np.abs(Ex) ** 2 + np.abs(Ey) ** 2 + np.abs(Ez) ** 2)
         E_max_abs = Es.max()
-        if l == "h":
+        if dir == "h":
             Ex_on_x = Ex[:, 64]
             Ex_max = Ex_on_x[np.abs(Ex_on_x).argmax()]
             E_norm = Ex_max.conjugate() / abs(Ex_max) / E_max_abs
@@ -589,12 +594,12 @@ class Waveguide(metaclass=abc.ABCMeta):
         plt.tight_layout()
         plt.show()
 
-    def plot_h_field_on_x_axis(self, w, l, alpha, comp, x_max=0.3, nx=128):
+    def plot_h_field_on_x_axis(self, w, dir, alpha, comp, x_max=0.3, nx=128):
         """Plot a component of the magnetic field on the x axis
 
         Args:
             w: A complex indicating the angular frequency
-            l: "h" (horizontal polarization) or "v" (vertical polarization)
+            dir: "h" (horizontal polarization) or "v" (vertical polarization)
             alpha: A tuple (pol, n, m) where pol is 'M' for TM-like mode or
                 'E' for TE-like mode, n is the order of the mode, and m is
                 the number of modes in the order and the polarization.
@@ -611,14 +616,14 @@ class Waveguide(metaclass=abc.ABCMeta):
         h = self.beta(w, alpha)
         coef = self.coef(h, w, alpha)
         H = np.array(
-            [[self.h_field(x, y, w, l, alpha, h, coef) for y in ys] for x in xs]
+            [[self.h_field(x, y, w, dir, alpha, h, coef) for y in ys] for x in xs]
         )
         Hx = H[:, :, 0]
         Hy = H[:, :, 1]
         Hz = H[:, :, 2]
         Hs = np.sqrt(np.abs(Hx) ** 2 + np.abs(Hy) ** 2 + np.abs(Hz) ** 2)
         H_max_abs = Hs.max()
-        if l == "h":
+        if dir == "h":
             Hy_on_x = Hy[:, 64]
             Hy_max = Hy_on_x[np.abs(Hy_on_x).argmax()]
             H_norm = Hy_max.conjugate() / abs(Hy_max) / H_max_abs

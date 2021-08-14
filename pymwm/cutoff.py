@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-from typing import Dict, Tuple, List
 import os
+from typing import Dict, List, Tuple
+
 import numpy as np
-import scipy.special as sp
-import scipy.optimize as so
 import pandas as pd
+import scipy.optimize as so
+import scipy.special as sp
 
 
 class Cutoff:
@@ -13,8 +14,7 @@ class Cutoff:
     filename = os.path.join(dirname, "cutoff.h5")
 
     def __init__(self, num_n, num_m):
-        """Init Cutoff class.
-        """
+        """Init Cutoff class."""
         self.num_n, self.num_m = num_n, num_m
         self.r_ratios = 0.001 * np.arange(1000)
         if not os.path.exists(self.filename):

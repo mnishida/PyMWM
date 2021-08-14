@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import unittest
+
 import numpy as np
+
 import pymwm
 
 
@@ -115,10 +117,10 @@ class TestSlit(unittest.TestCase):
             h = wg.beta(w, alpha)
             a, b = wg.coef(h, w, alpha)
             s = wg.s_all[i]
-            l = wg.l_all[i]
+            dir = wg.l_all[i]
             n = wg.n_all[i]
             m = wg.m_all[i]
-            Yab = wg.Yab(w, h, s, l, n, m, a, b, h, s, l, n, m, a, b)
+            Yab = wg.Yab(w, h, s, dir, n, m, a, b, h, s, dir, n, m, a, b)
             Y = wg.Y(w, h, alpha, a, b)
             print(Yab)
             print(Y)

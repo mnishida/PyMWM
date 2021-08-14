@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-from typing import Dict, Tuple, List
+from typing import Dict, List, Tuple
+
 import numpy as np
-from scipy.special import jv, jvp, kv, kvp, jn_zeros, jnp_zeros
 from pyoptmat import Material
+from scipy.special import jn_zeros, jnp_zeros, jv, jvp, kv, kvp
+
 from pymwm.waveguide import Sampling
 
 

@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-from typing import Tuple, Dict, List
-import numpy as np
-from scipy.special import jv, jvp, kv, kvp, jn_zeros, jnp_zeros
-from pymwm.waveguide import Waveguide
-from .samples import Samples, SamplesLowLoss
+from typing import Dict, List, Tuple
 
-# from .utils import coefs_cython, ABY_cython, uvABY_cython
+import numpy as np
+from scipy.special import jn_zeros, jnp_zeros, jv, jvp, kv, kvp
+
+from pymwm.waveguide import Waveguide
+
+from .samples import Samples, SamplesLowLoss
 
 
 class Coax(Waveguide):
@@ -484,7 +485,7 @@ class Coax(Waveguide):
         e = self.clad(w)
         return e * w / h
 
-    def fields(self, x, y, w, l, alpha, h, coef):
+    def fields(self, x, y, w, dir, alpha, h, coef):
         """Return the electromagnetic field vectors for the specified mode and
         point
 
@@ -492,7 +493,7 @@ class Coax(Waveguide):
             x: A float indicating the x coordinate [um]
             y: A float indicating the y coordinate [um]
             w: A complex indicating the angular frequency
-            l: "h" (horizontal polarization) or "v" (vertical polarization)
+            dir: "h" (horizontal polarization) or "v" (vertical polarization)
             alpha: A tuple (pol, n, m) where pol is 'M' for TM-like mode or
                 'E' for TE-like mode, n is the order of the mode, and m is
                 the number of modes in the order and the polarization.
@@ -509,7 +510,7 @@ class Coax(Waveguide):
         v = self.samples.v(h ** 2, w, self.clad(w))
         ur = u * r / self.r
         vr = v * r / self.r
-        if l == "h":
+        if dir == "h":
             fr = np.cos(n * p)
             fp = -np.sin(n * p)
         else:
@@ -547,7 +548,7 @@ class Coax(Waveguide):
         hy = hr * np.sin(p) + hp * np.cos(p)
         return np.array([ex, ey, ez, hx, hy, hz])
 
-    def e_field(self, x, y, w, l, alpha, h, coef):
+    def e_field(self, x, y, w, dir, alpha, h, coef):
         """Return the electric field vector for the specified mode and
         point
 
@@ -555,7 +556,7 @@ class Coax(Waveguide):
             x: A float indicating the x coordinate [um]
             y: A float indicating the y coordinate [um]
             w: A complex indicating the angular frequency
-            l: "h" (horizontal polarization) or "v" (vertical polarization)
+            dir: "h" (horizontal polarization) or "v" (vertical polarization)
             alpha: A tuple (pol, n, m) where pol is 'M' for TM-like mode or
                 'E' for TE-like mode, n is the order of the mode, and m is
                 the number of modes in the order and the polarization.
@@ -572,7 +573,7 @@ class Coax(Waveguide):
         v = self.samples.v(h ** 2, w, self.clad(w))
         ur = u * r / self.r
         vr = v * r / self.r
-        if l == "h":
+        if dir == "h":
             fr = np.cos(n * p)
             fp = -np.sin(n * p)
         else:
@@ -599,7 +600,7 @@ class Coax(Waveguide):
         ey = er * np.sin(p) + ep * np.cos(p)
         return np.array([ex, ey, ez])
 
-    def h_field(self, x, y, w, l, alpha, h, coef):
+    def h_field(self, x, y, w, dir, alpha, h, coef):
         """Return the magnetic field vectors for the specified mode and
         point
 
@@ -607,7 +608,7 @@ class Coax(Waveguide):
             x: A float indicating the x coordinate [um]
             y: A float indicating the y coordinate [um]
             w: A complex indicating the angular frequency
-            l: "h" (horizontal polarization) or "v" (vertical polarization)
+            dir: "h" (horizontal polarization) or "v" (vertical polarization)
             alpha: A tuple (pol, n, m) where pol is 'M' for TM-like mode or
                 'E' for TE-like mode, n is the order of the mode, and m is
                 the number of modes in the order and the polarization.
@@ -624,7 +625,7 @@ class Coax(Waveguide):
         v = self.samples.v(h ** 2, w, self.clad(w))
         ur = u * r / self.r
         vr = v * r / self.r
-        if l == "h":
+        if dir == "h":
             fr = np.cos(n * p)
             fp = -np.sin(n * p)
         else:
@@ -667,116 +668,3 @@ class Coax(Waveguide):
             jnpus[0, n] = np.zeros(num_m)
             jnpus[1, n] = jvp(n, us[1, n])
         return us, jnus, jnpus
-
-    def coefs_numpy(self, hs, w):
-        As = []
-        Bs = []
-        for h, s, n, m in zip(hs, self.s_all, self.n_all, self.m_all):
-            pol = "E" if s == 0 else "M"
-            ai, bi = self.coef(h, w, (pol, n, m))
-            As.append(ai)
-            Bs.append(bi)
-        return np.ascontiguousarray(As), np.ascontiguousarray(Bs)
-
-    def coefs(self, hs, w):
-        return coefs_cython(self, hs, w)
-
-    def Ys(self, w, hs, As, Bs):
-        vals = []
-        for h, s, n, a, b in zip(hs, self.s_all, self.n_all, As, Bs):
-            pol = "E" if s == 0 else "M"
-            vals.append(self.Y(w, h, (pol, n, 1), a, b))
-        return np.array(vals)
-
-    # def Ymat(self, w, hs, As, Bs):
-    #     mat = []
-    #     for h1, s1, l1, n1, m1, a1, b1 in zip(
-    #             hs, self.s_all, self.l_all, self.n_all, self.m_all, As, Bs):
-    #         row = []
-    #         for h2, s2, l2, n2, m2, a2, b2 in zip(
-    #                 hs, self.s_all, self.l_all, self.n_all, self.m_all,
-    #                 As, Bs):
-    #             row.append(self.modes.Y_orthogonal(
-    #                 w, h1, s1, l1, n1, m1, a1, b1,
-    #                 h2, s2, l2, n2, m2, a2, b2))
-    #         mat.append(row)
-    #     return np.array(mat)
-
-    def hAB(self, w):
-        hs = np.array([self.beta(w, alpha) for alpha in self.alpha_all])
-        As, Bs = self.coefs(hs, w)
-        return hs, As, Bs
-
-    def ABY(self, w, hs):
-        e1 = self.fill(w)
-        e2 = self.clad(w)
-        return ABY_cython(
-            w,
-            self.r,
-            self.s_all,
-            self.n_all,
-            self.m_all,
-            hs,
-            e1,
-            e2,
-            self.u_pec,
-            self.jnu_pec,
-            self.jnpu_pec,
-        )
-
-    # def ABYmat(self, w, hs):
-    #     e1 = self.fill(w)
-    #     e2 = self.clad(w)
-    #     return ABYmat_cython(
-    #         w, self.r, self.s_all, self.l_all,
-    #         self.n_all, self.m_all, hs, e1, e2, self.u_pec, self.jnu_pec,
-    #         self.jnpu_pec)
-
-    def hABY(self, w):
-        e1 = self.fill(w)
-        e2 = self.clad(w)
-        hs = np.array([self.beta(w, alpha) for alpha in self.alpha_all])
-        As, Bs, Y = ABY_cython(
-            w,
-            self.r,
-            self.s_all,
-            self.n_all,
-            self.m_all,
-            hs,
-            e1,
-            e2,
-            self.u_pec,
-            self.jnu_pec,
-            self.jnpu_pec,
-        )
-        return hs, As, Bs, Y
-
-    def huvABY(self, w):
-        e1 = self.fill(w)
-        e2 = self.clad(w)
-        hs = np.array([self.beta(w, alpha) for alpha in self.alpha_all])
-        us, vs, As, Bs, Y = uvABY_cython(
-            w,
-            self.r,
-            self.s_all,
-            self.n_all,
-            self.m_all,
-            hs,
-            e1,
-            e2,
-            self.u_pec,
-            self.jnu_pec,
-            self.jnpu_pec,
-        )
-        return hs, us, vs, As, Bs, Y
-
-    # def hABYmat(self, w):
-    #     e1 = self.fill(w)
-    #     e2 = self.clad(w)
-    #     hs = np.array([self.beta(w, alpha)
-    #                    for alpha in self.alpha_all])
-    #     As, Bs, Ymat = ABYmat_cython(
-    #         w, self.r, self.s_all, self.l_all,
-    #         self.n_all, self.m_all, hs, e1, e2, self.u_pec, self.jnu_pec,
-    #         self.jnpu_pec)
-    #     return hs, As, Bs, Ymat

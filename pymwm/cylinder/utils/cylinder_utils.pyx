@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 import numpy as np
-cimport numpy as np
+
 cimport cython
+cimport numpy as np
 cimport scipy.linalg.cython_blas as blas
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef cdouble c_besselJ(int n, cdouble z) nogil: 
+cdef cdouble c_besselJ(int n, cdouble z) nogil:
     return jv(n, z)
 
 @cython.boundscheck(False)
@@ -67,7 +68,7 @@ cdef cdouble upart_diag(int n, cdouble uc, cdouble jnuc, cdouble jnpuc,
                         cdouble u, cdouble jnu, cdouble jnpu) nogil:
     cdef:
         int n2 = n * n
-        int sign 
+        int sign
         cdouble u2, jnu2, jnpu2, u0, jnu0, jnpu0
     if cabs(uc - u) < 1e-10:
         u0 = (u + uc) / 2
@@ -185,7 +186,7 @@ cdef coefs_pec_C(long *s_all, long *n_all, long  *m_all, int num_n_all,
     cdef:
         int i, n, m, en
         double u, norm, jnu, jnpu
-    from scipy.special import jv, jvp, jn_zeros, jnp_zeros
+    from scipy.special import jn_zeros, jnp_zeros, jv, jvp
     for i in range(num_n_all):
         n = n_all[i]
         m = m_all[i]

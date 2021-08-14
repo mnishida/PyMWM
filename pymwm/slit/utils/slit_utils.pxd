@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 import numpy as np
+
 cimport numpy as np
+
 ctypedef np.complex128_t cdouble;
 
+from libc.math cimport M_PI, atan2, cos, sin, sqrt
 from libc.stdio cimport printf
-from libc.stdlib cimport malloc, free
-from libc.math cimport sqrt, sin, cos, atan2, M_PI
+from libc.stdlib cimport free, malloc
+
 
 cdef extern from "<complex>" namespace "std"  nogil:
     cdouble csqrt "sqrt" (cdouble z)

@@ -2,9 +2,11 @@
 # -*- coding: utf-8 -*-
 import unittest
 from multiprocessing import Pool
+
 import numpy as np
 import numpy.testing as npt
 from pyoptmat import Material
+
 from pymwm.slit.samples import Samples
 
 

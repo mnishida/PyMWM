@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import numpy as np
-import scipy.special as sp
 import numpy.testing as npt
+import scipy.special as sp
+
 from pymwm.cutoff import Cutoff
 
 

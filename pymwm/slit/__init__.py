@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 from logging import getLogger
-from typing import Dict, Tuple, List
+from typing import Dict, List, Tuple
+
 import numpy as np
+
 from pymwm.waveguide import Waveguide
+
 from .samples import Samples, SamplesLowLoss
-from .utils import coefs_cython, ABY_cython, uvABY_cython
+from .utils import ABY_cython, coefs_cython, uvABY_cython
 
 logger = getLogger(__package__)
 
@@ -388,7 +391,7 @@ class Slit(Waveguide):
         e = self.clad(w)
         return e * w / h
 
-    def fields(self, x, y, w, l, alpha, h, coef):
+    def fields(self, x, y, w, dir, alpha, h, coef):
         """Return the electromagnetic field vectors for the specified mode and
         point
 
@@ -396,8 +399,8 @@ class Slit(Waveguide):
             x: A float indicating the x coordinate [um]
             y: A float indicating the y coordinate [um]
             w: A complex indicating the angular frequency
-            l: "h" (horizontal polarization) or "v" (vertical polarization).
-                In the slit case, l='h' for TM and l='v' for TE.
+            dir: "h" (horizontal polarization) or "v" (vertical polarization).
+                In the slit case, dir='h' for TM and dir='v' for TE.
             alpha: A tuple (pol, n, m) where pol is 'M' for TM-like mode or
                 'E' for TE-like mode, n is the order of the mode, and m is
                 the number of modes in the order and the polarization,
@@ -470,7 +473,7 @@ class Slit(Waveguide):
                     ez = -1j * gm * x / abs(x) / h * ex
         return np.array([ex, ey, ez, hx, hy, hz])
 
-    def e_field(self, x, y, w, l, alpha, h, coef) -> np.ndarray:
+    def e_field(self, x, y, w, dir, alpha, h, coef) -> np.ndarray:
         """Return the electric field vector for the specified mode and
         point
 
@@ -478,8 +481,8 @@ class Slit(Waveguide):
             x: A float indicating the x coordinate [um]
             y: A float indicating the y coordinate [um]
             w: A complex indicating the angular frequency
-            l: "h" (horizontal polarization) or "v" (vertical polarization).
-                In the slit case, l='h' for TM and l='v' for TE.
+            dir: "h" (horizontal polarization) or "v" (vertical polarization).
+                In the slit case, dir='h' for TM and dir='v' for TE.
             alpha: A tuple (pol, n, m) where pol is 'M' for TM mode or
                 'E' for TE mode, n is the order of the mode, and m is
                 the number of modes in the order and the polarization,
@@ -533,7 +536,7 @@ class Slit(Waveguide):
                     ez = -1j * gm / h * b * b_a * np.exp(-gm * abs(x))
         return np.array([ex, ey, ez])
 
-    def h_field(self, x, y, w, l, alpha, h, coef) -> np.ndarray:
+    def h_field(self, x, y, w, dir, alpha, h, coef) -> np.ndarray:
         """Return the magnetic field vectors for the specified mode and
         point
 
@@ -541,8 +544,8 @@ class Slit(Waveguide):
             x: A float indicating the x coordinate [um]
             y: A float indicating the y coordinate [um]
             w: A complex indicating the angular frequency
-            l: "h" (horizontal polarization) or "v" (vertical polarization).
-                In the slit case, l='h' for TM and l='v' for TE.
+            dir: "h" (horizontal polarization) or "v" (vertical polarization).
+                In the slit case, dir='h' for TM and dir='v' for TE.
             alpha: A tuple (pol, n, m) where pol is 'M' for TM mode or
                 'E' for TE mode, n is the order of the mode, and m is
                 the number of modes in the order and the polarization,

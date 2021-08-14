@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
-from typing import Tuple, Dict, List
+from typing import Dict, List, Tuple
+
 import numpy as np
-from scipy.special import jv, jvp, kv, kvp, jn_zeros, jnp_zeros
+from scipy.special import jn_zeros, jnp_zeros, jv, jvp, kv, kvp
+
 from pymwm.waveguide import Waveguide
+
 from .samples import Samples, SamplesLowLoss
-from .utils import coefs_cython, ABY_cython, uvABY_cython
+from .utils import ABY_cython, coefs_cython, uvABY_cython
 
 
 class Cylinder(Waveguide):
@@ -483,7 +486,7 @@ class Cylinder(Waveguide):
         e = self.clad(w)
         return e * w / h
 
-    def fields(self, x, y, w, l, alpha, h, coef):
+    def fields(self, x, y, w, dir, alpha, h, coef):
         """Return the electromagnetic field vectors for the specified mode and
         point
 
@@ -491,7 +494,7 @@ class Cylinder(Waveguide):
             x: A float indicating the x coordinate [um]
             y: A float indicating the y coordinate [um]
             w: A complex indicating the angular frequency
-            l: "h" (horizontal polarization) or "v" (vertical polarization)
+            dir: "h" (horizontal polarization) or "v" (vertical polarization)
             alpha: A tuple (pol, n, m) where pol is 'M' for TM-like mode or
                 'E' for TE-like mode, n is the order of the mode, and m is
                 the number of modes in the order and the polarization.
@@ -508,7 +511,7 @@ class Cylinder(Waveguide):
         v = self.samples.v(h ** 2, w, self.clad(w))
         ur = u * r / self.r
         vr = v * r / self.r
-        if l == "h":
+        if dir == "h":
             fr = np.cos(n * p)
             fp = -np.sin(n * p)
         else:
@@ -546,7 +549,7 @@ class Cylinder(Waveguide):
         hy = hr * np.sin(p) + hp * np.cos(p)
         return np.array([ex, ey, ez, hx, hy, hz])
 
-    def e_field(self, x, y, w, l, alpha, h, coef):
+    def e_field(self, x, y, w, dir, alpha, h, coef):
         """Return the electric field vector for the specified mode and
         point
 
@@ -554,7 +557,7 @@ class Cylinder(Waveguide):
             x: A float indicating the x coordinate [um]
             y: A float indicating the y coordinate [um]
             w: A complex indicating the angular frequency
-            l: "h" (horizontal polarization) or "v" (vertical polarization)
+            dir: "h" (horizontal polarization) or "v" (vertical polarization)
             alpha: A tuple (pol, n, m) where pol is 'M' for TM-like mode or
                 'E' for TE-like mode, n is the order of the mode, and m is
                 the number of modes in the order and the polarization.
@@ -571,7 +574,7 @@ class Cylinder(Waveguide):
         v = self.samples.v(h ** 2, w, self.clad(w))
         ur = u * r / self.r
         vr = v * r / self.r
-        if l == "h":
+        if dir == "h":
             fr = np.cos(n * p)
             fp = -np.sin(n * p)
         else:
@@ -598,7 +601,7 @@ class Cylinder(Waveguide):
         ey = er * np.sin(p) + ep * np.cos(p)
         return np.array([ex, ey, ez])
 
-    def h_field(self, x, y, w, l, alpha, h, coef):
+    def h_field(self, x, y, w, dir, alpha, h, coef):
         """Return the magnetic field vectors for the specified mode and
         point
 
@@ -606,7 +609,7 @@ class Cylinder(Waveguide):
             x: A float indicating the x coordinate [um]
             y: A float indicating the y coordinate [um]
             w: A complex indicating the angular frequency
-            l: "h" (horizontal polarization) or "v" (vertical polarization)
+            dir: "h" (horizontal polarization) or "v" (vertical polarization)
             alpha: A tuple (pol, n, m) where pol is 'M' for TM-like mode or
                 'E' for TE-like mode, n is the order of the mode, and m is
                 the number of modes in the order and the polarization.
@@ -623,7 +626,7 @@ class Cylinder(Waveguide):
         v = self.samples.v(h ** 2, w, self.clad(w))
         ur = u * r / self.r
         vr = v * r / self.r
-        if l == "h":
+        if dir == "h":
             fr = np.cos(n * p)
             fp = -np.sin(n * p)
         else:

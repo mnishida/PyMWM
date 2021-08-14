@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import unittest
+from multiprocessing import Pool
+
 import numpy as np
 import numpy.testing as npt
-from multiprocessing import Pool
 from pyoptmat import Material
+
 from pymwm.cylinder.samples import Samples
 
 
@@ -195,6 +197,7 @@ class TestCylinderSamples(unittest.TestCase):
 
     def test_beta2_w_min(self):
         from pyoptmat import Material
+
         from pymwm.cylinder.samples import Samples
 
         params = {

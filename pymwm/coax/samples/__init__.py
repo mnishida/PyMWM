@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
-from typing import Dict, Tuple, List
+from typing import Dict, List, Tuple
+
 import numpy as np
-import scipy.special as sp
 import scipy.optimize as so
+import scipy.special as sp
 from pyoptmat import Material
-from pymwm.waveguide import Sampling
+
 import pymwm
 from pymwm.cutoff import Cutoff
+from pymwm.waveguide import Sampling
 
 
 class Samples(Sampling):

@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import numpy.testing as npt
-import pymwm
 
+import pymwm
 
 params = {
     "core": {"shape": "cylinder", "size": 0.15, "fill": {"RI": 1.0}},
