@@ -3,4 +3,6 @@ scipy
 cython
 mkl
 pandas
+pyyaml
+gitpython
 matplotlib
