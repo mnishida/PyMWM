@@ -1,6 +1,7 @@
 import io
 import os
 import re
+import subprocess
 from distutils.util import get_platform
 
 import numpy as np
@@ -25,6 +26,24 @@ def get_install_requires():
         return [line.strip() for line in f.readlines() if not line.startswith("-")]
 
 
+def get_mkl_path():
+    proc = subprocess.run(["pip", "show", "mkl"], stdout=subprocess.PIPE, text=True)
+    mkl_lib = []
+    for line in proc.stdout.splitlines():
+        key, val = line.split(": ")
+        if key == "Location":
+            mkl_lib.append(os.path.abspath(val + "../.."))
+    proc = subprocess.run(
+        ["pip", "show", "mkl-include"], stdout=subprocess.PIPE, text=True
+    )
+    mkl_include = []
+    for line in proc.stdout.splitlines():
+        key, val = line.split(": ")
+        if key == "Location":
+            mkl_include.append(os.path.abspath(val + "../../../include"))
+    return mkl_include, mkl_lib
+
+
 platform = get_platform()
 if platform.startswith("win"):
     extra_compile_args = []
@@ -40,15 +59,16 @@ else:
         "-Wl,--no-as-needed",
     ]
     extra_link_args = ["-shared"]
+mkl_include, mkl_lib = get_mkl_path()
 extentions = [
     Extension(
         f"pymwm.{shape}.utils.{shape}_utils",
         sources=[os.path.join(dirname, "pymwm", shape, "utils", f"{shape}_utils.pyx")],
         depends=[],
-        include_dirs=[np.get_include(), "."],
+        include_dirs=[np.get_include(), "."] + mkl_include,
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
-        library_dirs=[],
+        library_dirs=mkl_lib,
         libraries=["mkl_rt"],
         language="c++",
     )
@@ -76,4 +96,5 @@ setup(
         "Topic :: Scientific/Engineering",
     ],
     keywords="metallic waveguide mode, electromagnetism",
+    ext_modules=ext_modules,
 )
