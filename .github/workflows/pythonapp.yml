@@ -27,10 +27,9 @@ jobs:
           python -m pip install --upgrade pip
           make install
       - name: Lint with flake8
-        run: |
-          flake8
-      - name: Test with tox
-        run: tox -e py
+        run: flake8
+      - name: Test
+        run: make test
   build-conda:
     runs-on: ubuntu-latest
     strategy:
