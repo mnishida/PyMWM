@@ -67,6 +67,7 @@ extentions = [
         include_dirs=[np.get_include(), "."] + mkl_include,
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
+        library_dirs=mkl_lib,
         runtime_library_dirs=mkl_lib,
         libraries=["mkl_rt"],
         language="c++",
