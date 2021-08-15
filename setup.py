@@ -27,11 +27,11 @@ def get_install_requires():
 
 def get_mkl_path():
     proc = subprocess.run(["pip", "show", "mkl"], stdout=subprocess.PIPE, text=True)
-    mkl_lib = ["/usr/local/lib"]
+    mkl_lib = []
     for line in proc.stdout.splitlines():
         key, val = line.split(": ")
         if key == "Location":
-            mkl_lib.append(os.path.abspath(val + "../.."))
+            mkl_lib.append(os.path.abspath(val + "../../"))
     proc = subprocess.run(
         ["pip", "show", "mkl-include"], stdout=subprocess.PIPE, text=True
     )
@@ -39,7 +39,7 @@ def get_mkl_path():
     for line in proc.stdout.splitlines():
         key, val = line.split(": ")
         if key == "Location":
-            mkl_include.append(os.path.abspath(val + "../../../include"))
+            mkl_include.append(os.path.abspath(val + "../../../include/"))
     return mkl_include, mkl_lib
 
 
