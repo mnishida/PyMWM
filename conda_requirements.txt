@@ -3,6 +3,7 @@ scipy
 cython
 mkl
 pandas
+pytables
 pyyaml
 gitpython
 matplotlib
