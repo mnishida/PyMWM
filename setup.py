@@ -6,8 +6,7 @@ from distutils.util import get_platform
 
 import numpy as np
 from Cython.Build import cythonize
-from numpy.distutils.core import Extension
-from setuptools import find_packages, setup
+from setuptools import Extension, find_packages, setup
 
 import pymwm
 
