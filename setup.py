@@ -2,6 +2,7 @@ import io
 import os
 import re
 import subprocess
+import sys
 from distutils.util import get_platform
 
 import numpy as np
@@ -25,29 +26,27 @@ def get_install_requires():
         return [line.strip() for line in f.readlines() if not line.startswith("-")]
 
 
-def get_mkl_path():
-    proc = subprocess.run(["pip", "show", "mkl"], stdout=subprocess.PIPE, text=True)
-    mkl_lib = []
-    for line in proc.stdout.splitlines():
-        key, val = line.split(": ")
-        if key == "Location":
-            mkl_lib.append(os.path.abspath(val + "../../.."))
-    proc = subprocess.run(
-        ["pip", "show", "mkl-include"], stdout=subprocess.PIPE, text=True
-    )
-    mkl_include = []
-    for line in proc.stdout.splitlines():
-        key, val = line.split(": ")
-        if key == "Location":
-            mkl_include.append(os.path.abspath(val + "../../../../include"))
-    return mkl_include, mkl_lib
+def mkl_link(platform):
+    lib = os.path.join(sys.prefix, "lib")
+    if platform == "win":
+        mr1 = os.path.join(lib, "libmkl_rt.1.dll")
+        mr = os.path.join(lib, "libmkl_rt.dll")
+    else:
+        mr1 = os.path.join(lib, "libmkl_rt.so.1")
+        mr = os.path.join(lib, "libmkl_rt.so")
+    try:
+        os.symlink(mr1, mr)
+    except OSError:
+        print("libmkl_rt.so(dll) exists")
 
 
 platform = get_platform()
 if platform.startswith("win"):
+    mkl_link("win")
     extra_compile_args = []
     extra_link_args = []
 else:
+    mkl_link("linux")
     extra_compile_args = [
         "-fPIC",
         "-m64",
@@ -58,17 +57,14 @@ else:
         "-Wl,--no-as-needed",
     ]
     extra_link_args = ["-shared"]
-mkl_include, mkl_lib = get_mkl_path()
 extentions = [
     Extension(
         f"pymwm.{shape}.utils.{shape}_utils",
         sources=[os.path.join(dirname, "pymwm", shape, "utils", f"{shape}_utils.pyx")],
         depends=[],
-        include_dirs=[np.get_include(), "."] + mkl_include,
+        include_dirs=[np.get_include(), "."],
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
-        library_dirs=mkl_lib,
-        runtime_library_dirs=mkl_lib,
         libraries=["mkl_rt"],
         language="c++",
     )
