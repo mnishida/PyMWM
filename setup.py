@@ -27,7 +27,7 @@ def get_install_requires():
 
 def get_mkl_path():
     proc = subprocess.run(["pip", "show", "mkl"], stdout=subprocess.PIPE, text=True)
-    mkl_lib = []
+    mkl_lib = ["/usr/local/lib"]
     for line in proc.stdout.splitlines():
         key, val = line.split(": ")
         if key == "Location":
