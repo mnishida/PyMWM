@@ -45,6 +45,7 @@ setup(
     description="A metallic waveguide mode solver",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
+    zip_safe=False,
     packages=find_packages(),
     install_requires=[line.strip() for line in open("requirements.txt").readlines()],
     python_requires=">=3.7",
