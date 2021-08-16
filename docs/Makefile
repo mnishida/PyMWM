@@ -17,7 +17,7 @@ help:
 
 upload:
 	mkdir -p site
-	rsync -rv build/html/ site/riip
+	rsync -rv build/html/ site/pymwm
 
 open:
 	open build/html/index.html

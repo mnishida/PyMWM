@@ -6,4 +6,4 @@ A metallic waveguide mode solver
 
 ## Installation
 
-`make install`
+`pip install pymwm`

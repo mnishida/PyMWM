@@ -1,11 +1,8 @@
 numpy
 scipy
 cython
-mkl
 pandas
 tables
-pyyaml
-gitpython
 ray
 matplotlib
--e .
+pyoptmat

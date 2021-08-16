@@ -4,4 +4,4 @@ pymwm
 Config
 ---------------------
 
-.. automodule:: riip.config
+.. automodule:: pymwm.config
