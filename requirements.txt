@@ -1,3 +1,4 @@
+-e .
 numpy
 scipy
 cython

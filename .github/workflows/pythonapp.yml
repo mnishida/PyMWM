@@ -28,8 +28,9 @@ jobs:
           make install
       - name: Lint with flake8
         run: flake8
-      - name: Test
-        run: make test
+      - name: Test with tox
+        run: tox -e py
+
   build-conda:
     runs-on: ubuntu-latest
     strategy:
