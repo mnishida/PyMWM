@@ -1,6 +1,5 @@
 numpy
 scipy
-cython
 pandas
 tables
 ray
