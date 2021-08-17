@@ -1,14 +1,97 @@
 # PyMWM
 PyMWM is a metallic waveguide mode solver written in Python.
 
-## Cylindrical waveguide
-### Propagation constants
+It provides the dispersion relation, i.e. the relation between propagation constant $\beta=\alpha+\mathrm{i}\gamma$ (with phase constant $\alpha$ and attenuation constant $\gamma$) and angular frequency $\omega$, for cylindrical waveguide and planer waveguide (slits). It also provides the distribution of mode fields. Codes for coaxial waveguides are under development.
+
+## Version
+0.1.0
+
+## Install
+#### Install and update using pip
+```
+$ pip install -U pymwm
+```
+#### Install using conda
+```
+$ conda install -c mnishida pymwm
+```
+
+## Dependencies
+- python 3
+- numpy
+- scipy
+- pandas
+- pytables
+- ray
+- matplotlib
+- pyoptmat
+## Uninstall
+```
+$ pip uninstall pymwm
+```
+or
+```
+$ conda uninstall pymwm
+```
+
+## Usage
+Let's consider a cylindrical waveguide whose radius is 0.15$\mu$m filled with water (refractive index : 1.333) surrounded by gold.
+You can specify the materials by the parameters for [PyOptMat](https://github.com/mnishida/PyOptMat).
+Wavelength range is set by the parameters 'wl_min' (which is set 0.5 $\mu$m here) and 'wl_max' (1.0 $\mu$m).
+PyMWM compute the dispersion relation the two complex values, $\omega$ (complex angular frequency) and $\beta$ (propagation constant).
+The range of the imaginary part of $\omega$ is set from $-2\pi/$wl_imag to 0 with the parameter 'wl_imag'.
+Usually, the cylindrical waveguide mode is specified by two integers, $n$ and $m$.
+The number of sets indexed by $n$ and $m$s are indicated by the parameters 'num_n' and 'num_m', respectively.
+```
+>>> import pymwm
+>>> params = {
+     'core': {'shape': 'cylinder', 'size': 0.15, 'fill': {'RI': 1.333}},
+     'clad': {'model': 'gold_dl'},
+     'bounds': {'wl_max': 1.0, 'wl_min': 0.5, 'wl_imag': 10.0},
+     'modes': {'num_n': 6, 'num_m': 2}
+     }
+>>> wg = pymwm.create(params)
+```
+If the parameters are set for the first time, the creation of waveguide-mode object will take a quite long time, because a sampling survey of $\beta$s in the complex plane of $\omega$ will be conducted and the obtained data is registered in the database.
+The second and subsequent creations are done instantly.
+You can check the obtained waveguide modes in the specified range by showing the attribute 'modes';
+```
+>>> wg.modes
+{'h': [('E', 1, 1),
+  ('E', 2, 1),
+  ('E', 3, 1),
+  ('E', 4, 1),
+  ('M', 0, 1),
+  ('M', 1, 1)],
+ 'v': [('E', 0, 1),
+  ('E', 1, 1),
+  ('E', 2, 1),
+  ('E', 3, 1),
+  ('E', 4, 1),
+  ('M', 1, 1)]}
+```
+where 'h' ('v') means that the modes have horizontally (vertically) oriented electric fields on the $x$ axis. The tuple (pol, n, m) with pol being 'E' or 'M' indicates TE-like or TM-like mode indexed by $n$ and $m$.
+You can get $\beta$ at $\omega=8.0$ rad/$\mu$m for TM-like mode with $n=0$ and $m=1$ by
+```
+>>> wg.beta(8.0, ('M', 0, 1))
+(0.06187318716518497+10.363105296313996j)
+```
+and for TE-like mode with $n=1$ and $m=2$ by
+```
+>>> wg.beta(8.0, ('E', 1, 2))
+(0.14261514314942403+19.094726281995463j)
+```
+For more information, see the [examples notebook](examples/examples.ipynb).
+
+## Examples
+### Cylindrical waveguide
+#### Propagation constants
 <img src="https://github.com/mnishida/PyMWM/wiki/images/phase_constant.png"
      alt="phase constant" title="phase constant" width="400"/>
 <img src="https://github.com/mnishida/PyMWM/wiki/images/attenuation_constant.png"
      alt="attenuation constant" title="attenuation constant" width="400"/>
 
-### Electric field and magnetic field distributions
+#### Electric field and magnetic field distributions
 * TE01
 <img src="https://github.com/mnishida/PyMWM/wiki/images/TE01_electric.png"
      alt="TE01 electric field" title="TE01 electric field" width="300"/>
@@ -55,14 +138,14 @@ PyMWM is a metallic waveguide mode solver written in Python.
 <img src="https://github.com/mnishida/PyMWM/wiki/images/EH21_magnetic.png"
      alt="EH21 magnetic field" title="EH21 magnetic field" width="300"/>
 
-## Slit waveguide
-### Propagation constants
+### Slit waveguide
+#### Propagation constants
 <img src="https://github.com/mnishida/PyMWM/wiki/images/phase_constant_slit.png"
      alt="phase constant (slit)" title="phase constant (slit)" width="400"/>
 <img src="https://github.com/mnishida/PyMWM/wiki/images/attenuation_constant_slit.png"
      alt="attenuation constant (slit)" title="attenuation constant (slit)" width="400"/>
 
-### Electric field and magnetic field distributions
+#### Electric field and magnetic field distributions
 * TE1
 <img src="https://github.com/mnishida/PyMWM/wiki/images/TE1_electric.png"
      alt="TE1 electric field" title="TE1 electric field" width="300"/>
@@ -104,7 +187,7 @@ PyMWM is a metallic waveguide mode solver written in Python.
 <img src="https://github.com/mnishida/PyMWM/wiki/images/TM3_magnetic.png"
      alt="TM3 magnetic field" title="TM3 magnetic field" width="300"/>
 
-### Ey, Hx and Hz distributions on x axis
+#### Ey, Hx and Hz distributions on x axis
 * TE1
 <img src="https://github.com/mnishida/PyMWM/wiki/images/TE1_Ey.png"
      alt="TE1 Ey" title="TE1 Ey" width="300"/>
@@ -134,7 +217,7 @@ PyMWM is a metallic waveguide mode solver written in Python.
 <img src="https://github.com/mnishida/PyMWM/wiki/images/TE4_Hz.png"
      alt="TE4 Hz" title="TE4 Hz" width="300"/>
 
-### Ex, Ez and Hy distributions on x axis
+#### Ex, Ez and Hy distributions on x axis
 * TM0
 <img src="https://github.com/mnishida/PyMWM/wiki/images/TM0_Ex.png"
      alt="TM0 Ex" title="TM0 Ex" width="300"/>

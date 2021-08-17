@@ -207,7 +207,7 @@ class Waveguide(metaclass=abc.ABCMeta):
                 else:
                     alpha_list.append(alpha)
         alpha_list.sort()
-        self.alphas = self.get_alphas(alpha_list)
+        self.alphas = self.modes = self.get_alphas(alpha_list)
 
         self.alpha_all = [alpha for dir in self.ls for alpha in self.alphas[dir]]
         self.l_all = np.array(

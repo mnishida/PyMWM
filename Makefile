@@ -2,7 +2,6 @@ install:
 	python -m pip install --upgrade pip
 	pip install -r requirements.txt --upgrade
 	pip install -r requirements_dev.txt --upgrade
-	pip install pyoptmat
 	pip install -e .
 	pre-commit install
 
