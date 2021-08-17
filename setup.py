@@ -55,6 +55,7 @@ setup(
     long_description_content_type="text/markdown",
     zip_safe=False,
     packages=find_packages(),
+    include_package_data=True,
     package_data=package_data,
     setup_requires=["cython", "numpy", "scipy"],
     install_requires=[line.strip() for line in open("requirements.txt").readlines()],
