@@ -18,6 +18,9 @@ class Cutoff:
         self.num_n, self.num_m = num_n, num_m
         self.r_ratios = 0.001 * np.arange(1000)
         if not os.path.exists(self.filename):
+            if not os.path.exists(self.dirname):
+                print("Folder Not Found.")
+                os.mkdir(self.dirname)
             print("File Not Found.")
             self.samples = self.cutoffs()
             self.samples.to_hdf(self.filename, "cutoff")
