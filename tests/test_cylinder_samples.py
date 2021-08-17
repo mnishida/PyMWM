@@ -81,8 +81,8 @@ class TestCylinderSamples(unittest.TestCase):
             "clad": {"model": "gold_dl", "bound_check": False},
             "modes": {
                 "wl_max": 5.0,
-                "wl_min": 0.4,
-                "wl_imag": 5.0,
+                "wl_min": 1.0,
+                "wl_imag": 50.0,
                 "dw": 1.0 / 64,
                 "num_n": 6,
                 "num_m": 2,
@@ -279,7 +279,7 @@ class TestCylinderSamples(unittest.TestCase):
             betas, convs = wg.betas_convs(xs_success_list)
             wg.database.save(betas, convs)
         beta_funcs = wg.database.interpolation(
-            betas, convs, bounds={"wl_max": 3.0, "wl_min": 0.575, "wl_imag": 10.0}
+            betas, convs, bounds={"wl_max": 3.0, "wl_min": 1.0, "wl_imag": 100.0}
         )
         self.assertAlmostEqual(
             beta_funcs[(("M", 0, 1), "real")](2 * np.pi, 0.0)[0, 0],

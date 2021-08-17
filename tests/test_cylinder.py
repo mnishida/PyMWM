@@ -8,8 +8,8 @@ import pymwm
 params = {
     "core": {"shape": "cylinder", "size": 0.15, "fill": {"RI": 1.0}},
     "clad": {"model": "gold_dl"},
-    "bounds": {"wl_max": 5.0, "wl_min": 0.575, "wl_imag": 10.0},
-    "modes": {"num_n": 6, "num_m": 2},
+    "bounds": {"wl_max": 5.0, "wl_min": 1.0, "wl_imag": 50.0},
+    "modes": {"wl_max": 5.0, "wl_min": 1.0, "wl_imag": 50.0, "num_n": 6, "num_m": 2},
 }
 
 

@@ -10,29 +10,37 @@ if platform.startswith("win"):
     extra_compile_args = []
     extra_link_args = []
 else:
-    extra_compile_args = [
-        "-fPIC",
-        "-m64",
-        "-fopenmp",
-        "-march=native",
-        "-O3",
-        "-ftree-vectorizer-verbose=2",
-        "-Wl,--no-as-needed",
-    ]
+    # extra_compile_args = [
+    #     "-fPIC",
+    #     "-m64",
+    #     "-fopenmp",
+    #     "-march=native",
+    #     "-O3",
+    #     "-ftree-vectorizer-verbose=2",
+    #     "-Wl,--no-as-needed",
+    # ]
+    extra_compile_args = []
     extra_link_args = ["-shared"]
-extentions = [
-    Extension(
-        f"pymwm.{shape}.utils.{shape}_utils",
-        sources=[os.path.join("pymwm", shape, "utils", f"{shape}_utils.pyx")],
-        depends=[],
-        include_dirs=[np.get_include(), "."],
-        extra_compile_args=extra_compile_args,
-        extra_link_args=extra_link_args,
-        libraries=[],
-        language="c++",
+extentions = []
+packages = []
+package_data = {}
+for shape in ["cylinder", "slit"]:
+    pkg = f"pymwm.{shape}.utils.{shape}_utils"
+    pyx = os.path.join("pymwm", shape, "utils", f"{shape}_utils.pyx")
+    packages.append(pkg)
+    package_data[pkg] = [pyx]
+    extentions.append(
+        Extension(
+            pkg,
+            sources=[pyx],
+            depends=[],
+            include_dirs=[np.get_include(), "."],
+            extra_compile_args=extra_compile_args,
+            extra_link_args=extra_link_args,
+            libraries=[],
+            language="c++",
+        )
     )
-    for shape in ["cylinder", "slit"]
-]
 ext_modules = cythonize(extentions, language_level="3")
 
 setup(
@@ -47,6 +55,7 @@ setup(
     long_description_content_type="text/markdown",
     zip_safe=False,
     packages=find_packages(),
+    package_data=package_data,
     setup_requires=["cython", "numpy", "scipy"],
     install_requires=[line.strip() for line in open("requirements.txt").readlines()],
     python_requires=">=3.7",

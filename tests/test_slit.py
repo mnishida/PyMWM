@@ -10,16 +10,16 @@ import pymwm
 class TestSlit(unittest.TestCase):
     def setUp(self):
         self.params = {
-            "core": {"shape": "slit", "size": 0.15, "fill": {"RI": 1.0}},
+            "core": {"shape": "slit", "size": 0.3, "fill": {"RI": 1.0}},
             "clad": {"model": "gold_dl"},
-            "bounds": {"wl_max": 5.0, "wl_min": 0.575, "wl_imag": 10.0},
-            "modes": {"num_n": 6},
+            "bounds": {"wl_max": 5.0, "wl_min": 1.0, "wl_imag": 50.0},
+            "modes": {"wl_max": 5.0, "wl_min": 1.0, "wl_imag": 50.0, "num_n": 6},
         }
 
     def test_attributes(self):
         params = self.params.copy()
         wg = pymwm.create(params)
-        self.assertEqual(wg.r, 0.15)
+        self.assertEqual(wg.r, 0.3)
         w = 2 * np.pi / 5.0
         self.assertEqual(wg.fill(w), 1.0)
         drude_lorentz = -1272.37592771801 + 351.25089220304176j
@@ -41,9 +41,9 @@ class TestSlit(unittest.TestCase):
         l1 = l2 = 0
         n1 = n2 = 1
         m1 = m2 = 1
-        self.assertEqual(wg.norm(w, h1, alpha1, a1, b1), 1.0)
-        self.assertEqual(wg.norm(w, h2, alpha2, a2, b2), 1.0)
-        self.assertEqual(wg.Y(w, h1, alpha1, a1, b1), h1 / w)
+        self.assertAlmostEqual(wg.norm(w, h1, alpha1, a1, b1), 1.0)
+        self.assertAlmostEqual(wg.norm(w, h2, alpha2, a2, b2), 1.0)
+        self.assertAlmostEqual(wg.Y(w, h1, alpha1, a1, b1), h1 / w)
         self.assertEqual(wg.Y(w, h2, alpha2, a2, b2), w / h2)
         self.assertEqual(
             wg.Yab(w, h1, s1, l1, n1, m1, a1, b1, h1, s1, l1, n1, m1, a1, b1), h1 / w
@@ -112,7 +112,7 @@ class TestSlit(unittest.TestCase):
     def test_Yaa_and_Y(self):
         params = self.params.copy()
         wg = pymwm.create(params)
-        w = 2 * np.pi / 0.575
+        w = 2 * np.pi
         for i, alpha in enumerate(wg.alpha_all):
             h = wg.beta(w, alpha)
             a, b = wg.coef(h, w, alpha)

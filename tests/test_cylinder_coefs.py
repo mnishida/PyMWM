@@ -10,10 +10,17 @@ import pymwm
 class TestCylinderCoefs(unittest.TestCase):
     def setUp(self):
         self.params = {
-            "core": {"shape": "cylinder", "size": 0.15, "fill": {"RI": 1.333}},
+            "core": {"shape": "cylinder", "size": 0.15, "fill": {"RI": 1.0}},
             "clad": {"model": "gold_dl"},
-            "bounds": {"wl_max": 1.2, "wl_min": 0.545, "wl_imag": 5.0},
-            "modes": {"num_n": 6, "num_m": 2, "ls": ["h", "v"]},
+            "bounds": {"wl_max": 5.0, "wl_min": 1.0, "wl_imag": 100.0},
+            "modes": {
+                "wl_max": 5.0,
+                "wl_min": 1.0,
+                "wl_imag": 50.0,
+                "num_n": 6,
+                "num_m": 2,
+                "ls": ["h", "v"],
+            },
         }
 
     def test_coefs(self):
@@ -43,7 +50,7 @@ class TestCylinderCoefs(unittest.TestCase):
     def test_ABY(self):
         params = self.params.copy()
         wg = pymwm.create(params)
-        wr = 3.0 * np.pi
+        wr = 2.0 * np.pi
         wi = -0.002
         w = wr + wi * 1j
         hs = np.array([wg.beta(w, alpha) for alpha in wg.alpha_all])
@@ -68,7 +75,7 @@ class TestCylinderCoefs(unittest.TestCase):
     def test_hABY(self):
         params = self.params.copy()
         wg = pymwm.create(params)
-        wr = 3.0 * np.pi
+        wr = 2.0 * np.pi
         wi = -0.002
         w = wr + wi * 1j
         hs1 = np.array([wg.beta(w, alpha) for alpha in wg.alpha_all])
@@ -92,7 +99,7 @@ class TestCylinderCoefs(unittest.TestCase):
     def test_norm(self):
         params = self.params.copy()
         wg = pymwm.create(params)
-        wr = 3.0 * np.pi
+        wr = 2.0 * np.pi
         wi = -0.002
         w = complex(wr, wi)
         hs = np.array([wg.beta(w, alpha) for alpha in wg.alpha_all])
