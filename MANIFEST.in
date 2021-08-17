@@ -1,3 +1,7 @@
 include requirements.txt
 include README.md
 include LICENSE
+include pymwm/cylinder/utils/cylinder_utils.pxd
+include pymwm/cylinder/utils/cylinder_utils.pyx
+include pymwm/slit/utils/slit_utils.pxd
+include pymwm/slit/utils/slit_utils.pyx
