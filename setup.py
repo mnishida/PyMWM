@@ -23,12 +23,12 @@ else:
 ext_modules = []
 for shape in ["cylinder", "slit"]:
     pkg = f"pymwm.{shape}.utils.{shape}_utils"
-    pyx = os.path.join("pymwm", shape, "utils", f"{shape}_utils.pyx")
+    basename = os.path.join("pymwm", shape, "utils", f"{shape}_utils")
     ext_modules.append(
         Extension(
             pkg,
-            sources=[pyx],
-            depends=[],
+            sources=[basename + ".pyx"],
+            depends=[basename + ".pxd"],
             include_dirs=[np.get_include(), "."],
             extra_compile_args=extra_compile_args,
             extra_link_args=extra_link_args,
