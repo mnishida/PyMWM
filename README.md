@@ -1,4 +1,13 @@
 # PyMWM
+
+[![PyPI version][pypi-image]][pypi-link]
+[![Anaconda Version][anaconda-v-image]][anaconda-v-link]
+
+[pypi-image]: https://badge.fury.io/py/pymwm.svg
+[pypi-link]: https://pypi.org/project/pymwm
+[anaconda-v-image]: https://anaconda.org/mnishida/pymwm/badges/version.svg
+[anaconda-v-link]: https://anaconda.org/mnishida/pymwm
+
 PyMWM is a metallic waveguide mode solver written in Python.
 
 It provides the dispersion relation, i.e. the relation between propagation constant &beta; = &alpha; + i&gamma; (with phase constant &alpha; and attenuation constant &gamma;) and angular frequency &omega;, for cylindrical waveguide and planer waveguide (slits). It also provides the distribution of mode fields. Codes for coaxial waveguides are under development.
@@ -70,7 +79,7 @@ You can check the obtained waveguide modes in the specified range by showing the
   ('E', 4, 1),
   ('M', 1, 1)]}
 ```
-where 'h' ('v') means that the modes have horizontally (vertically) oriented electric fields on the $x$ axis. The tuple (pol, n, m) with pol being 'E' or 'M' indicates TE-like or TM-like mode indexed by n and m.
+where 'h' ('v') means that the modes have horizontally (vertically) oriented electric fields on the x axis. The tuple (pol, n, m) with pol being 'E' or 'M' indicates TE-like or TM-like mode indexed by n and m.
 You can get &beta; at &omega;=8.0 rad/&mu;m for TM-like mode with n=0 and m=1 by
 ```
 >>> wg.beta(8.0, ('M', 0, 1))
