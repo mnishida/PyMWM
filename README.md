@@ -94,7 +94,7 @@ and for TE-like mode with n=1 and m=2 by
 >>> wg.beta(8.0, ('E', 1, 2))
 (0.14261514314942403+19.094726281995463j)
 ```
-For more information, see the [examples notebook](https://github.com/mnishida/PyMWM/blob/master/examples/examples.ipynb).
+For more information, see the [examples notebook](https://github.com/mnishida/PyMWM/blob/master/notebooks/examples.ipynb).
 
 ## Examples
 ### Cylindrical waveguide

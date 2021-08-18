@@ -27,6 +27,7 @@ extensions = [
     "sphinx_markdown_tables",
     "sphinx.ext.doctest",
     "recommonmark",
+    "nbsphinx",
 ]
 
 autodoc_member_order = "bysource"

@@ -1,10 +1,8 @@
-pymwm
-===================================
+Tutorials
+---------
 
 
 .. toctree::
-    :maxdepth: 2
+    :glob:
 
-    README
-    markdown
-    rst
+    notebooks/*
