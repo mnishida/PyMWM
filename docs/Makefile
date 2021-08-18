@@ -1,6 +1,6 @@
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
-SPHINXPROJ    = pymwm
+SPHINXPROJ    = PyMWM
 SOURCEDIR     = .
 BUILDDIR      = build
 
