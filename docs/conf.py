@@ -48,7 +48,7 @@ nbsphinx_execute_arguments = [
     "--InlineBackend.rc={'figure.dpi': 96}",
 ]
 
-nbsphinx_kernel_name = "python3"
+nbsphinx_kernel_name = "latest"
 
 autodoc_member_order = "bysource"
 
