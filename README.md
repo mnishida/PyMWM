@@ -43,7 +43,8 @@ $ pip uninstall pymwm
 ```
 or
 ```
-$ conda uninstall pymwm
+$ conda deactivate
+$ conda remove -n pymwm --all
 ```
 
 ## Usage
