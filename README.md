@@ -22,7 +22,10 @@ $ pip install -U pymwm
 ```
 #### Install using conda
 ```
+$ conda create -n pymwm
+$ conda activate pymwm
 $ conda install -c mnishida pymwm
+$ pip install ray
 ```
 
 ## Dependencies
