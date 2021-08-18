@@ -1,25 +1,9 @@
 import os
-from distutils.util import get_platform
 
 import numpy as np
 from Cython.Distutils import build_ext
 from setuptools import Extension, find_packages, setup
 
-platform = get_platform()
-if platform.startswith("win"):
-    extra_compile_args = []
-    extra_link_args = []
-else:
-    extra_compile_args = [
-        "-fPIC",
-        "-m64",
-        "-fopenmp",
-        "-march=native",
-        "-O3",
-        "-ftree-vectorizer-verbose=2",
-        "-Wl,--no-as-needed",
-    ]
-    extra_link_args = ["-shared"]
 ext_modules = []
 for shape in ["cylinder", "slit"]:
     pkg = f"pymwm.{shape}.utils.{shape}_utils"
@@ -30,10 +14,6 @@ for shape in ["cylinder", "slit"]:
             sources=[basename + ".pyx"],
             depends=[basename + ".pxd"],
             include_dirs=[np.get_include(), "."],
-            extra_compile_args=extra_compile_args,
-            extra_link_args=extra_link_args,
-            libraries=[],
-            language="c++",
         )
     )
 
