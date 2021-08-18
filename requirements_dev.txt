@@ -13,5 +13,3 @@ tox
 tox-gh-actions
 doc8
 pydocstyle
-nbsphinx
-ipykernel
