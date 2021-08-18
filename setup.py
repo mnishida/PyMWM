@@ -8,14 +8,15 @@ ext_modules = []
 for shape in ["cylinder", "slit"]:
     pkg = f"pymwm.{shape}.utils.{shape}_utils"
     basename = os.path.join("pymwm", shape, "utils", f"{shape}_utils")
-    ext_modules.append(
-        Extension(
-            pkg,
-            sources=[basename + ".pyx"],
-            depends=[basename + ".pxd"],
-            include_dirs=[np.get_include(), "."],
-        )
+    e = Extension(
+        pkg,
+        sources=[basename + ".pyx"],
+        depends=[basename + ".pxd"],
+        include_dirs=[np.get_include(), "."],
+        language="c++",
     )
+    e.cython_directives = {"language_level": "3"}
+    ext_modules.append(e)
 
 setup(
     name="pymwm",

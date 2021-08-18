@@ -40,11 +40,9 @@ cdef void coefs_C(
 cdef cdouble upart_diag(int n, cdouble uc, cdouble jnuc, cdouble jnpuc,
                         cdouble u, cdouble jnu, cdouble jnpu) nogil
 
-cdef inline cdouble upart_off(int n, cdouble uc, cdouble jnuc,
-                              cdouble u, cdouble jnu) nogil
+cdef cdouble upart_off(int n, cdouble uc, cdouble jnuc, cdouble u, cdouble jnu) nogil
 
 cdef cdouble vpart_diag(int n, cdouble vc, cdouble knvc, cdouble knpvc,
                         cdouble v, cdouble knv, cdouble knpv) nogil
 
-cdef inline cdouble vpart_off(int n, cdouble vc, cdouble knvc,
-                              cdouble v, cdouble knv) nogil
+cdef cdouble vpart_off(int n, cdouble vc, cdouble knvc, cdouble v, cdouble knv) nogil
