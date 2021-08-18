@@ -40,7 +40,7 @@ for shape in ["cylinder", "slit"]:
 setup(
     name="pymwm",
     version="0.1.1",
-    url="https://github.com/mnishida/RII_Pandas",
+    url="https://github.com/mnishida/PyMWM",
     license="MIT",
     author="Munehiro Nishida",
     author_email="mnishida@hiroshima-u.ac.jp",
