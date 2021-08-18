@@ -18,6 +18,7 @@ html_static_path = ["_static"]
 htmlhelp_basename = project
 
 extensions = [
+    "nbsphinx",
     "sphinx.ext.autodoc",
     "sphinx.ext.mathjax",
     "sphinx.ext.napoleon",
@@ -27,8 +28,27 @@ extensions = [
     "sphinx_markdown_tables",
     "sphinx.ext.doctest",
     "recommonmark",
-    "nbsphinx",
 ]
+
+# Exclude build directory and Jupyter backup files:
+exclude_patterns = ["_build", "**.ipynb_checkpoints"]
+
+# Default language for syntax highlighting in reST and Markdown cells:
+highlight_language = "none"
+
+# Don't add .txt suffix to source files:
+html_sourcelink_suffix = ""
+
+# Work-around until https://github.com/sphinx-doc/sphinx/issues/4229 is solved:
+html_scaled_image_link = False
+
+# List of arguments to be passed to the kernel that executes the notebooks:
+nbsphinx_execute_arguments = [
+    "--InlineBackend.figure_formats={'svg', 'pdf'}",
+    "--InlineBackend.rc={'figure.dpi': 96}",
+]
+
+nbsphinx_kernel_name = "python3"
 
 autodoc_member_order = "bysource"
 
