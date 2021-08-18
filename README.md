@@ -1,7 +1,7 @@
 # PyMWM
 PyMWM is a metallic waveguide mode solver written in Python.
 
-It provides the dispersion relation, i.e. the relation between propagation constant $\beta=\alpha+\mathrm{i}\gamma$ (with phase constant $\alpha$ and attenuation constant $\gamma$) and angular frequency $\omega$, for cylindrical waveguide and planer waveguide (slits). It also provides the distribution of mode fields. Codes for coaxial waveguides are under development.
+It provides the dispersion relation, i.e. the relation between propagation constant &beta; = &alpha; + i&gamma; (with phase constant &alpha; and attenuation constant &gamma;) and angular frequency &omega;, for cylindrical waveguide and planer waveguide (slits). It also provides the distribution of mode fields. Codes for coaxial waveguides are under development.
 
 ## Version
 0.1.0
@@ -35,13 +35,13 @@ $ conda uninstall pymwm
 ```
 
 ## Usage
-Let's consider a cylindrical waveguide whose radius is 0.15$\mu$m filled with water (refractive index : 1.333) surrounded by gold.
+Let's consider a cylindrical waveguide whose radius is 0.15&mu;m filled with water (refractive index : 1.333) surrounded by gold.
 You can specify the materials by the parameters for [PyOptMat](https://github.com/mnishida/PyOptMat).
-Wavelength range is set by the parameters 'wl_min' (which is set 0.5 $\mu$m here) and 'wl_max' (1.0 $\mu$m).
-PyMWM compute the dispersion relation the two complex values, $\omega$ (complex angular frequency) and $\beta$ (propagation constant).
-The range of the imaginary part of $\omega$ is set from $-2\pi/$wl_imag to 0 with the parameter 'wl_imag'.
-Usually, the cylindrical waveguide mode is specified by two integers, $n$ and $m$.
-The number of sets indexed by $n$ and $m$s are indicated by the parameters 'num_n' and 'num_m', respectively.
+Wavelength range is set by the parameters 'wl_min' (which is set 0.5 &mu;m here) and 'wl_max' (1.0 &mu;m).
+PyMWM compute the dispersion relation the two complex values, &omega; (complex angular frequency) and &beta; (propagation constant).
+The range of the imaginary part of &omega; is set from -2&pi;/wl_imag to 0 with the parameter 'wl_imag'.
+Usually, the cylindrical waveguide mode is specified by two integers, n and m.
+The number of sets indexed by n and m are indicated by the parameters 'num_n' and 'num_m', respectively.
 ```
 >>> import pymwm
 >>> params = {
@@ -52,7 +52,7 @@ The number of sets indexed by $n$ and $m$s are indicated by the parameters 'num_
      }
 >>> wg = pymwm.create(params)
 ```
-If the parameters are set for the first time, the creation of waveguide-mode object will take a quite long time, because a sampling survey of $\beta$s in the complex plane of $\omega$ will be conducted and the obtained data is registered in the database.
+If the parameters are set for the first time, the creation of waveguide-mode object will take a quite long time, because a sampling survey of &beta;s in the complex plane of &omega; will be conducted and the obtained data is registered in the database.
 The second and subsequent creations are done instantly.
 You can check the obtained waveguide modes in the specified range by showing the attribute 'modes';
 ```
@@ -70,13 +70,13 @@ You can check the obtained waveguide modes in the specified range by showing the
   ('E', 4, 1),
   ('M', 1, 1)]}
 ```
-where 'h' ('v') means that the modes have horizontally (vertically) oriented electric fields on the $x$ axis. The tuple (pol, n, m) with pol being 'E' or 'M' indicates TE-like or TM-like mode indexed by $n$ and $m$.
-You can get $\beta$ at $\omega=8.0$ rad/$\mu$m for TM-like mode with $n=0$ and $m=1$ by
+where 'h' ('v') means that the modes have horizontally (vertically) oriented electric fields on the $x$ axis. The tuple (pol, n, m) with pol being 'E' or 'M' indicates TE-like or TM-like mode indexed by n and m.
+You can get &beta; at &omega;=8.0 rad/&mu;m for TM-like mode with n=0 and m=1 by
 ```
 >>> wg.beta(8.0, ('M', 0, 1))
 (0.06187318716518497+10.363105296313996j)
 ```
-and for TE-like mode with $n=1$ and $m=2$ by
+and for TE-like mode with n=1 and m=2 by
 ```
 >>> wg.beta(8.0, ('E', 1, 2))
 (0.14261514314942403+19.094726281995463j)
