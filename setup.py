@@ -19,7 +19,7 @@ for shape in ["cylinder", "slit"]:
 
 setup(
     name="pymwm",
-    version="0.1.2",
+    version="0.1.3",
     url="https://github.com/mnishida/PyMWM",
     license="MIT",
     author="Munehiro Nishida",
