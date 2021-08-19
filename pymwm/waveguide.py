@@ -112,8 +112,8 @@ class Sampling(metaclass=abc.ABCMeta):
 
         x, y = np.meshgrid(self.ws, self.wis, indexing="ij")
         z = convs[alpha]
-        plt.pcolormesh(x, y, z, shading="gouraud")
-        plt.colorbar()
+        plt.pcolormesh(x, y, z, shading="auto", rasterized=True)
+        plt.colorbar(pad=0.02)
         plt.show()
 
     def plot_real_betas(self, betas, alpha):
@@ -121,8 +121,8 @@ class Sampling(metaclass=abc.ABCMeta):
 
         x, y = np.meshgrid(self.ws, self.wis, indexing="ij")
         z = betas[alpha]
-        plt.pcolormesh(x, y, z.real, shading="gouraud")
-        plt.colorbar()
+        plt.pcolormesh(x, y, z.real, shading="auto", rasterized=True)
+        plt.colorbar(pad=0.02)
         plt.show()
 
     def plot_imag_betas(self, betas, alpha):
@@ -130,8 +130,8 @@ class Sampling(metaclass=abc.ABCMeta):
 
         x, y = np.meshgrid(self.ws, self.wis, indexing="ij")
         z = betas[alpha]
-        plt.pcolormesh(x, y, z.imag, shading="gouraud")
-        plt.colorbar()
+        plt.pcolormesh(x, y, z.imag, shading="auto", rasterized=True)
+        plt.colorbar(pad=0.02)
         plt.show()
 
 
@@ -448,7 +448,7 @@ class Waveguide(metaclass=abc.ABCMeta):
         # Ez = (Ez * E_norm).real
         fig = plt.figure()
         ax = fig.add_subplot(111, aspect="equal")
-        pc = ax.pcolormesh(X, Y, Es, shading="gouraud")
+        pc = ax.pcolormesh(X, Y, Es, shading="auto", rasterized=True)
         # circle = Circle((0.0, 0.0), self.r, fill=False, ls='solid', color='w')
         # ax.add_patch(circle)
         ax.quiver(
@@ -463,11 +463,11 @@ class Waveguide(metaclass=abc.ABCMeta):
         )
         ax.set_xlim(-x_max, x_max)
         ax.set_ylim(-y_max, y_max)
-        ax.set_xlabel(r"$x\ [\mu\mathrm{m}]$", size=20)
-        ax.set_ylabel(r"$y\ [\mu\mathrm{m}]$", size=20)
-        plt.tick_params(labelsize=18)
-        cbar = plt.colorbar(pc)
-        cbar.ax.tick_params(labelsize=14)
+        ax.set_xlabel(r"$x\ [\mu\mathrm{m}]$")  # , size=20)
+        ax.set_ylabel(r"$y\ [\mu\mathrm{m}]$")  # , size=20)
+        # plt.tick_params(labelsize=18)
+        plt.colorbar(pc, pad=0.02)
+        # cbar.ax.tick_params(labelsize=14)
         plt.tight_layout()
         plt.show()
 
@@ -512,7 +512,7 @@ class Waveguide(metaclass=abc.ABCMeta):
         # Hz = (Hz * H_norm).real
         fig = plt.figure()
         ax = fig.add_subplot(111, aspect="equal")
-        pc = ax.pcolormesh(X, Y, Hs, shading="gouraud")
+        pc = ax.pcolormesh(X, Y, Hs, shading="auto", rasterized=True)
         # circle = Circle((0.0, 0.0), self.r, fill=False, ls='solid', color='w')
         # ax.add_patch(circle)
         ax.quiver(
@@ -527,11 +527,11 @@ class Waveguide(metaclass=abc.ABCMeta):
         )
         ax.set_xlim(-x_max, x_max)
         ax.set_ylim(-y_max, y_max)
-        ax.set_xlabel(r"$x\ [\mu\mathrm{m}]$", size=20)
-        ax.set_ylabel(r"$y\ [\mu\mathrm{m}]$", size=20)
-        plt.tick_params(labelsize=18)
-        cbar = plt.colorbar(pc)
-        cbar.ax.tick_params(labelsize=14)
+        ax.set_xlabel(r"$x\ [\mu\mathrm{m}]$")  # , size=20)
+        ax.set_ylabel(r"$y\ [\mu\mathrm{m}]$")  # , size=20)
+        # plt.tick_params(labelsize=18)
+        plt.colorbar(pc, pad=0.02)
+        # cbar.ax.tick_params(labelsize=14)
         plt.tight_layout()
         plt.show()
 

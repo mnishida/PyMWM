@@ -1,4 +1,4 @@
-pymwm
+-e .
 nbsphinx
 ipykernel
 sphinx==3.1.2

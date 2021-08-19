@@ -42,11 +42,7 @@ html_sourcelink_suffix = ""
 # Work-around until https://github.com/sphinx-doc/sphinx/issues/4229 is solved:
 html_scaled_image_link = False
 
-# List of arguments to be passed to the kernel that executes the notebooks:
-nbsphinx_execute_arguments = [
-    "--InlineBackend.figure_formats={'svg', 'pdf'}",
-    "--InlineBackend.rc={'figure.dpi': 96}",
-]
+nbsphinx_execute = "never"
 
 nbsphinx_kernel_name = "python3"
 
