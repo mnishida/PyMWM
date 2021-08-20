@@ -1,5 +1,5 @@
-Tutorials
----------
+PyMWM User's Guide
+------------------
 
 
 .. toctree::
