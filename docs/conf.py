@@ -1,6 +1,6 @@
 from recommonmark.transform import AutoStructify
 
-project = "pymwm"
+project = "PyMWM"
 version = "0.1.3"
 copyright = "2021, Munehiro Nishida"
 author = "Munehiro Nishida"
