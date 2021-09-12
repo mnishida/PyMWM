@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Tuple, Union
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
-from pyoptmat import Material
+from riip import Material
 
 
 class Sampling(metaclass=abc.ABCMeta):
@@ -342,7 +342,7 @@ class Waveguide(metaclass=abc.ABCMeta):
         wi: float = 0.0,
         comp: str = "imag",
         nw: int = 128,
-        **kwargs
+        **kwargs,
     ):
         """Plot propagation constants as a function of wavelength.
 

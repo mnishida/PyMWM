@@ -1,0 +1,47 @@
+{% set version = "0.1.3" %}
+
+package:
+  name: pymwm
+  version: "{{ version }}"
+
+source:
+  path: ../
+
+build:
+  number: 0
+  script: "{{ PYTHON }} -m pip install . -vv"
+
+requirements:
+  host:
+    - pip
+    - python
+    - numpy
+    - scipy
+    - cython
+    - setuptools
+  run:
+    - gitpython
+    - matplotlib
+    - numpy
+    - pandas
+    - pytables
+    - python
+    - pyyaml
+    - scipy
+    - ipython
+
+test:
+  imports:
+    - pymwm
+
+about:
+  home: "https://github.com/mnishida/PyMWM"
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  summary: "Python 3 + Pandas wrapper for the refractiveindex.info database"
+  doc_url: https://github.com/mnishida/RII_Pandas/tree/master/tutorial
+
+extra:
+  recipe-maintainers:
+    - mnishida

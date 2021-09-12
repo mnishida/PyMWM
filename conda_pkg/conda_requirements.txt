@@ -1,7 +1,6 @@
-Cython
 numpy
 scipy
 pandas
-ray
+ray-core
 matplotlib
 riip

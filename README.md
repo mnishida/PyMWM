@@ -36,7 +36,7 @@ $ pip install ray
 - pytables
 - ray
 - matplotlib
-- pyoptmat
+- riip
 ## Uninstall
 ```
 $ pip uninstall pymwm
@@ -49,7 +49,7 @@ $ conda remove -n pymwm --all
 
 ## Usage
 Let's consider a cylindrical waveguide whose radius is 0.15&mu;m filled with water (refractive index : 1.333) surrounded by gold.
-You can specify the materials by the parameters for [PyOptMat](https://github.com/mnishida/PyOptMat).
+You can specify the materials by the parameters for [RII_Pandas](https://github.com/mnishida/RII_Pandas).
 Wavelength range is set by the parameters 'wl_min' (which is set 0.5 &mu;m here) and 'wl_max' (1.0 &mu;m).
 PyMWM compute the dispersion relation the two complex values, &omega; (complex angular frequency) and &beta; (propagation constant).
 The range of the imaginary part of &omega; is set from -2&pi;/wl_imag to 0 with the parameter 'wl_imag'.

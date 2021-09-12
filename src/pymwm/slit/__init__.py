@@ -4,10 +4,10 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 
+from pymwm.utils.slit_utils import ABY_cython, coefs_cython, uvABY_cython
 from pymwm.waveguide import Waveguide
 
 from .samples import Samples, SamplesLowLoss
-from .utils import ABY_cython, coefs_cython, uvABY_cython
 
 logger = getLogger(__package__)
 

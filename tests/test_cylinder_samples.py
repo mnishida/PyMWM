@@ -5,7 +5,7 @@ from multiprocessing import Pool
 
 import numpy as np
 import numpy.testing as npt
-from pyoptmat import Material
+from riip import Material
 
 from pymwm.cylinder.samples import Samples
 
@@ -95,8 +95,8 @@ class TestCylinderSamples(unittest.TestCase):
         return wg.beta2_w_min(n)
 
     def test_attributes(self):
-        params = self.params.copy()
-        r = params["core"]["size"]
+        params: dict = self.params.copy()
+        r: float = params["core"]["size"]
         fill = Material(params["core"]["fill"])
         clad = Material(params["clad"])
         wg = Samples(r, fill, clad, params["modes"])
@@ -110,8 +110,8 @@ class TestCylinderSamples(unittest.TestCase):
         npt.assert_equal(wg.wis, wis)
 
     def test_beta2_pec(self):
-        params = self.params.copy()
-        r = params["core"]["size"]
+        params: dict = self.params.copy()
+        r: float = params["core"]["size"]
         fill = Material(params["core"]["fill"])
         clad = Material(params["clad"])
         wg = Samples(r, fill, clad, params["modes"])
@@ -196,11 +196,11 @@ class TestCylinderSamples(unittest.TestCase):
         npt.assert_almost_equal(wg.beta2_pec(w, 5), pec5 ** 2)
 
     def test_beta2_w_min(self):
-        from pyoptmat import Material
+        from riip import Material
 
         from pymwm.cylinder.samples import Samples
 
-        params = {
+        params: dict = {
             "core": {"shape": "cylinder", "size": 0.15, "fill": {"RI": 1.0}},
             "clad": {"model": "gold_dl", "bound_check": False},
             "modes": {"num_n": 6, "num_m": 2},
@@ -220,7 +220,7 @@ class TestCylinderSamples(unittest.TestCase):
             # self.assertEqual(success, self.convs[n])
 
     def test_db(self):
-        params = self.params.copy()
+        params: dict = self.params.copy()
         r = params["core"]["size"]
         fill = Material(params["core"]["fill"])
         clad = Material(params["clad"])
@@ -265,7 +265,7 @@ class TestCylinderSamples(unittest.TestCase):
             )
 
     def test_interpolation(self):
-        params = self.params.copy()
+        params: dict = self.params.copy()
         r = params["core"]["size"]
         fill = Material(params["core"]["fill"])
         clad = Material(params["clad"])

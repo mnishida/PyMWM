@@ -6,8 +6,8 @@ from setuptools import Extension, find_packages, setup
 
 ext_modules = []
 for shape in ["cylinder", "slit"]:
-    pkg = f"pymwm.{shape}.utils.{shape}_utils"
-    basename = os.path.join("pymwm", shape, "utils", f"{shape}_utils")
+    pkg = f"{shape}_utils"
+    basename = os.path.join("src", "pymwm", "utils", f"{shape}_utils")
     e = Extension(
         pkg,
         sources=[basename + ".pyx"],
@@ -29,7 +29,8 @@ setup(
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     zip_safe=False,
-    packages=find_packages(),
+    packages=find_packages("src"),
+    package_dir={"": "src"},
     include_package_data=True,
     setup_requires=["Cython", "numpy", "scipy"],
     install_requires=[line.strip() for line in open("requirements.txt").readlines()],
@@ -42,6 +43,7 @@ setup(
         "Topic :: Scientific/Engineering",
     ],
     keywords="metallic waveguide mode, electromagnetism",
+    ext_package="pymwm.utils",
     ext_modules=ext_modules,
     cmdclass={"build_ext": build_ext},
 )

@@ -5,7 +5,7 @@ from multiprocessing import Pool
 
 import numpy as np
 import numpy.testing as npt
-from pyoptmat import Material
+from riip import Material
 
 from pymwm.slit.samples import Samples
 

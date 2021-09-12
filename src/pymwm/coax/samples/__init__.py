@@ -2,25 +2,31 @@
 from typing import Dict, List, Tuple
 
 import numpy as np
-from pyoptmat import Material
-from scipy.special import jn_zeros, jnp_zeros, jv, jvp, kv, kvp
+import scipy.optimize as so
+import scipy.special as sp
+from riip import Material
 
+import pymwm
+from pymwm.cutoff import Cutoff
 from pymwm.waveguide import Sampling
 
 
 class Samples(Sampling):
-    """A class defining samples of phase constants of cylindrical waveguide
+    """A class defining samples of phase constants of coaxial waveguide
     modes.
 
     Attributes:
-        r: A float indicating the radius of the circular cross section [um].
+        ri: A float indicating inner radius [um].
+        r: A float indicating outer radius [um].
     """
 
-    def __init__(self, size: float, fill: Material, clad: Material, params: Dict):
+    def __init__(
+        self, size: float, fill: Material, clad: Material, params: Dict, size2: float
+    ):
         """Init Samples class.
 
         Args:
-            size: A float indicating the radius of the cross section [um]
+            size: A float indicating the outer radius [um]
             fill: An instance of Material class for the core
             clad: An instance of Material class for the clad
             params: A dict whose keys and values are as follows:
@@ -36,13 +42,27 @@ class Samples(Sampling):
                 'num_n': An integer indicating the number of orders of modes.
                 'num_m': An integer indicating the number of modes in each
                     order and polarization.
+            size2: A float indicating the inner radius [um]
         """
-        super().__init__(size, fill, clad, params)
         self.r = size
+        self.ri = size2
+        super().__init__(size, fill, clad, params, size2)
+        self.r_ratio = self.ri / self.r
+        num_n = self.params["num_n"]
+        num_m = self.params["num_m"]
+        co = Cutoff(num_n, num_m)
+        self.co_list = []
+        for n in range(num_n):
+            co_per_n = []
+            for pol in ["M", "E"]:
+                for m in range(1, num_m + 1):
+                    alpha = (pol, n, m)
+                    co_per_n.append(co(alpha, self.r_ratio))
+            self.co_list.append(np.array(co_per_n))
 
     @property
     def shape(self):
-        return "cylinder"
+        return "coax"
 
     @property
     def num_all(self):
@@ -59,53 +79,20 @@ class Samples(Sampling):
                 num_m+1 elements are for TM-like modes and the rest are for
                 TE-like modes.
         """
-        w_comp = w.real + 1j * w.imag
-        # The number of TM-like modes for each order is taken lager than
-        # the number of TE-like modes since TM-like modes are almost identical
-        # to those for PEC waveguide and can be calculated easily.
-        # Dividing function by (x - x0) where x0 is already-found root
-        # makes it easier to find new roots.
-        num_m = self.params["num_m"]
-        chi = jn_zeros(n, num_m + 1)
-        h2s_mag = self.fill(w_comp) * w_comp ** 2 - chi ** 2 / self.r ** 2
-        chi = jnp_zeros(n, num_m)
-        h2s_elec = self.fill(w_comp) * w_comp ** 2 - chi ** 2 / self.r ** 2
-        h2s = np.hstack((h2s_mag, h2s_elec))
-        return h2s
+        return self.fill(w) * w ** 2 - self.co_list[n] ** 2 / self.r ** 2
 
-    def beta2_pec_per_mode(self, w, key):
-        """Return squares of phase constants for a PEC waveguide
+    def u(self, h2: complex, w: complex, e2: complex) -> complex:
+        # return np.sqrt(e2 * w ** 2 - h2) * self.r
+        return (1 - 1j) * np.sqrt(0.5j * (h2 - e2 * w ** 2)) * self.ri
 
-        Args:
-            w: A complex indicating the angular frequency
-            key: A tuple (pol, n, m) where
-                pol: 'E' or 'M' indicating the polarization.
-                n: A integer indicating the order of the mode.
-                m: A integer indicating the ordinal of the mode in the same
-                    order.
-        Returns:
-            h2s: A 1D array indicating squares of phase constants, whose first
-                num_m+1 elements are for TM-like modes and the rest are for
-                TE-like modes.
-        """
-        w_comp = w.real + 1j * w.imag
-        pol, n, m = key
-        if pol == "M":
-            chi = jn_zeros(n, m)[-1]
-            h2 = self.fill(w_comp) * w_comp ** 2 - chi ** 2 / self.r ** 2
-        else:
-            chi = jnp_zeros(n, m)[-1]
-            h2 = self.fill(w_comp) * w_comp ** 2 - chi ** 2 / self.r ** 2
-        return h2
+    def v(self, h2: complex, w: complex, e1: complex) -> complex:
+        return (1 + 1j) * np.sqrt(-0.5j * (e1 * w ** 2 - h2)) * self.ri
 
-    def u(self, h2: complex, w: complex, e1: complex) -> complex:
-        # return np.sqrt(e1 * w ** 2 - h2) * self.r
+    def x(self, h2: complex, w: complex, e1: complex) -> complex:
         return (1 + 1j) * np.sqrt(-0.5j * (e1 * w ** 2 - h2)) * self.r
 
-    def v(self, h2: complex, w: complex, e2: complex) -> complex:
-        # This definition is very important!!
-        # Other definitions can not give good results in some cases
-        return (1 - 1j) * np.sqrt(0.5j * (-e2 * w ** 2 + h2)) * self.r
+    def y(self, h2: complex, w: complex, e2: complex) -> complex:
+        return (1 - 1j) * np.sqrt(0.5j * (h2 - e2 * w ** 2)) * self.r
 
     def eig_eq(
         self, h2: complex, w: complex, pol: str, n: int, e1: complex, e2: complex
@@ -123,144 +110,60 @@ class Samples(Sampling):
             val: A complex indicating the left-hand value of the characteristic
                 equation.
         """
-        h2comp = h2.real + 1j * h2.imag
-        u = self.u(h2comp, w, e1)
-        v = self.v(h2comp, w, e2)
-        jus = jv(n, u)
-        jpus = jvp(n, u)
-        kvs = kv(n, v)
-        kpvs = kvp(n, v)
-        te = jpus / u + kpvs * jus / (v * kvs)
-        tm = e1 * jpus / u + e2 * kpvs * jus / (v * kvs)
-        if n == 0:
-            if pol == "M":
-                val = tm
-            else:
-                val = te
-        else:
-            val = (
-                tm * te - h2comp * (n / w) ** 2 * ((1 / u ** 2 + 1 / v ** 2) * jus) ** 2
+        h2c = h2.real + 1j * h2.imag
+        w2 = w ** 2
+        u = self.u(h2c, w, e2)
+        v = self.v(h2c, w, e1)
+        x = self.x(h2c, w, e1)
+        y = self.y(h2c, w, e2)
+
+        def F(f_name, z):
+            sign = 1 if f_name == "iv" else -1
+            func = eval("sp." + f_name)
+            f = func(n, z)
+            fp = sign * func(n + 1, z) + n / z * f
+            return f, fp / f
+
+        jv, Fjv = F("jv", v)
+        jx, Fjx = F("jv", x)
+        yv, Fyv = F("yv", v)
+        yx, Fyx = F("yv", x)
+        iu, Fiu = F("iv", u)
+        ky, Fky = F("kv", y)
+
+        nuv = n * (u / v + v / u)
+        nxy = n * (x / y + y / x)
+
+        a11 = (v * Fiu + u * Fjv) / yv
+        a12 = v * Fiu + u * Fyv
+        a13 = nuv / yv
+        a14 = nuv
+
+        a21 = h2c * nuv / e2 / yv
+        a22 = h2c * nuv / e2
+        a23 = w2 * (v * Fiu + e1 / e2 * u * Fjv) / yv
+        a24 = w2 * (v * Fiu + e1 / e2 * u * Fyv)
+
+        a31 = (x * Fky + y * Fjx) / yx
+        a32 = (x * Fky + y * Fyx) * jv / jx
+        a33 = nxy / yx
+        a34 = nxy * jv / jx
+
+        a41 = h2c * nxy / e2 / yx
+        a42 = h2c * nxy / e2 * jv / jx
+        a43 = w ** 2 * (x * Fky + e1 / e2 * y * Fjx) / yx
+        a44 = w ** 2 * (x * Fky + e1 / e2 * y * Fyx) * jv / jx
+
+        return np.linalg.det(
+            np.array(
+                [
+                    [a11, a12, a13, a14],
+                    [a21, a22, a23, a24],
+                    [a31, a32, a33, a34],
+                    [a41, a42, a43, a44],
+                ]
             )
-        return val
-
-    def jac(self, h2, args):
-        """Return Jacobian of the characteristic equation
-
-        Args:
-            h2: A complex indicating the square of the phase constant.
-            args: A tuple (w, n, e1, e2), where w indicates the angular
-                frequency, n indicates  the order of the modes, e1 indicates
-                the permittivity of the core, and e2 indicates the permittivity
-                of the clad.
-        Returns:
-            val: A complex indicating the Jacobian of the characteristic
-                equation.
-        """
-        w, pol, n, e1, e2 = args
-        h2comp = h2.real + 1j * h2.imag
-        u = self.u(h2comp, w, e1)
-        v = self.v(h2comp, w, e2)
-        jus = jv(n, u)
-        jpus = jvp(n, u)
-        kvs = kv(n, v)
-        kpvs = kvp(n, v)
-        du_dh2 = -self.r / (2 * u)
-        dv_dh2 = self.r / (2 * v)
-        te = jpus / u + kpvs * jus / (v * kvs)
-        dte_du = -(
-            u * (1 - n ** 2 / u ** 2) * jus + 2 * jpus
-        ) / u ** 2 + jpus * kpvs / (v * kvs)
-        dte_dv = (
-            jus
-            * (n ** 2 * kvs ** 2 / v + v * (kvs ** 2 - kpvs ** 2) - 2 * kvs * kpvs)
-            / (v ** 2 * kvs ** 2)
         )
-        tm = e1 * jpus / u + e2 * kpvs * jus / (v * kvs)
-        dtm_du = e1 * dte_du
-        dtm_dv = e2 * dte_dv
-        if n == 0:
-            if pol == "M":
-                val = dtm_du * du_dh2 + dtm_dv * dv_dh2
-            else:
-                val = dte_du * du_dh2 + dte_dv * dv_dh2
-        else:
-            dre_dh2 = (
-                -((n / w) ** 2)
-                * jus
-                * (
-                    jus
-                    * (
-                        (1 / u ** 2 + 1 / v ** 2) ** 2
-                        - self.r * h2comp * (1 / u ** 4 - 1 / v ** 4)
-                    )
-                    + jpus * 2 * h2comp * (1 / u ** 2 + 1 / v ** 2) ** 2
-                )
-            )
-            val = (
-                (dte_du * du_dh2 + dte_dv * dv_dh2) * tm
-                + (dtm_du * du_dh2 + dtm_dv * dv_dh2) * te
-                + dre_dh2
-            )
-        return val
-
-    def func_jac(self, h2, *args):
-        """Return the value and Jacobian of the characteristic equation
-
-        Args:
-            h2: A complex indicating the square of the phase constant.
-        Returns:
-            val: 2 complexes indicating the left-hand value and Jacobian
-                of the characteristic equation.
-        """
-        w, pol, n, e1, e2 = args
-        h2comp = h2.real + 1j * h2.imag
-        u = self.u(h2comp, w, e1)
-        v = self.v(h2comp, w, e2)
-        jus = jv(n, u)
-        jpus = jvp(n, u)
-        kvs = kv(n, v)
-        kpvs = kvp(n, v)
-        du_dh2 = -self.r / (2 * u)
-        dv_dh2 = self.r / (2 * v)
-        te = jpus / u + kpvs * jus / (v * kvs)
-        dte_du = -(
-            u * (1 - n ** 2 / u ** 2) * jus + 2 * jpus
-        ) / u ** 2 + jpus * kpvs / (v * kvs)
-        dte_dv = (
-            jus
-            * (n ** 2 * kvs ** 2 / v + v * (kvs ** 2 - kpvs ** 2) - 2 * kvs * kpvs)
-            / (v ** 2 * kvs ** 2)
-        )
-        tm = e1 * jpus / u + e2 * kpvs * jus / (v * kvs)
-        dtm_du = e1 * dte_du
-        dtm_dv = e2 * dte_dv
-        if n == 0:
-            if pol == "M":
-                f = tm
-                val = dtm_du * du_dh2 + dtm_dv * dv_dh2
-            else:
-                f = te
-                val = dte_du * du_dh2 + dte_dv * dv_dh2
-        else:
-            f = tm * te - h2comp * (n / w) ** 2 * ((1 / u ** 2 + 1 / v ** 2) * jus) ** 2
-            dre_dh2 = (
-                -((n / w) ** 2)
-                * jus
-                * (
-                    jus
-                    * (
-                        (1 / u ** 2 + 1 / v ** 2) ** 2
-                        - self.r * h2comp * (1 / u ** 4 - 1 / v ** 4)
-                    )
-                    + jpus * 2 * h2comp * (1 / u ** 2 + 1 / v ** 2) ** 2
-                )
-            )
-            val = (
-                (dte_du * du_dh2 + dte_dv * dv_dh2) * tm
-                + (dtm_du * du_dh2 + dtm_dv * dv_dh2) * te
-                + dre_dh2
-            )
-        return f, val
 
     def beta2(self, w, n, e1, e2, xis):
         """Return roots and convergences of the characteristic equation
@@ -268,7 +171,7 @@ class Samples(Sampling):
         Args:
             w: A complex indicating the angular frequency.
             n: A integer indicating the order of the mode
-            e1: A complex indicating the permittivity of tha core.
+            e1: A complex indicating the permittiity of tha core.
             e2: A complex indicating the permittivity of tha clad.
             xis: A complex indicating the initial approximations for the roots
                 whose number of elements is 2*num_m+1.
@@ -287,24 +190,6 @@ class Samples(Sampling):
         vals = []
         success = []
 
-        # def func(h2vec, *args):
-        #     h2 = h2vec[0] + h2vec[1] * 1j
-        #     f, ja = self.func_jac(h2, *args)
-        #     prod_denom = 1.0
-        #     sum_denom = 0.0
-        #     for h2_0 in roots:
-        #         denom = h2 - h2_0
-        #         while (abs(denom) < 1e-9):
-        #             denom += 1.0e-9
-        #         prod_denom *= 1.0 / denom
-        #         sum_denom += 1.0 / denom
-        #     f *= prod_denom
-        #     ja = ja * prod_denom - f * sum_denom
-        #     f_array = np.array([f.real, f.imag])
-        #     ja_array = np.array([[ja.real, ja.imag],
-        #                          [ja.imag, ja.real]])
-        #     return f_array, ja_array
-
         def func(h2vec, *pars):
             h2 = h2vec[0] + h2vec[1] * 1j
             f = self.eig_eq(h2, *pars)
@@ -319,7 +204,7 @@ class Samples(Sampling):
             return f_array
 
         for i, xi in enumerate(xis):
-            if i < num_m + 1:
+            if i < num_m:
                 args = (w, "M", n, e1, e2)
             else:
                 args = (w, "E", n, e1, e2)
@@ -567,9 +452,10 @@ class SamplesLowLoss(Samples):
     class.
 
     Attributes:
+        r: A float indicating the outer radius [um]
+        ri: A float indicating the inner radius [um]
         fill: An instance of Material class for the core
         clad: An instance of Material class for the clad
-        r: A float indicating the width of the slit [um].
         params: A dict whose keys and values are as follows:
             'wl_max': A float indicating the maximum wavelength [um]
             'wl_min': A float indicating the minimum wavelength [um]
@@ -581,10 +467,11 @@ class SamplesLowLoss(Samples):
             'num_n': An integer indicating the number of orders of modes.
     """
 
-    def __init__(self, r, fill, clad, params):
+    def __init__(self, size, fill, clad, params, size2):
         """Init Samples class.
 
         Args:
+            size: A float indicating the outer radius [um]
             r: A float indicating the radius of the circular cross section [um]
             fill: An instance of Material class for the core
             clad: An instance of Material class for the clad
@@ -601,8 +488,9 @@ class SamplesLowLoss(Samples):
                 'num_n': An integer indicating the number of orders of modes.
                 'num_m': An integer indicating the number of modes in each
                     order and polarization.
+            size2: A float indicating the inner radius [um]
         """
-        super(SamplesLowLoss, self).__init__(r, fill, clad, params)
+        super(SamplesLowLoss, self).__init__(size, fill, clad, params, size2)
 
     def __call__(self, arg: Tuple[int, int, List[np.ndarray]]):
         """Return a dict of the roots of the characteristic equation
@@ -652,7 +540,7 @@ class SamplesLowLoss(Samples):
         betas = {}
         convs = {}
         for n in range(num_n):
-            for m in range(1, num_m + 2):
+            for m in range(1, num_m + 1):
                 betas[("M", n, m)] = np.zeros(
                     (len(self.ws), len(self.wis)), dtype=complex
                 )
@@ -668,7 +556,7 @@ class SamplesLowLoss(Samples):
                 w = self.ws[iwr] + 1j * self.wis[iwi]
                 e2 = self.clad(w)
                 for n in range(num_n):
-                    for i in range(num_m + 1):
+                    for i in range(num_m):
                         x = xs_success_list[j][0][n][i]
                         v = self.v(x, w, e2)
                         betas[("M", n, i + 1)][iwr, iwi] = self.beta_from_beta2(x)

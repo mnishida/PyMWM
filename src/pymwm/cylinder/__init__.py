@@ -4,10 +4,10 @@ from typing import Dict, List, Tuple
 import numpy as np
 from scipy.special import jn_zeros, jnp_zeros, jv, jvp, kv, kvp
 
+from pymwm.utils.cylinder_utils import ABY_cython, coefs_cython, uvABY_cython
 from pymwm.waveguide import Waveguide
 
 from .samples import Samples, SamplesLowLoss
-from .utils import ABY_cython, coefs_cython, uvABY_cython
 
 
 class Cylinder(Waveguide):

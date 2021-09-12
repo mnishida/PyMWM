@@ -3,7 +3,7 @@ from logging import getLogger
 from typing import Dict, List, Tuple
 
 import numpy as np
-from pyoptmat import Material
+from riip import Material
 
 from pymwm.waveguide import Sampling
 

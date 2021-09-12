@@ -4,7 +4,7 @@ import numpy as np
 
 cimport numpy as np
 
-ctypedef np.complex128_t cdouble;
+ctypedef np.complex128_t cdouble
 
 from libc.math cimport M_PI, atan2, cos, sin, sqrt
 from libc.stdio cimport printf
