@@ -7,7 +7,7 @@ import pymwm
 
 params = {
     "core": {"shape": "cylinder", "size": 0.15, "fill": {"RI": 1.0}},
-    "clad": {"model": "gold_dl"},
+    "clad": {"book": "Au", "page": "Stewart-DLF"},
     "bounds": {"wl_max": 5.0, "wl_min": 1.0, "wl_imag": 50.0},
     "modes": {"wl_max": 5.0, "wl_min": 1.0, "wl_imag": 50.0, "num_n": 6, "num_m": 2},
 }

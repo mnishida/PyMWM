@@ -11,7 +11,7 @@ class TestCylinderCoefs(unittest.TestCase):
     def setUp(self):
         self.params = {
             "core": {"shape": "cylinder", "size": 0.15, "fill": {"RI": 1.0}},
-            "clad": {"model": "gold_dl"},
+            "clad": {"book": "Au", "page": "Stewart-DLF"},
             "bounds": {"wl_max": 5.0, "wl_min": 1.0, "wl_imag": 100.0},
             "modes": {
                 "wl_max": 5.0,
@@ -22,6 +22,7 @@ class TestCylinderCoefs(unittest.TestCase):
                 "ls": ["h", "v"],
             },
         }
+        self.pec = {"e": -1e8}
 
     def test_coefs(self):
         params = self.params.copy()
@@ -37,8 +38,9 @@ class TestCylinderCoefs(unittest.TestCase):
         self.assertTrue(np.allclose(As1, As2))
         self.assertTrue(np.allclose(Bs1, Bs2))
 
-        params["clad"] = {"model": "pec"}
+        params["clad"] = self.pec
         wg = pymwm.create(params)
+        # print(type(wg.clad))
         alpha_all = wg.alpha_all
         hs = np.array([wg.beta(w, alpha) for alpha in alpha_all])
         As1, Bs1 = wg.coefs_numpy(hs, w)
@@ -62,7 +64,7 @@ class TestCylinderCoefs(unittest.TestCase):
         self.assertTrue(np.allclose(Bs1, Bs2))
         self.assertTrue(np.allclose(Y1, Y2))
 
-        params["clad"] = {"model": "pec"}
+        params["clad"] = self.pec
         wg = pymwm.create(params)
         hs = np.array([wg.beta(w, alpha) for alpha in wg.alpha_all])
         As1, Bs1 = wg.coefs_numpy(hs, w)
@@ -86,7 +88,7 @@ class TestCylinderCoefs(unittest.TestCase):
         self.assertTrue(np.allclose(Bs1, Bs2))
         self.assertTrue(np.allclose(Y1, Y2))
 
-        params["clad"] = {"model": "pec"}
+        params["clad"] = self.pec
         wg = pymwm.create(params)
         hs1 = np.array([wg.beta(w, alpha) for alpha in wg.alpha_all])
         As1, Bs1 = wg.coefs_numpy(hs1, w)
@@ -109,7 +111,7 @@ class TestCylinderCoefs(unittest.TestCase):
             norm = wg.norm(w, h, (pol, n, m), a, b)
             self.assertAlmostEqual(norm, 1.0)
 
-        params["clad"] = {"model": "pec"}
+        params["clad"] = self.pec
         wg = pymwm.create(params)
         hs = np.array([wg.beta(w, alpha) for alpha in wg.alpha_all])
         As, Bs = wg.coefs_numpy(hs, w)

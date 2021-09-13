@@ -7,7 +7,7 @@ import numpy as np
 from pymwm.utils.slit_utils import ABY_cython, coefs_cython, uvABY_cython
 from pymwm.waveguide import Waveguide
 
-from .samples import Samples, SamplesLowLoss
+from .samples import Samples, SamplesForRay, SamplesLowLoss, SamplesLowLossForRay
 
 logger = getLogger(__package__)
 
@@ -71,27 +71,15 @@ class Slit(Waveguide):
     def betas_convs_samples(
         self, params: Dict
     ) -> Tuple[np.ndarray, np.ndarray, Samples]:
-        im_factor = 1.0
-        if self.clad.im_factor != 1.0:
-            im_factor = self.clad.im_factor
-            self.clad.im_factor = 1.0
+        im_factor = self.clad.im_factor
+        self.clad.im_factor = 1.0
         p_modes = params["modes"].copy()
         num_n_0 = p_modes["num_n"]
-        smp = Samples(self.r, self.fill, self.clad, p_modes)
-        try:
-            betas, convs = smp.database.load()
-            success = True
-        except IndexError:
-            betas = convs = None
-            success = False
+        betas = convs = None
+        success = False
         for num_n in [n for n in range(num_n_0, 25)]:
-            if num_n == num_n_0:
-                if success:
-                    break
-                else:
-                    continue
             p_modes["num_n"] = num_n
-            smp = Samples(self.r, self.fill, self.clad, p_modes)
+            smp = Samples(self.r, self.fill_params, self.clad_params, p_modes)
             try:
                 betas, convs = smp.database.load()
                 success = True
@@ -99,23 +87,33 @@ class Slit(Waveguide):
             except IndexError:
                 continue
         if not success:
-            p_modes["num_n"] = num_n_0
-            smp = Samples(self.r, self.fill, self.clad, p_modes)
-            from multiprocessing import Pool
+            import ray
 
-            p = Pool(2)
-            xs_success_list = p.map(smp, [("M", num_n_0), ("E", num_n_0)])
-            # betas_list = list(map(smp,
-            #                       [('M', num_n), ('E', num_n)]))
-            # betas = {key: val for betas, convs in betas_list
-            #          for key, val in betas.items()}
-            # convs = {key: val for betas, convs in betas_list
-            #          for key, val in convs.items()}
+            p_modes["num_n"] = num_n_0
+            smp = Samples(self.r, self.fill_params, self.clad_params, p_modes)
+            ray.shutdown()
+            try:
+                ray.init()
+                p_modes_id = ray.put(p_modes)
+                pool = ray.util.ActorPool(
+                    SamplesForRay.remote(
+                        self.r, self.fill_params, self.clad_params, p_modes_id
+                    )
+                    for _ in range(2)
+                )
+                xs_success_list = list(
+                    pool.map(
+                        lambda a, arg: a.task.remote(arg),
+                        [("M", num_n_0), ("E", num_n_0)],
+                    )
+                )
+            finally:
+                ray.shutdown()
             betas, convs = smp.betas_convs(xs_success_list)
             smp.database.save(betas, convs)
         if im_factor != 1.0:
             self.clad.im_factor = im_factor
-            smp = SamplesLowLoss(self.r, self.fill, self.clad, p_modes)
+            smp = SamplesLowLoss(self.r, self.fill_params, self.clad_params, p_modes)
             try:
                 betas, convs = smp.database.load()
             except IndexError:
@@ -129,11 +127,24 @@ class Slit(Waveguide):
                             [betas[("E", n, 1)][iwr, iwi] ** 2 for n in range(num_n)],
                         ]
                         args.append((iwr, iwi, xis_list))
-                from multiprocessing import Pool
+                import ray
 
-                p = Pool(16)
-                xs_success_list = p.map(smp, args)
-                # xs_success_list = list(map(smp, smp.args)
+                ray.shutdown()
+                try:
+                    ray.init()
+                    p_modes_id = ray.put(p_modes)
+                    pool = ray.util.ActorPool(
+                        SamplesLowLossForRay.remote(
+                            self.r, self.fill_params, self.clad_params, p_modes_id
+                        )
+                        for _ in range(16)
+                    )
+                    xs_success_list = list(
+                        pool.map(lambda a, arg: a.task.remote(arg), args)
+                    )
+
+                finally:
+                    ray.shutdown()
                 betas, convs = smp.betas_convs(xs_success_list)
                 smp.database.save(betas, convs)
         return betas, convs, smp

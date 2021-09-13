@@ -1,14 +1,14 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+from __future__ import annotations
+
 import abc
 import os
 from collections import OrderedDict
-from typing import Any, Dict, List, Tuple, Union
+from typing import Optional
 
 import numpy as np
 import pandas as pd
+import riip
 from pandas import DataFrame
-from riip import Material
 
 
 class Sampling(metaclass=abc.ABCMeta):
@@ -40,15 +40,16 @@ class Sampling(metaclass=abc.ABCMeta):
     def __init__(
         self,
         size: float,
-        fill: Material,
-        clad: Material,
-        params: Dict,
+        fill: dict,
+        clad: dict,
+        params: dict,
         size2: float = 0.0,
     ):
         self.size = size
         self.size2 = size2
-        self.fill = fill
-        self.clad = clad
+        rid = riip.RiiDataFrame()
+        self.fill = rid.material(fill)
+        self.clad = rid.material(clad)
         self.params = params
         self.database = Database(self.key)
         self.ws = self.database.ws
@@ -62,12 +63,8 @@ class Sampling(metaclass=abc.ABCMeta):
     def num_all(self):
         pass
 
-    @abc.abstractmethod
-    def __call__(self, arg: Any) -> Tuple:
-        pass
-
     @property
-    def key(self) -> Dict:
+    def key(self) -> dict:
         p = self.params
         dw = p.get("dw", 1.0 / 64)
         wl_max = p.get("wl_max", 5.0)
@@ -76,25 +73,24 @@ class Sampling(metaclass=abc.ABCMeta):
         shape = self.shape
         size = self.size
         size2 = self.size2
-        if self.fill.model == "dielectric":
-            core = "RI_{}".format(self.fill.params["RI"])
-        else:
-            core = "{0}".format(self.fill.model)
-        if self.clad.model == "dielectric":
-            clad = "RI_{}".format(self.clad.params["RI"])
-        else:
-            clad = "{0}".format(self.clad.model)
+        # if self.fill.model == "dielectric":
+        #     core = "RI_{}".format(self.fill.params["RI"])
+        # else:
+        #     core = "{0}".format(self.fill.model)
+        # if self.clad.model == "dielectric":
+        #     clad = "RI_{}".format(self.clad.params["RI"])
+        # else:
+        #     clad = "{0}".format(self.clad.model)
         num_n = p["num_n"]
         num_m = p["num_m"]
         num_all = self.num_all
-        im_factor = self.clad.im_factor
         d = dict(
             (
                 ("shape", shape),
                 ("size", size),
                 ("size2", size2),
-                ("core", core),
-                ("clad", clad),
+                ("core", self.fill.label),
+                ("clad", self.clad.label),
                 ("wl_max", wl_max),
                 ("wl_min", wl_min),
                 ("wl_imag", wl_imag),
@@ -102,7 +98,6 @@ class Sampling(metaclass=abc.ABCMeta):
                 ("num_n", num_n),
                 ("num_m", num_m),
                 ("num_all", num_all),
-                ("im_factor", im_factor),
             )
         )
         return d
@@ -139,13 +134,15 @@ class Waveguide(metaclass=abc.ABCMeta):
     """A class defining a abstract waveguide.
 
     Attributes:
+       fill_params: A dict of the parameters of the core Material.
        fill: An instance of Material class for the core
+       clad_params: A dict of the parameters of the clad Material.
        clad: An instance of Material class for the clad
        r: A float indicating the radius of the circular cross section [um].
     """
 
     @abc.abstractmethod
-    def __init__(self, params: Dict):
+    def __init__(self, params: dict):
         """Init abstract Waveguide class.
 
         Args:
@@ -184,12 +181,13 @@ class Waveguide(metaclass=abc.ABCMeta):
                         polarization) and "v" (vertical polarization).
         """
         self.r = params["core"]["size"]
-        p_fill = params["core"]["fill"].copy()
-        p_fill["bound_check"] = False
-        p_clad = params["clad"].copy()
-        p_clad["bound_check"] = False
-        self.fill = Material(p_fill)
-        self.clad = Material(p_clad)
+        self.fill_params = params["core"]["fill"].copy()
+        self.fill_params["bound_check"] = False
+        self.clad_params = params["clad"].copy()
+        self.clad_params["bound_check"] = False
+        rid = riip.RiiDataFrame()
+        self.fill = rid.material(self.fill_params)
+        self.clad = rid.material(self.clad_params)
         self.num_n = params["modes"]["num_n"]
         self.num_m = params["modes"]["num_m"]
         self.bounds = params["bounds"]
@@ -218,32 +216,37 @@ class Waveguide(metaclass=abc.ABCMeta):
                 0 if pol == "E" else 1
                 for dir in self.ls
                 for pol, n, m in self.alphas[dir]
-            ]
+            ],
+            dtype=int,
         )
-        self.n_all = np.array([n for dir in self.ls for pol, n, m in self.alphas[dir]])
-        self.m_all = np.array([m for dir in self.ls for pol, n, m in self.alphas[dir]])
+        self.n_all = np.array(
+            [n for dir in self.ls for pol, n, m in self.alphas[dir]], dtype=int
+        )
+        self.m_all = np.array(
+            [m for dir in self.ls for pol, n, m in self.alphas[dir]], dtype=int
+        )
         self.num_n_all = self.n_all.shape[0]
 
     @abc.abstractmethod
-    def get_alphas(self, alpha_list: List[Tuple[str, int, int]]) -> Dict:
+    def get_alphas(self, alpha_list: list[tuple[str, int, int]]) -> dict:
         pass
 
     @abc.abstractmethod
     def betas_convs_samples(
-        self, params: Dict
-    ) -> Tuple[np.ndarray, np.ndarray, Sampling]:
+        self, params: dict
+    ) -> tuple[np.ndarray, np.ndarray, Sampling]:
         pass
 
     @abc.abstractmethod
-    def beta(self, w: complex, alpha: Tuple[str, int, int]) -> complex:
+    def beta(self, w: complex, alpha: tuple[str, int, int]) -> complex:
         pass
 
     @abc.abstractmethod
-    def beta_pec(self, w: complex, alpha: Tuple[str, int, int]) -> complex:
+    def beta_pec(self, w: complex, alpha: tuple[str, int, int]) -> complex:
         pass
 
     @abc.abstractmethod
-    def coef(self, h: complex, w: complex, alpha: Tuple[str, int, int]) -> Tuple:
+    def coef(self, h: complex, w: complex, alpha: tuple[str, int, int]) -> tuple:
         pass
 
     @abc.abstractmethod
@@ -253,9 +256,9 @@ class Waveguide(metaclass=abc.ABCMeta):
         y: float,
         w: complex,
         dir: str,
-        alpha: Tuple[str, int, int],
+        alpha: tuple[str, int, int],
         h: complex,
-        coef: Tuple,
+        coef: tuple,
     ) -> np.ndarray:
         """Return the field vectors for the specified mode and point
 
@@ -282,9 +285,9 @@ class Waveguide(metaclass=abc.ABCMeta):
         y: float,
         w: complex,
         dir: str,
-        alpha: Tuple[str, int, int],
+        alpha: tuple[str, int, int],
         h: complex,
-        coef: Tuple,
+        coef: tuple,
     ) -> np.ndarray:
         """Return the field vectors for the specified mode and point
 
@@ -311,9 +314,9 @@ class Waveguide(metaclass=abc.ABCMeta):
         y: float,
         w: complex,
         dir: str,
-        alpha: Tuple[str, int, int],
+        alpha: tuple[str, int, int],
         h: complex,
-        coef: Tuple,
+        coef: tuple,
     ) -> np.ndarray:
         """Return the field vectors for the specified mode and point
 
@@ -335,8 +338,8 @@ class Waveguide(metaclass=abc.ABCMeta):
 
     def plot_beta(
         self,
-        alpha: Tuple[str, int, int],
-        fmt: Union[str, None] = "-",
+        alpha: tuple[str, int, int],
+        fmt: Optional[str] = "-",
         wl_max: float = 1.0,
         wl_min: float = 0.4,
         wi: float = 0.0,
@@ -404,7 +407,7 @@ class Waveguide(metaclass=abc.ABCMeta):
         self,
         w: complex,
         dir: str,
-        alpha: Tuple[str, int, int],
+        alpha: tuple[str, int, int],
         x_max: float = 0.25,
         y_max: float = 0.25,
     ):
@@ -673,7 +676,6 @@ class Database:
             ("dw", float),
             ("num_n", int),
             ("num_m", int),
-            ("im_factor", float),
             ("EM", str),
             ("n", int),
             ("m", int),
@@ -683,38 +685,35 @@ class Database:
         (("conv", bool), ("beta_real", float), ("beta_imag", float))
     )
 
-    def __init__(self, key: Dict):
-        self.shape = key["shape"]
-        self.size = key["size"]
-        self.size2 = key["size2"]
-        self.core = key["core"]
-        self.clad = key["clad"]
-        self.wl_max = key["wl_max"]
-        self.wl_min = key["wl_min"]
-        self.wl_imag = key["wl_imag"]
-        self.dw = key["dw"]
-        self.num_n = key["num_n"]
-        self.num_m = key["num_m"]
-        self.num_all = key["num_all"]
-        self.im_factor = key["im_factor"]
-        cond = ""
-        for col in list(self.catalog_columns.keys())[1:-3]:
-            cond += "{0} == @self.{0} & ".format(col)
-        self.cond = cond.rstrip("& ")
-        ind_w_min = int(np.floor(2 * np.pi / self.wl_max / self.dw))
-        ind_w_max = int(np.ceil(2 * np.pi / self.wl_min / self.dw))
-        ind_w_imag = int(np.ceil(2 * np.pi / self.wl_imag / self.dw))
-        self.ws = np.arange(ind_w_min, ind_w_max + 1) * self.dw
-        self.wis = -np.arange(ind_w_imag + 1) * self.dw
+    def __init__(self, key: Optional[dict] = None) -> None:
+        if key is None:
+            self.cond = "shape=='None'"
+        else:
+            self.shape = key["shape"]
+            self.size = key["size"]
+            self.size2 = key["size2"]
+            self.core = key["core"]
+            self.clad = key["clad"]
+            self.wl_max = key["wl_max"]
+            self.wl_min = key["wl_min"]
+            self.wl_imag = key["wl_imag"]
+            self.dw = key["dw"]
+            self.num_n = key["num_n"]
+            self.num_m = key["num_m"]
+            self.num_all = key["num_all"]
+            cond = ""
+            for col in list(self.catalog_columns.keys())[1:-3]:
+                cond += "{0} == @self.{0} & ".format(col)
+            self.cond = cond.rstrip("& ")
+            ind_w_min = int(np.floor(2 * np.pi / self.wl_max / self.dw))
+            ind_w_max = int(np.ceil(2 * np.pi / self.wl_min / self.dw))
+            ind_w_imag = int(np.ceil(2 * np.pi / self.wl_imag / self.dw))
+            self.ws = np.arange(ind_w_min, ind_w_max + 1) * self.dw
+            self.wis = -np.arange(ind_w_imag + 1) * self.dw
         self.sn = self.get_sn()
 
     def load_catalog(self) -> DataFrame:
-        if not os.path.exists(self.filename):
-            print("File Not Found.")
-            catalog = pd.DataFrame(columns=self.catalog_columns.keys())
-        with pd.HDFStore(self.filename, "r") as store:
-            catalog = store["catalog"]
-        return catalog
+        return pd.read_hdf(self.filename, "catalog")
 
     def get_sn(self) -> int:
         if not os.path.exists(self.filename):
@@ -740,12 +739,12 @@ class Database:
             return max(catalog["sn"]) + 1
 
     @staticmethod
-    def set_columns_dtype(df: DataFrame, columns: Dict):
+    def set_columns_dtype(df: DataFrame, columns: dict):
         """Set data type of each column in the DataFrame."""
         for key, val in columns.items():
             df[key] = df[key].astype(val)
 
-    def load(self) -> Tuple[Dict, Dict]:
+    def load(self) -> tuple[dict, dict]:
         num_wr = len(self.ws)
         num_wi = len(self.wis)
         with pd.HDFStore(self.filename, "r") as store:
@@ -771,7 +770,7 @@ class Database:
                 betas[(em, n, m)] = beta.reshape(num_wr, num_wi)
         return betas, convs
 
-    def save(self, betas: Dict, convs: Dict):
+    def save(self, betas: dict, convs: dict):
         with pd.HDFStore(self.filename, complevel=9, complib="blosc") as store:
             catalog = store["catalog"]
             indices = catalog.query(self.cond).index
@@ -795,7 +794,6 @@ class Database:
                         self.dw,
                         self.num_n,
                         self.num_m,
-                        self.im_factor,
                         EM,
                         n,
                         m,
@@ -845,7 +843,7 @@ class Database:
             cls.set_columns_dtype(catalog, cls.catalog_columns)
             store["catalog"] = catalog
 
-    def delete(self, sns: List):
+    def delete(self, sns: list):
         with pd.HDFStore(self.filename, complevel=9, complib="blosc") as store:
             catalog = store["catalog"]
             indices = [catalog[catalog["sn"] == sn].index[0] for sn in sns]
@@ -866,7 +864,7 @@ class Database:
             store["catalog"] = catalog
         self.sn = self.get_sn()
 
-    def interpolation(self, betas: np.ndarray, convs: np.ndarray, bounds: Dict) -> Dict:
+    def interpolation(self, betas: np.ndarray, convs: np.ndarray, bounds: dict) -> dict:
         from scipy.interpolate import RectBivariateSpline
 
         wl_max = bounds["wl_max"]

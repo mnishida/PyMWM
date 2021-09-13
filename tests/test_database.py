@@ -13,7 +13,7 @@ class Load(unittest.TestCase):
                 ("size", 0.5),
                 ("size2", 0.0),
                 ("core", {"RI", 1.0}),
-                ("clad", {"model": "gold_dl"}),
+                ("clad", {"book": "Au", "page": "Stewart-DLF"}),
                 ("wl_max", 1.0),
                 ("wl_min", 0.4),
                 ("wl_imag", 5.0),

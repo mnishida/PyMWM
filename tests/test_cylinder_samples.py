@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import unittest
-from multiprocessing import Pool
 
 import numpy as np
 import numpy.testing as npt
-from riip import Material
+import ray
 
-from pymwm.cylinder.samples import Samples
+from pymwm.cylinder.samples import Samples, SamplesForRay
 
 
 class TestCylinderSamples(unittest.TestCase):
@@ -78,7 +77,7 @@ class TestCylinderSamples(unittest.TestCase):
         self.convs = np.array(convs)
         self.params = {
             "core": {"shape": "cylinder", "size": 0.15, "fill": {"RI": 1.0}},
-            "clad": {"model": "gold_dl", "bound_check": False},
+            "clad": {"book": "Au", "page": "Stewart-DLF", "bound_check": False},
             "modes": {
                 "wl_max": 5.0,
                 "wl_min": 1.0,
@@ -89,16 +88,11 @@ class TestCylinderSamples(unittest.TestCase):
             },
         }
 
-    @staticmethod
-    def func(args):
-        wg, n = args
-        return wg.beta2_w_min(n)
-
     def test_attributes(self):
         params: dict = self.params.copy()
         r: float = params["core"]["size"]
-        fill = Material(params["core"]["fill"])
-        clad = Material(params["clad"])
+        fill = params["core"]["fill"]
+        clad = params["clad"]
         wg = Samples(r, fill, clad, params["modes"])
         p = params["modes"]
         ind_w_min = int(np.floor(2 * np.pi / p["wl_max"] / p["dw"]))
@@ -112,8 +106,8 @@ class TestCylinderSamples(unittest.TestCase):
     def test_beta2_pec(self):
         params: dict = self.params.copy()
         r: float = params["core"]["size"]
-        fill = Material(params["core"]["fill"])
-        clad = Material(params["clad"])
+        fill = params["core"]["fill"]
+        clad = params["clad"]
         wg = Samples(r, fill, clad, params["modes"])
         w = 2 * np.pi / 5.0
         pec0 = (
@@ -196,24 +190,29 @@ class TestCylinderSamples(unittest.TestCase):
         npt.assert_almost_equal(wg.beta2_pec(w, 5), pec5 ** 2)
 
     def test_beta2_w_min(self):
-        from riip import Material
-
-        from pymwm.cylinder.samples import Samples
-
         params: dict = {
             "core": {"shape": "cylinder", "size": 0.15, "fill": {"RI": 1.0}},
-            "clad": {"model": "gold_dl", "bound_check": False},
+            "clad": {"book": "Au", "page": "Stewart-DLF", "bound_check": False},
             "modes": {"num_n": 6, "num_m": 2},
         }
         r = params["core"]["size"]
-        fill = Material(params["core"]["fill"])
-        clad = Material(params["clad"])
+        fill = params["core"]["fill"]
+        clad = params["clad"]
         wg = Samples(r, fill, clad, params["modes"])
         self.assertEqual(wg.ws[0], 1.25)
         num_n = params["modes"]["num_n"]
-        p = Pool(num_n)
-        args = [(wg, n) for n in range(num_n)]
-        vals = p.map(self.func, args)
+        ray.shutdown()
+        try:
+            ray.init()
+            p_modes_id = ray.put(params["modes"])
+            pool = ray.util.ActorPool(
+                SamplesForRay.remote(r, fill, clad, p_modes_id) for _ in range(num_n)
+            )
+            vals = list(
+                pool.map(lambda a, arg: a.beta2_w_min.remote(arg), range(num_n))
+            )
+        finally:
+            ray.shutdown()
         for n in range(6):
             h2s, success = vals[n]
             npt.assert_allclose(h2s, self.betas[n] * self.betas[n], rtol=1e-6)
@@ -222,15 +221,26 @@ class TestCylinderSamples(unittest.TestCase):
     def test_db(self):
         params: dict = self.params.copy()
         r = params["core"]["size"]
-        fill = Material(params["core"]["fill"])
-        clad = Material(params["clad"])
+        fill = params["core"]["fill"]
+        clad = params["clad"]
         wg = Samples(r, fill, clad, params["modes"])
         try:
             betas, convs = wg.database.load()
         except IndexError:
             num_n = params["modes"]["num_n"]
-            p = Pool(num_n)
-            xs_success_list = p.map(wg, range(num_n))
+            ray.shutdown()
+            try:
+                ray.init()
+                p_modes_id = ray.put(params["modes"])
+                pool = ray.util.ActorPool(
+                    SamplesForRay.remote(r, fill, clad, p_modes_id)
+                    for _ in range(num_n)
+                )
+                xs_success_list = list(
+                    pool.map(lambda a, arg: a.task.remote(arg), range(num_n))
+                )
+            finally:
+                ray.shutdown()
             betas, convs = wg.betas_convs(xs_success_list)
             wg.database.save(betas, convs)
         for n in range(6):
@@ -267,15 +277,26 @@ class TestCylinderSamples(unittest.TestCase):
     def test_interpolation(self):
         params: dict = self.params.copy()
         r = params["core"]["size"]
-        fill = Material(params["core"]["fill"])
-        clad = Material(params["clad"])
+        fill = params["core"]["fill"]
+        clad = params["clad"]
         wg = Samples(r, fill, clad, params["modes"])
         try:
             betas, convs = wg.database.load()
         except IndexError:
             num_n = params["modes"]["num_n"]
-            p = Pool(num_n)
-            xs_success_list = p.map(wg, range(num_n))
+            ray.shutdown()
+            try:
+                ray.init()
+                p_modes_id = ray.put(params["modes"])
+                pool = ray.util.ActorPool(
+                    SamplesForRay.remote(r, fill, clad, p_modes_id)
+                    for _ in range(num_n)
+                )
+                xs_success_list = list(
+                    pool.map(lambda a, arg: a.task.remote(arg), range(num_n))
+                )
+            finally:
+                ray.shutdown()
             betas, convs = wg.betas_convs(xs_success_list)
             wg.database.save(betas, convs)
         beta_funcs = wg.database.interpolation(

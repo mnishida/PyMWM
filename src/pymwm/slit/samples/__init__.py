@@ -1,9 +1,10 @@
-# -*- coding: utf-8 -*-
+from __future__ import annotations
+
 from logging import getLogger
-from typing import Dict, List, Tuple
 
 import numpy as np
-from riip import Material
+import ray
+import riip
 
 from pymwm.waveguide import Sampling
 
@@ -11,33 +12,32 @@ logger = getLogger(__package__)
 
 
 class Samples(Sampling):
-    """A class defining samples of phase constants of slit waveguide
-    modes.
+    """A class defining samples of phase constants of slit waveguide modes.
 
     Attributes:
         r: A float indicating the radius of the circular cross section [um].
     """
 
-    def __init__(self, size: float, fill: Material, clad: Material, params: Dict):
+    def __init__(self, size: float, fill: dict, clad: dict, params: dict):
         """Init Samples class.
 
         Args:
-            size: A float indicating the width of slit [um]
-            fill: An instance of Material class for the core
-            clad: An instance of Material class for the clad
-            params: A dict whose keys and values are as follows:
-                'wl_max': A float indicating the maximum wavelength [um]
-                    (default: 5.0)
-                'wl_min': A float indicating the minimum wavelength [um]
-                    (default: 0.4)
-                'wl_imag': A float indicating the minimum value of
+            size (float): The width of slit [um].
+            fill (dict): Parameters for riip.Material class for the core.
+            clad (dict): Parameters for riip.Material class for the clad.
+            params (dict): Keys and values are as follows:
+                'wl_max' (float): The maximum wavelength [um].
+                    Defaults to 5.0.
+                'wl_min' (float): The minimum wavelength [um].
+                    Defaults to 0.4.
+                'wl_imag' (float): The minimum value of
                     abs(c / f_imag) [um] where f_imag is the imaginary part of
-                    the frequency. (default: 5.0)
-                'dw': A float indicating frequency interval
-                    [rad c / 1um]=[2.99792458e14 rad / s] (default: 1 / 64).
-                'num_n': An integer indicating the number of orders of modes.
-                'num_m': An integer indicating the number of modes in each
-                    order and polarization (= 1 in the slit case).
+                    the frequency. Defaults to 5.0.
+                'dw' (float): The frequency interval [rad c / 1um]=[2.99792458e14 rad / s].
+                    Defaults to 1 / 64.
+                'num_n (int)': The number of orders of modes.
+                'num_m' (int): The number of modes in each order and polarization
+                    (= 1 in the slit case).
         """
         num_m = params.setdefault("num_m", 1)
         if num_m != 1:
@@ -109,6 +109,82 @@ class Samples(Sampling):
                 return u * np.tan(u) - (e1 * v) / e2
             else:
                 return u / np.tan(u) + (e1 * v) / e2
+
+    def beta2(
+        self,
+        w: complex,
+        pol: str,
+        num_n: int,
+        e1: complex,
+        e2: complex,
+        xis: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Return roots and convergences of the characteristic equation
+
+        Args:
+            w: The angular frequency.
+            pol: 'E' or 'M' indicating the polarization.
+            num_n: The number of modes.
+            e1: The permittivity of tha core.
+            e2: The permittivity of tha clad.
+            xis: The initial approximations for the roots whose number of
+               elements is 2.
+        Returns:
+            xs: The roots, whose length is 2.
+            success: The convergence information for xs.
+        """
+        if self.clad(w).real < -1e7:
+            xs = self.beta2_pec(w, num_n)
+            success = np.ones(num_n, dtype=bool)
+            if pol == "E":
+                success[0] = False
+            return xs, success
+        from scipy.optimize import root
+
+        roots = []
+        vals = []
+        success = []
+        for n in range(num_n):
+            xi = xis[n]
+            if pol == "E" and n == 0:
+                vals.append(xi)
+                success.append(False)
+                continue
+
+            def func(h2vec):
+                h2 = h2vec[0] + h2vec[1] * 1j
+                f = self.eig_eq(h2, w, pol, n, e1, e2)
+                prod_denom = 1.0
+                for h2_0 in roots:
+                    denom = h2 - h2_0
+                    while abs(denom) < 1e-14:
+                        denom += 1.0e-14
+                    prod_denom *= 1.0 / denom
+                f *= prod_denom
+                f_array = np.array([f.real, f.imag])
+                return f_array
+
+            result = root(
+                func,
+                np.array([xi.real, xi.imag]),
+                method="hybr",
+                options={"xtol": 1.0e-9},
+            )
+            x = result.x[0] + result.x[1] * 1j
+            if result.success:
+                roots.append(x)
+
+            v = self.v(x, w, e2)
+            if v.real > 0.0:
+                success.append(result.success)
+            else:
+                success.append(False)
+            vals.append(x)
+        return np.array(vals), success
+
+    @staticmethod
+    def beta_from_beta2(x: np.ndarray):
+        return (1 + 1j) * np.sqrt(-0.5j * x)
 
     def func(self, uv, args):
         """Return the values of characteristic equations.
@@ -236,90 +312,6 @@ class Samples(Sampling):
         )
         return fs, jas
 
-    def beta2(
-        self,
-        w: complex,
-        pol: str,
-        num_n: int,
-        e1: complex,
-        e2: complex,
-        xis: np.ndarray,
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        """Return roots and convergences of the characteristic equation
-
-        Args:
-            w: The angular frequency.
-            pol: 'E' or 'M' indicating the polarization.
-            num_n: The number of modes.
-            e1: The permittivity of tha core.
-            e2: The permittivity of tha clad.
-            xis: The initial approximations for the roots whose number of
-               elements is 2.
-        Returns:
-            xs: The roots, whose length is 2.
-            success: The convergence information for xs.
-        """
-        if self.clad.model == "pec":
-            xs = self.beta2_pec(w, num_n)
-            success = np.ones(num_n, dtype=bool)
-            if pol == "E":
-                success[0] = False
-            return xs, success
-        from scipy.optimize import root
-
-        roots = []
-        vals = []
-        success = []
-        for n in range(num_n):
-            xi = xis[n]
-            if pol == "E" and n == 0:
-                vals.append(xi)
-                success.append(False)
-                continue
-
-            def func(h2vec):
-                h2 = h2vec[0] + h2vec[1] * 1j
-                f = self.eig_eq(h2, w, pol, n, e1, e2)
-                prod_denom = 1.0
-                for h2_0 in roots:
-                    denom = h2 - h2_0
-                    while abs(denom) < 1e-14:
-                        denom += 1.0e-14
-                    prod_denom *= 1.0 / denom
-                f *= prod_denom
-                f_array = np.array([f.real, f.imag])
-                return f_array
-
-            result = root(
-                func,
-                np.array([xi.real, xi.imag]),
-                method="hybr",
-                options={"xtol": 1.0e-9},
-            )
-            x = result.x[0] + result.x[1] * 1j
-            if result.success:
-                roots.append(x)
-
-            # ui = self.u(xi, w, e1)
-            # vi = self.v(xi, w, e2)
-
-            # def func(uv):
-            #     return self.func_jac(uv, args)
-
-            # result = root(func, (ui.real, ui.imag, vi.real, vi.imag),
-            #               jac=True, method='hybr', options={'xtol': 1.0e-9})
-            # u = result.x[0] + result.x[1] * 1j
-            # v = result.x[2] + result.x[3] * 1j
-            # x = e1 * w ** 2 - (2 * u / self.r) ** 2
-            v = self.v(x, w, e2)
-            # if v.real > 0.0 and v.real > abs(v.imag):
-            if v.real > 0.0:
-                success.append(result.success)
-            else:
-                success.append(False)
-            vals.append(x)
-        return np.array(vals), success
-
     def beta2_w_min(self, pol, num_n):
         """Return roots and convergences of the characteristic equation at
             the lowest angular frequency, ws[0].
@@ -331,7 +323,7 @@ class Samples(Sampling):
             xs: A 1D array indicating the roots, whose length is 2.
             success: A 1D array indicating the convergence information for xs.
         """
-        if self.clad.model == "pec":
+        if self.clad(self.ws[0]).real < -1e7:
             xs = self.beta2_pec(self.ws[0], num_n)
             success = np.ones(num_n, dtype=bool)
             if pol == "E":
@@ -374,7 +366,7 @@ class Samples(Sampling):
             success: A 1D array indicating the convergence information for xs.
         """
         w_0 = self.ws[-1]
-        if self.clad.model == "pec":
+        if self.clad(w_0).real < -1e7:
             xs = self.beta2_pec(w_0, num_n)
             success = np.ones(num_n, dtype=bool)
             if pol == "E":
@@ -397,15 +389,6 @@ class Samples(Sampling):
             e2_1 = e2_0 + de * i
             xs, success = self.beta2(w_0, pol, num_n, e1, e2_1, xs)
         return xs, success
-
-    @staticmethod
-    def beta_from_beta2(x: np.ndarray):
-        return (1 + 1j) * np.sqrt(-0.5j * x)
-        # val = np.sqrt(x)
-        # if ((abs(val.real) > abs(val.imag) and val.real < 0) or
-        #    (abs(val.real) < abs(val.imag) and val.imag < 0)):
-        #     val *= -1
-        # return val
 
     def betas_convs(self, xs_success_list):
         betas = {}
@@ -433,7 +416,90 @@ class Samples(Sampling):
                         )
         return betas, convs
 
-    def __call__(self, arg: Tuple[str, int]) -> Tuple[np.ndarray, np.ndarray]:
+
+class SamplesLowLoss(Samples):
+    """A class defining samples of phase constants of cylindrical waveguide
+    modes in a virtual low-loss clad waveguide by subclassing the SlitSamples
+    class.
+
+    Attributes:
+        fill: An instance of Material class for the core
+        clad: An instance of Material class for the clad
+        r: A float indicating the width of the slit [um].
+        params: A dict whose keys and values are as follows:
+            'wl_max': A float indicating the maximum wavelength [um]
+            'wl_min': A float indicating the minimum wavelength [um]
+            'wl_imag': A float indicating the minimum value of
+                abs(c / f_imag) [um] where f_imag is the imaginary part of
+                the frequency.
+            'dw': A float indicating frequency interval
+                [rad * c / 1um]=[2.99792458e14 rad / s].
+            'num_n': An integer indicating the number of orders of modes.
+    """
+
+    def __init__(self, size: float, fill: dict, clad: dict, params: dict):
+        """Init Samples class.
+
+        Args:
+            size: A float indicating the width of the slit [um].
+            fill: An instance of Material class for the core
+            clad: An instance of Material class for the clad
+            params: A dict whose keys and values are as follows:
+                'wl_max': A float indicating the maximum wavelength [um]
+                    (default: 5.0)
+                'wl_min': A float indicating the minimum wavelength [um]
+                    (default: 0.4)
+                'wl_imag': A float indicating the minimum value of
+                    abs(c / f_imag) [um] where f_imag is the imaginary part of
+                    the frequency. (default: 5.0)
+                'dw': A float indicating frequency interval
+                    [rad c / 1um]=[2.99792458e14 rad / s] (default: 1 / 64).
+                'num_n': An integer indicating the number of orders of modes.
+                'num_m': An integer indicating the number of modes in each
+                    order and polarization.
+        """
+        super(SamplesLowLoss, self).__init__(size, fill, clad, params)
+
+    def betas_convs(self, xs_success_list):
+        num_iwr = len(self.ws)
+        num_iwi = len(self.wis)
+        num_n = self.params["num_n"]
+        betas = {}
+        convs = {}
+        for n in range(num_n):
+            betas[("M", n, 1)] = np.zeros((len(self.ws), len(self.wis)), dtype=complex)
+            convs[("M", n, 1)] = np.zeros((len(self.ws), len(self.wis)), dtype=bool)
+            betas[("E", n, 1)] = np.zeros((len(self.ws), len(self.wis)), dtype=complex)
+            convs[("E", n, 1)] = np.zeros((len(self.ws), len(self.wis)), dtype=bool)
+        for iwr in range(num_iwr):
+            for iwi in range(num_iwi):
+                j = iwr * num_iwi + iwi
+                w = self.ws[iwr] + 1j * self.wis[iwi]
+                e2 = self.clad(w)
+                for n in range(num_n):
+                    x = xs_success_list[j][0][0][n]
+                    v = self.v(x, w, e2)
+                    betas[("M", n, 1)][iwr, iwi] = self.beta_from_beta2(x)
+                    convs[("M", n, 1)][iwr, iwi] = (
+                        xs_success_list[j][1][0][n] if v.real > abs(v.imag) else False
+                    )
+                    x = xs_success_list[j][0][1][n]
+                    v = self.v(x, w, e2)
+                    betas[("E", n, 1)][iwr, iwi] = self.beta_from_beta2(x)
+                    convs[("E", n, 1)][iwr, iwi] = (
+                        xs_success_list[j][1][1][n] if v.real > abs(v.imag) else False
+                    )
+        return betas, convs
+
+
+@ray.remote
+class SamplesForRay(Samples):
+    """A derived class in order to create ray actor."""
+
+    def __init__(self, size: float, fill: dict, clad: dict, params: dict):
+        super().__init__(size, fill, clad, params)
+
+    def task(self, arg: tuple[str, int]) -> tuple[np.ndarray, np.ndarray]:
         """Return a dict of the roots of the characteristic equation
 
         Args:
@@ -506,50 +572,14 @@ class Samples(Sampling):
         return xs_array, success_array
 
 
-class SamplesLowLoss(Samples):
-    """A class defining samples of phase constants of cylindrical waveguide
-    modes in a virtual low-loss clad waveguide by subclassing the Samples
-    class.
+@ray.remote
+class SamplesLowLossForRay(SamplesLowLoss):
+    """A derived class in order to create ray actor."""
 
-    Attributes:
-        fill: An instance of Material class for the core
-        clad: An instance of Material class for the clad
-        r: A float indicating the width of the slit [um].
-        params: A dict whose keys and values are as follows:
-            'wl_max': A float indicating the maximum wavelength [um]
-            'wl_min': A float indicating the minimum wavelength [um]
-            'wl_imag': A float indicating the minimum value of
-                abs(c / f_imag) [um] where f_imag is the imaginary part of
-                the frequency.
-            'dw': A float indicating frequency interval
-                [rad * c / 1um]=[2.99792458e14 rad / s].
-            'num_n': An integer indicating the number of orders of modes.
-    """
+    def __init__(self, size: float, fill: dict, clad: dict, params: dict):
+        super().__init__(size, fill, clad, params)
 
-    def __init__(self, r, fill, clad, params):
-        """Init Samples class.
-
-        Args:
-            r: A float indicating the width of the slit [um].
-            fill: An instance of Material class for the core
-            clad: An instance of Material class for the clad
-            params: A dict whose keys and values are as follows:
-                'wl_max': A float indicating the maximum wavelength [um]
-                    (default: 5.0)
-                'wl_min': A float indicating the minimum wavelength [um]
-                    (default: 0.4)
-                'wl_imag': A float indicating the minimum value of
-                    abs(c / f_imag) [um] where f_imag is the imaginary part of
-                    the frequency. (default: 5.0)
-                'dw': A float indicating frequency interval
-                    [rad c / 1um]=[2.99792458e14 rad / s] (default: 1 / 64).
-                'num_n': An integer indicating the number of orders of modes.
-                'num_m': An integer indicating the number of modes in each
-                    order and polarization.
-        """
-        super(SamplesLowLoss, self).__init__(r, fill, clad, params)
-
-    def __call__(self, arg: Tuple[int, int, List[np.ndarray]]):
+    def task(self, arg: tuple[int, int, list[np.ndarray]]):
         """Return a dict of the roots of the characteristic equation
 
         Args:
@@ -593,34 +623,3 @@ class SamplesLowLoss(Samples):
             xs_list.append(xs)
             success_list.append(success)
         return xs_list, success_list
-
-    def betas_convs(self, xs_success_list):
-        num_iwr = len(self.ws)
-        num_iwi = len(self.wis)
-        num_n = self.params["num_n"]
-        betas = {}
-        convs = {}
-        for n in range(num_n):
-            betas[("M", n, 1)] = np.zeros((len(self.ws), len(self.wis)), dtype=complex)
-            convs[("M", n, 1)] = np.zeros((len(self.ws), len(self.wis)), dtype=bool)
-            betas[("E", n, 1)] = np.zeros((len(self.ws), len(self.wis)), dtype=complex)
-            convs[("E", n, 1)] = np.zeros((len(self.ws), len(self.wis)), dtype=bool)
-        for iwr in range(num_iwr):
-            for iwi in range(num_iwi):
-                j = iwr * num_iwi + iwi
-                w = self.ws[iwr] + 1j * self.wis[iwi]
-                e2 = self.clad(w)
-                for n in range(num_n):
-                    x = xs_success_list[j][0][0][n]
-                    v = self.v(x, w, e2)
-                    betas[("M", n, 1)][iwr, iwi] = self.beta_from_beta2(x)
-                    convs[("M", n, 1)][iwr, iwi] = (
-                        xs_success_list[j][1][0][n] if v.real > abs(v.imag) else False
-                    )
-                    x = xs_success_list[j][0][1][n]
-                    v = self.v(x, w, e2)
-                    betas[("E", n, 1)][iwr, iwi] = self.beta_from_beta2(x)
-                    convs[("E", n, 1)][iwr, iwi] = (
-                        xs_success_list[j][1][1][n] if v.real > abs(v.imag) else False
-                    )
-        return betas, convs

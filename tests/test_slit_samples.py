@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import unittest
-from multiprocessing import Pool
 
 import numpy as np
 import numpy.testing as npt
-from riip import Material
+import ray
 
-from pymwm.slit.samples import Samples
+from pymwm.slit.samples import Samples, SamplesForRay
 
 
 class TestSlitSamples(unittest.TestCase):
@@ -40,7 +39,7 @@ class TestSlitSamples(unittest.TestCase):
         )
         self.params = {
             "core": {"shape": "slit", "size": 0.3, "fill": {"RI": 1.0}},
-            "clad": {"model": "gold_dl", "bound_check": False},
+            "clad": {"book": "Au", "page": "Stewart-DLF", "bound_check": False},
             "modes": {
                 "wl_max": 5.0,
                 "wl_min": 1.0,
@@ -53,8 +52,8 @@ class TestSlitSamples(unittest.TestCase):
     def test_attributes(self):
         params = self.params.copy()
         r = params["core"]["size"]
-        fill = Material(params["core"]["fill"])
-        clad = Material(params["clad"])
+        fill = params["core"]["fill"]
+        clad = params["clad"]
         wg = Samples(r, fill, clad, params["modes"])
         p = params["modes"]
         ind_w_min = int(np.floor(2 * np.pi / p["wl_max"] / p["dw"]))
@@ -72,32 +71,39 @@ class TestSlitSamples(unittest.TestCase):
         return h2
 
     def test_beta2_pec(self):
+        import riip
+
         params = self.params.copy()
         r = params["core"]["size"]
-        fill = Material(params["core"]["fill"])
-        clad = Material(params["clad"])
+        fill = params["core"]["fill"]
+        clad = params["clad"]
         print(params["modes"])
         wg = Samples(r, fill, clad, params["modes"])
         w = 2 * np.pi / 5.0
-        pec = self.beta2_pec(w, np.arange(6), fill(w), params["core"]["size"])
+        pec = self.beta2_pec(
+            w, np.arange(6), riip.Material(fill)(w), params["core"]["size"]
+        )
         npt.assert_allclose(wg.beta2_pec(w, 6), pec)
-
-    @staticmethod
-    def func(args):
-        wg, pol, num_n = args
-        return wg.beta2_w_min(pol, num_n)
 
     def test_beta2_w_min(self):
         params = self.params.copy()
         r = params["core"]["size"]
-        fill = Material(params["core"]["fill"])
-        clad = Material(params["clad"])
+        fill = params["core"]["fill"]
+        clad = params["clad"]
         wg = Samples(r, fill, clad, params["modes"])
         self.assertEqual(wg.ws[0], 1.25)
         num_n = params["modes"]["num_n"]
-        p = Pool(2)
-        args = [(wg, "M", num_n), (wg, "E", num_n)]
-        vals = p.map(self.func, args)
+        ray.shutdown()
+        try:
+            ray.init()
+            p_modes_id = ray.put(params["modes"])
+            pool = ray.util.ActorPool(
+                SamplesForRay.remote(r, fill, clad, p_modes_id) for _ in range(2)
+            )
+            args = [("M", num_n), ("E", num_n)]
+            vals = list(pool.map(lambda a, arg: a.beta2_w_min.remote(*arg), args))
+        finally:
+            ray.shutdown()
         for i in range(2):
             h2s, success = vals[i]
             for j in range(6):
@@ -107,15 +113,26 @@ class TestSlitSamples(unittest.TestCase):
     def test_db(self):
         params = self.params.copy()
         r = params["core"]["size"]
-        fill = Material(params["core"]["fill"])
-        clad = Material(params["clad"])
+        fill = params["core"]["fill"]
+        clad = params["clad"]
         wg = Samples(r, fill, clad, params["modes"])
         try:
             betas, convs = wg.database.load()
         except IndexError:
             num_n = params["modes"]["num_n"]
-            p = Pool(2)
-            xs_success_list = p.map(wg, [("M", num_n), ("E", num_n)])
+            ray.shutdown()
+            try:
+                ray.init()
+                p_modes_id = ray.put(params["modes"])
+                pool = ray.util.ActorPool(
+                    SamplesForRay.remote(r, fill, clad, p_modes_id) for _ in range(2)
+                )
+                args = [("M", num_n), ("E", num_n)]
+                xs_success_list = list(
+                    pool.map(lambda a, arg: a.task.remote(arg), args)
+                )
+            finally:
+                ray.shutdown()
             betas, convs = wg.betas_convs(xs_success_list)
             wg.database.save(betas, convs)
         for n in range(6):
@@ -131,15 +148,26 @@ class TestSlitSamples(unittest.TestCase):
     def test_interpolation(self):
         params = self.params.copy()
         r = params["core"]["size"]
-        fill = Material(params["core"]["fill"])
-        clad = Material(params["clad"])
+        fill = params["core"]["fill"]
+        clad = params["clad"]
         wg = Samples(r, fill, clad, params["modes"])
         try:
             betas, convs = wg.database.load()
         except IndexError:
             num_n = params["modes"]["num_n"]
-            p = Pool(num_n)
-            xs_success_list = p.map(wg, range(num_n))
+            ray.shutdown()
+            try:
+                ray.init()
+                p_modes_id = ray.put(params["modes"])
+                pool = ray.util.ActorPool(
+                    SamplesForRay.remote(r, fill, clad, p_modes_id)
+                    for _ in range(num_n)
+                )
+                xs_success_list = list(
+                    pool.map(lambda a, arg: a.task.remote(arg), range(num_n))
+                )
+            finally:
+                ray.shutdown()
             betas, convs = wg.betas_convs(xs_success_list)
             wg.database.save(betas, convs)
         beta_funcs = wg.database.interpolation(

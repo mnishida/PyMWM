@@ -11,10 +11,11 @@ class TestSlit(unittest.TestCase):
     def setUp(self):
         self.params = {
             "core": {"shape": "slit", "size": 0.3, "fill": {"RI": 1.0}},
-            "clad": {"model": "gold_dl"},
+            "clad": {"book": "Au", "page": "Stewart-DLF"},
             "bounds": {"wl_max": 5.0, "wl_min": 1.0, "wl_imag": 50.0},
             "modes": {"wl_max": 5.0, "wl_min": 1.0, "wl_imag": 50.0, "num_n": 6},
         }
+        self.pec = {"e": -1e8}
 
     def test_attributes(self):
         params = self.params.copy()
@@ -27,7 +28,7 @@ class TestSlit(unittest.TestCase):
 
     def test_Yab_pec(self):
         params = self.params.copy()
-        params["clad"] = {"model": "pec"}
+        params["clad"] = self.pec
         wg = pymwm.create(params)
         w = 2 * np.pi / 5.0
         alpha1 = ("E", 1, 1)
@@ -57,7 +58,7 @@ class TestSlit(unittest.TestCase):
 
     def test_Yab_no_loss(self):
         params = self.params.copy()
-        params["clad"] = {"model": "gold_dl", "im_factor": 0.0}
+        params["clad"] = {"book": "Au", "page": "Stewart-DLF", "im_factor": 0.0}
         wg = pymwm.create(params)
         w = 2 * np.pi / 2.0
         alpha1 = ("E", 1, 1)

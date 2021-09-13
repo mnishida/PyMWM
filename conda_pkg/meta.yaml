@@ -20,14 +20,12 @@ requirements:
     - cython
     - setuptools
   run:
-    - gitpython
+    - python
+    - riip
     - matplotlib
     - numpy
-    - pandas
-    - pytables
-    - python
-    - pyyaml
     - scipy
+    - pandas
     - ipython
 
 test:

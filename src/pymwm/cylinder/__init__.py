@@ -2,12 +2,13 @@
 from typing import Dict, List, Tuple
 
 import numpy as np
+import ray
 from scipy.special import jn_zeros, jnp_zeros, jv, jvp, kv, kvp
 
 from pymwm.utils.cylinder_utils import ABY_cython, coefs_cython, uvABY_cython
 from pymwm.waveguide import Waveguide
 
-from .samples import Samples, SamplesLowLoss
+from .samples import Samples, SamplesForRay, SamplesLowLoss, SamplesLowLossForRay
 
 
 class Cylinder(Waveguide):
@@ -79,31 +80,19 @@ class Cylinder(Waveguide):
     def betas_convs_samples(
         self, params: Dict
     ) -> Tuple[np.ndarray, np.ndarray, Samples]:
-        im_factor = 1.0
-        if self.clad.im_factor != 1.0:
-            im_factor = self.clad.im_factor
-            self.clad.im_factor = 1.0
+        im_factor = self.clad.im_factor
+        self.clad.im_factor = 1.0
         p_modes = params["modes"].copy()
         num_n_0 = p_modes["num_n"]
         num_m_0 = p_modes["num_m"]
-        smp = Samples(self.r, self.fill, self.clad, p_modes)
-        try:
-            betas, convs = smp.database.load()
-            success = True
-        except IndexError:
-            betas = convs = None
-            success = False
+        betas = convs = None
+        success = False
         for num_n, num_m in [
             (n, m) for n in range(num_n_0, 17) for m in range(num_m_0, 5)
         ]:
-            if (num_n, num_m) == (num_n_0, num_m_0):
-                if success:
-                    break
-                else:
-                    continue
             p_modes["num_n"] = num_n
             p_modes["num_m"] = num_m
-            smp = Samples(self.r, self.fill, self.clad, p_modes)
+            smp = Samples(self.r, self.fill_params, self.clad_params, p_modes)
             try:
                 betas, convs = smp.database.load()
                 success = True
@@ -113,21 +102,27 @@ class Cylinder(Waveguide):
         if not success:
             p_modes["num_n"] = num_n_0
             p_modes["num_m"] = num_m_0
-            smp = Samples(self.r, self.fill, self.clad, p_modes)
-            from multiprocessing import Pool
-
-            p = Pool(num_n_0)
-            xs_success_list = p.map(smp, range(num_n_0))
-            # betas_list = list(map(smp, range(num_n)))
-            # betas = {key: val for betas, convs in betas_list
-            #          for key, val in betas.items()}
-            # convs = {key: val for betas, convs in betas_list
-            #          for key, val in convs.items()}
+            smp = Samples(self.r, self.fill_params, self.clad_params, p_modes)
+            ray.shutdown()
+            try:
+                ray.init()
+                p_modes_id = ray.put(p_modes)
+                pool = ray.util.ActorPool(
+                    SamplesForRay.remote(
+                        self.r, self.fill_params, self.clad_params, p_modes_id
+                    )
+                    for _ in range(num_n_0)
+                )
+                xs_success_list = list(
+                    pool.map(lambda a, arg: a.task.remote(arg), range(num_n_0))
+                )
+            finally:
+                ray.shutdown()
             betas, convs = smp.betas_convs(xs_success_list)
             smp.database.save(betas, convs)
         if im_factor != 1.0:
             self.clad.im_factor = im_factor
-            smp = SamplesLowLoss(self.r, self.fill, self.clad, p_modes)
+            smp = SamplesLowLoss(self.r, self.fill_params, self.clad_params, p_modes)
             try:
                 betas, convs = smp.database.load()
             except IndexError:
@@ -146,11 +141,20 @@ class Cylinder(Waveguide):
                                 xis.append(betas[("E", n, i + 1)][iwr, iwi] ** 2)
                             xis_list.append(xis)
                         args.append((iwr, iwi, xis_list))
-                from multiprocessing import Pool
-
-                p = Pool(16)
-                xs_success_list = p.map(smp, args)
-                # xs_success_list = list(map(smp, smp.args)
+                try:
+                    ray.init()
+                    p_modes_id = ray.put(p_modes)
+                    pool = ray.util.ActorPool(
+                        SamplesLowLossForRay.remote(
+                            self.r, self.fill_params, self.clad_params, p_modes_id
+                        )
+                        for _ in range(16)
+                    )
+                    xs_success_list = list(
+                        pool.map(lambda a, arg: a.task.remote(arg), args)
+                    )
+                finally:
+                    ray.shutdown()
                 betas, convs = smp.betas_convs(xs_success_list)
                 smp.database.save(betas, convs)
         return betas, convs, smp
