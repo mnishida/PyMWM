@@ -31,3 +31,9 @@ def uvABY_cython(
     jnu_pec: np.ndarray,
     jnpy_pec: np.ndarray,
 ) -> tuple[np.ndaray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]: ...
+def eig_eq_cython(
+    h2: complex, w: complex, pol: str, n: int, e1: complex, e2: complex, r: float
+) -> complex: ...
+def jac_cython(
+    h2vec: np.ndarray, w: complex, pol: str, n: int, e1: complex, e2: complex, r: float
+) -> np.ndarray: ...

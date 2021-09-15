@@ -29,7 +29,7 @@ cdef void jk_to_coefs(int n, int pol, cdouble h,
                       cdouble e1, cdouble e2,
                       cdouble ab[2]) nogil
 
-cdef coefs_pec_C(long *s_all, long *n_all, long  *m_all, int num_n_all,
+cdef void coefs_pec_C(long *s_all, long *n_all, long  *m_all, int num_n_all,
               double r, cdouble *As, cdouble *Bs)
 
 cdef void coefs_C(

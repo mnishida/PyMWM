@@ -6,6 +6,7 @@ import numpy as np
 import numpy.testing as npt
 import ray
 
+import pymwm
 from pymwm.cylinder.samples import Samples, SamplesForRay
 
 
@@ -216,7 +217,6 @@ class TestCylinderSamples(unittest.TestCase):
         for n in range(6):
             h2s, success = vals[n]
             npt.assert_allclose(h2s, self.betas[n] * self.betas[n], rtol=1e-6)
-            # self.assertEqual(success, self.convs[n])
 
     def test_db(self):
         params: dict = self.params.copy()

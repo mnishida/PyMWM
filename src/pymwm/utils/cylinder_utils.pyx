@@ -10,25 +10,33 @@ cimport scipy.linalg.cython_blas as blas
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef cdouble c_besselJ(int n, cdouble z) nogil:
-    return jv(n, z)
+cdef void jv_jvp(int n, cdouble z, cdouble vals[2]) nogil:
+    cdef:
+         cdouble j = jv(n, z)
+         cdouble jp = jv(n + 1, z)
+    vals[0] = j
+    vals[1] = -jp + n * j / z
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef cdouble c_besselJp(int n, cdouble z) nogil:
+cdef cdouble jvp(int n, cdouble z) nogil:
     return 0.5 * (jv(n - 1, z) - jv(n + 1, z))
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef cdouble c_besselK(int n, cdouble z) nogil:
-    return kv(n, z)
+cdef void kv_kvp(int n, cdouble z, cdouble vals[2]) nogil:
+    cdef:
+        cdouble k = kv(n, z)
+        cdouble kp = kv(n + 1, z)
+    vals[0] = k
+    vals[1] = -kp + n * k / z
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef cdouble c_besselKp(int n, cdouble z) nogil:
+cdef cdouble kvp(int n, cdouble z) nogil:
     return -0.5 * (kv(n - 1, z) + kv(n + 1, z))
 
 @cython.boundscheck(False)
@@ -70,11 +78,13 @@ cdef cdouble upart_diag(int n, cdouble uc, cdouble jnuc, cdouble jnpuc,
         int n2 = n * n
         int sign
         cdouble u2, jnu2, jnpu2, u0, jnu0, jnpu0
+        cdouble vals[2]
     if cabs(uc - u) < 1e-10:
         u0 = (u + uc) / 2
         sign = 1
-        jnu0 = c_besselJ(n, u0)
-        jnpu0 = c_besselJp(n, u0)
+        jv_jvp(n, u0, vals)
+        jnu0 = vals[0]
+        jnpu0 = vals[1]
         u2 = u0 * u0
         jnu2 = jnu0 * jnu0
         jnpu2 = jnpu0 * jnpu0
@@ -83,8 +93,9 @@ cdef cdouble upart_diag(int n, cdouble uc, cdouble jnuc, cdouble jnpuc,
     elif cabs(uc + u) < 1e-10:
         u0 = (u - uc) / 2
         sign = 1 - ((n - 1) % 2) * 2
-        jnu0 = c_besselJ(n, u0)
-        jnpu0 = c_besselJp(n, u0)
+        jv_jvp(n, u0, vals)
+        jnu0 = vals[0]
+        jnpu0 = vals[1]
         u2 = u0 * u0
         jnu2 = jnu0 * jnu0
         jnpu2 = jnpu0 * jnpu0
@@ -114,11 +125,13 @@ cdef cdouble vpart_diag(int n, cdouble vc, cdouble knvc, cdouble knpvc,
         int n2 = n * n
         int sign
         cdouble v2, knv2, knpv2, v0, knv0, knpv0
+        cdouble vals[2]
     if cabs(vc - v) < 1e-10:
         v0 = (v + vc) / 2
         sign = 1
-        knv0 = c_besselK(n, v0)
-        knpv0 = c_besselKp(n, v0)
+        kv_kvp(n, v0, vals)
+        knv0 = vals[0]
+        knpv0 = vals[1]
         v2 = v0 * v0
         knv2 = knv0 * knv0
         knpv2 = knpv0 * knpv0
@@ -128,8 +141,9 @@ cdef cdouble vpart_diag(int n, cdouble vc, cdouble knvc, cdouble knpvc,
     elif cabs(vc + v) < 1e-10:
         v0 = (v - vc) / 2
         sign = 1 - ((n - 1) % 2) * 2
-        knv0 = c_besselK(n, v0)
-        knpv0 = c_besselKp(n, v0)
+        kv_kvp(n, v0, vals)
+        knv0 = vals[0]
+        knpv0 = vals[1]
         v2 = v0 * v0
         knv2 = knv0 * knv0
         knpv2 = knpv0 * knpv0
@@ -181,7 +195,7 @@ def coefs_cython(object hole, cdouble[::1] hs, cdouble w):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef coefs_pec_C(long *s_all, long *n_all, long  *m_all, int num_n_all,
+cdef void coefs_pec_C(long *s_all, long *n_all, long  *m_all, int num_n_all,
               double r, cdouble *As, cdouble *Bs):
     cdef:
         int i, n, m, en
@@ -218,6 +232,7 @@ cdef void coefs_C(
         cdouble norm
         cdouble h, u, v, jnu, jnpu, knv, knpv, a, b
         cdouble ab[2]
+        cdouble vals[2]
         cdouble val_u, val_v, ud, uod, vd, vod
     for i in range(num_n_all):
         n = n_all[i]
@@ -225,11 +240,13 @@ cdef void coefs_C(
         h = hs[i]
         s = s_all[i]
         u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r
-        jnu = c_besselJ(n, u)
-        jnpu = c_besselJp(n, u)
+        jv_jvp(n, u, vals)
+        jnu = vals[0]
+        jnpu = vals[1]
         v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r
-        knv = c_besselK(n, v)
-        knpv = c_besselKp(n, v)
+        kv_kvp(n, v, vals)
+        knv = vals[0]
+        knpv = vals[1]
         jk_to_coefs(n, s, h, u, jnu, jnpu, v, knv, knpv, w, r, e1, e2, ab)
         a = ab[0]
         b = ab[1]
@@ -261,6 +278,7 @@ def ABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
         cdouble h, u, v, jnu, jnpu, knv, knpv, a, b
         cdouble uc, vc, jnuc, jnpuc, knvc, knpvc, ac, bc
         cdouble ab[2]
+        cdouble vals[2]
         cdouble val_u, val_v, ud, uod, vd, vod
     As_array = np.empty(num_n_all, dtype=complex)
     Bs_array = np.empty(num_n_all, dtype=complex)
@@ -299,11 +317,13 @@ def ABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
         en = 1 if n == 0 else 2
         h = hs[i]
         u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r
-        jnu = c_besselJ(n, u)
-        jnpu = c_besselJp(n, u)
+        jv_jvp(n, u, vals)
+        jnu = vals[0]
+        jnpu = vals[1]
         v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r
-        knv = c_besselK(n, v)
-        knpv = c_besselKp(n, v)
+        kv_kvp(n, v, vals)
+        knv = vals[0]
+        knpv = vals[1]
         val_u = 2 * M_PI * r * r / en
         val_v = val_u * ((u * jnu) / (v * knv)) ** 2
         ud = upart_diag(n, u, jnu, jnpu, u, jnu, jnpu)
@@ -333,6 +353,7 @@ def uvABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
         cdouble h, u, v, jnu, jnpu, knv, knpv, a, b
         cdouble uc, vc, jnuc, jnpuc, knvc, knpvc, ac, bc
         cdouble ab[2]
+        cdouble vals[2]
         cdouble val_u, val_v, ud, uod, vd, vod
     us_array = np.empty(num_n_all, dtype=complex)
     vs_array = np.empty(num_n_all, dtype=complex)
@@ -377,11 +398,13 @@ def uvABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
         en = 1 if n == 0 else 2
         h = hs[i]
         u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r
-        jnu = c_besselJ(n, u)
-        jnpu = c_besselJp(n, u)
+        jv_jvp(n, u, vals)
+        jnu = vals[0]
+        jnpu = vals[1]
         v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r
-        knv = c_besselK(n, v)
-        knpv = c_besselKp(n, v)
+        kv_kvp(n, v, vals)
+        knv = vals[0]
+        knpv = vals[1]
         val_u = 2 * M_PI * r * r / en
         val_v = val_u * ((u * jnu) / (v * knv)) ** 2
         ud = upart_diag(n, u, jnu, jnpu, u, jnu, jnpu)
@@ -397,3 +420,110 @@ def uvABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
         us[i] = u
         vs[i] = v
     return us_array, vs_array, As_array, Bs_array, Ys_array
+
+
+@cython.cdivision(True)
+cdef cdouble u_func(cdouble h2, cdouble w, cdouble e1, double r):
+    return (1 + 1j) * csqrt(-0.5j * (e1 * w ** 2 - h2)) * r
+
+
+@cython.cdivision(True)
+cdef cdouble v_func(cdouble h2, cdouble w, cdouble e2, double r):
+    return (1 - 1j) * csqrt(0.5j * (-e2 * w ** 2 + h2)) * r
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def eig_eq_cython(cdouble h2, cdouble w, str pol, int n, cdouble e1, cdouble e2, double r):
+    """Return the left value of the characteristic equation"""
+
+    cdef:
+        cdouble u = u_func(h2, w, e1, r)
+        cdouble v = v_func(h2, w, e2, r)
+        cdouble jus, jpus
+        cdouble kvs, kpvs
+        cdouble te, tm, val
+        cdouble vals[2]
+
+    jv_jvp(n, u, vals)
+    jus = vals[0]
+    jpus = vals[1]
+    kv_kvp(n, v, vals)
+    kvs = vals[0]
+    kpvs = vals[1]
+    te = jpus / u + kpvs * jus / (v * kvs)
+    tm = e1 * jpus / u + e2 * kpvs * jus / (v * kvs)
+    if n == 0:
+        if pol == "M":
+            val = tm
+        else:
+            val = te
+    else:
+        val = (
+            tm * te - h2 * (n / w) ** 2 * ((1 / u ** 2 + 1 / v ** 2) * jus) ** 2
+        )
+    return val
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def jac_cython(double[::1] h2vec, cdouble w, str pol, int n, cdouble e1, cdouble e2, double r):
+    """Return Jacobian of the characteristic equation"""
+
+    cdef:
+        cdouble h2 = h2vec[0] + 1j * h2vec[1]
+        cdouble u = u_func(h2, w, e1, r)
+        cdouble v = v_func(h2, w, e2, r)
+        cdouble jus, jpus
+        cdouble kvs, kpvs, k_k
+        cdouble te, tm, val
+        cdouble du_dh2, dv_dh2, dte_du, dte_dv, dtm_du, dtm_dv, dre_dh2
+        cdouble vals[2]
+
+    jv_jvp(n, u, vals)
+    jus = vals[0]
+    jpus = vals[1]
+    kv_kvp(n, v, vals)
+    kvs = vals[0]
+    kpvs = vals[1]
+    k_k = kpvs / kvs
+    te = jpus / u + k_k * jus / v
+    tm = e1 * jpus / u + e2 * k_k * jus / v
+
+    du_dh2 = -r / (2 * u)
+    dv_dh2 = r / (2 * v)
+
+    dte_du = -(1 - n ** 2 / u ** 2) * jus / u - 2 * jpus / u ** 2 + k_k * jpus / v
+
+    dte_dv = jus * (n ** 2 / v + v * (1 - k_k ** 2) - 2 * k_k) / v ** 2
+
+    dtm_du = e1 * dte_du
+    dtm_dv = e2 * dte_dv
+
+
+    if n == 0:
+        if pol == "M":
+            val = dtm_du * du_dh2 + dtm_dv * dv_dh2
+        else:
+            val = dte_du * du_dh2 + dte_dv * dv_dh2
+    else:
+        dre_dh2 = (
+            -((n / w) ** 2)
+            * jus
+            * (
+                jus
+                * (
+                    (1 / u ** 2 + 1 / v ** 2) ** 2
+                    - r * h2 * (1 / u ** 4 - 1 / v ** 4)
+                )
+                + jpus * 2 * h2 * (1 / u ** 2 + 1 / v ** 2) ** 2
+            )
+        )
+        val = (
+            (dte_du * du_dh2 + dte_dv * dv_dh2) * tm
+            + (dtm_du * du_dh2 + dtm_dv * dv_dh2) * te
+            + dre_dh2
+        )
+    return np.array([[val.real, -val.imag], [val.imag, val.real]])

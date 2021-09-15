@@ -96,9 +96,8 @@ class Samples(Sampling):
             val: A complex indicating the left-hand value of the characteristic
                 equation.
         """
-        h2comp = h2.real + 1j * h2.imag
-        u = self.u(h2comp, w, e1)
-        v = self.v(h2comp, w, e2)
+        u = self.u(h2, w, e1)
+        v = self.v(h2, w, e2)
         if pol == "E":
             if n % 2 == 0:
                 return u / v + np.tan(u)
@@ -416,6 +415,63 @@ class Samples(Sampling):
                         )
         return betas, convs
 
+    def __call__(self, arg: tuple[str, int]) -> tuple[np.ndarray, np.ndarray]:
+        """Return a dict of the roots of the characteristic equation
+
+        Args:
+            arg: (pol, num_n)
+                pol: 'E' or 'M' indicating the polarization.
+                num_n: The number of modes.
+        Returns:
+            betas: A dict containing arrays of roots, whose key is as follows:
+                (pol, n, m):
+                    pol: 'E' or 'M' indicating the polarization.
+                    n: An integer indicating the order of the mode.
+                    m: An integer indicating the ordinal of the mode in the
+                        same order.
+            convs: A dict containing the convergence information for betas,
+                whose key is the same as above.
+        """
+        pol, num_n = arg
+        num_ws = len(self.ws)
+        xs_array = np.zeros((num_ws, len(self.wis), num_n), dtype=complex)
+        success_array = np.zeros((num_ws, len(self.wis), num_n), dtype=bool)
+        iwr = iwi = 0
+        wi = self.wis[iwi]
+        xis, success = self.beta2_w_min(pol, num_n)
+        xs_array[iwr, iwi] = xis
+        success_array[iwr, iwi] = success
+        for iwr in range(1, len(self.ws)):
+            wr = self.ws[iwr]
+            w = wr + 1j * wi
+            e1 = self.fill(w)
+            e2 = self.clad(w)
+            xs, success = self.beta2(w, pol, num_n, e1, e2, xis)
+            xs = np.where(success, xs, xis)
+            xs_array[iwr, iwi] = xs
+            success_array[iwr, iwi] = success
+            xis = xs
+        for iwi in range(1, len(self.wis)):
+            wi = self.wis[iwi]
+            for iwr in range(len(self.ws)):
+                wr = self.ws[iwr]
+                w = wr + 1j * wi
+                e1 = self.fill(w)
+                e2 = self.clad(w)
+                if iwr == 0:
+                    xis = xs_array[iwr, iwi - 1]
+                else:
+                    xis = (
+                        xs_array[iwr, iwi - 1]
+                        + xs_array[iwr - 1, iwi]
+                        - xs_array[iwr - 1, iwi - 1]
+                    )
+                xs, success = self.beta2(w, pol, num_n, e1, e2, xis)
+                xs = np.where(success, xs, xis)
+                xs_array[iwr, iwi] = xs
+                success_array[iwr, iwi] = success
+        return xs_array, success_array
+
 
 class SamplesLowLoss(Samples):
     """A class defining samples of phase constants of cylindrical waveguide
@@ -531,14 +587,7 @@ class SamplesForRay(Samples):
             e1 = self.fill(w)
             e2 = self.clad(w)
             xs, success = self.beta2(w, pol, num_n, e1, e2, xis)
-            for i, ok in enumerate(success):
-                # if ok:
-                #     if abs(xs[i] - xis[i]) > max(0.1 * abs(xis[i]), 5.0):
-                #         success[i] = False
-                #         xs[i] = xis[i]
-                # else:
-                if not ok:
-                    xs[i] = xis[i]
+            xs = np.where(success, xs, xis)
             xs_array[iwr, iwi] = xs
             success_array[iwr, iwi] = success
             xis = xs
@@ -558,15 +607,7 @@ class SamplesForRay(Samples):
                         - xs_array[iwr - 1, iwi - 1]
                     )
                 xs, success = self.beta2(w, pol, num_n, e1, e2, xis)
-                for i, ok in enumerate(success):
-                    # if ok:
-                    #     if abs(xs[i] - xis[i]) > max(
-                    #             0.1 * abs(xis[i]), 5.0):
-                    #         success[i] = False
-                    #         xs[i] = xis[i]
-                    # else:
-                    if not ok:
-                        xs[i] = xis[i]
+                xs = np.where(success, xs, xis)
                 xs_array[iwr, iwi] = xs
                 success_array[iwr, iwi] = success
         return xs_array, success_array

@@ -2,4 +2,4 @@ include requirements.txt
 include README.md
 include LICENSE
 graft docs
-recursive-include src/pymwm *.pyx *.pxd
+recursive-include src/pymwm/utils *.pyx *.pxd

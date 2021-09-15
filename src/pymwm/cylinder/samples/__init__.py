@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import cmath
 from typing import Dict, List, Tuple
 
 import numpy as np
 import ray
 import riip
+from scipy.optimize import root
 from scipy.special import jn_zeros, jnp_zeros, jv, jvp, kv, kvp
 
+from pymwm.utils.cylinder_utils import eig_eq_cython
 from pymwm.waveguide import Sampling
 
 
@@ -75,10 +78,10 @@ class Samples(Sampling):
         return h2s
 
     def u(self, h2: complex, w: complex, e1: complex) -> complex:
-        return (1 + 1j) * np.sqrt(-0.5j * (e1 * w ** 2 - h2)) * self.r
+        return (1 + 1j) * cmath.sqrt(-0.5j * (e1 * w ** 2 - h2)) * self.r
 
     def v(self, h2: complex, w: complex, e2: complex) -> complex:
-        return (1 - 1j) * np.sqrt(0.5j * (-e2 * w ** 2 + h2)) * self.r
+        return (1 - 1j) * cmath.sqrt(0.5j * (-e2 * w ** 2 + h2)) * self.r
 
     def eig_eq(
         self, h2: complex, w: complex, pol: str, n: int, e1: complex, e2: complex
@@ -132,38 +135,33 @@ class Samples(Sampling):
         """
         if self.clad(w).real < -1e7:
             xs = self.beta2_pec(w, n)
-            success = np.ones_like(xs, dtype=bool)
-            return xs, success
-        from scipy.optimize import root
-
+            return xs, np.ones_like(xs, dtype=bool)
         num_m = self.params["num_m"]
-        roots = []
+        roots: list[complex] = []
         vals = []
-        success = []
+        success: list[bool] = []
 
         def func(h2vec, *pars):
             h2 = h2vec[0] + h2vec[1] * 1j
-            f = self.eig_eq(h2, *pars)
-            prod_denom = 1.0
+            f = eig_eq_cython(h2, *pars)
+            denom = 1.0
             for h2_0 in roots:
-                denom = h2 - h2_0
-                while abs(denom) < 1e-14:
-                    denom += 1.0e-14
-                prod_denom *= 1.0 / denom
-            f *= prod_denom
-            f_array = np.array([f.real, f.imag])
-            return f_array
+                denom *= h2 - h2_0
+            norm = abs(denom)
+            if norm < 1e-14:
+                denom /= norm * 1e14
+            f /= denom
+            return np.array([f.real, f.imag])
 
         for i, xi in enumerate(xis):
             if i < num_m + 1:
-                args = (w, "M", n, e1, e2)
+                args = (w, "M", n, e1, e2, self.r)
             else:
-                args = (w, "E", n, e1, e2)
+                args = (w, "E", n, e1, e2, self.r)
             result = root(
                 func,
                 np.array([xi.real, xi.imag]),
                 args=args,
-                jac=False,
                 method="hybr",
                 options={"xtol": 1.0e-9},
             )
@@ -266,65 +264,6 @@ class Samples(Sampling):
                 + dre_dh2
             )
         return val
-
-    def func_jac(self, h2, *args):
-        """Return the value and Jacobian of the characteristic equation
-
-        Args:
-            h2: A complex indicating the square of the phase constant.
-        Returns:
-            val: 2 complexes indicating the left-hand value and Jacobian
-                of the characteristic equation.
-        """
-        w, pol, n, e1, e2 = args
-        h2comp = h2.real + 1j * h2.imag
-        u = self.u(h2comp, w, e1)
-        v = self.v(h2comp, w, e2)
-        jus = jv(n, u)
-        jpus = jvp(n, u)
-        kvs = kv(n, v)
-        kpvs = kvp(n, v)
-        du_dh2 = -self.r / (2 * u)
-        dv_dh2 = self.r / (2 * v)
-        te = jpus / u + kpvs * jus / (v * kvs)
-        dte_du = -(
-            u * (1 - n ** 2 / u ** 2) * jus + 2 * jpus
-        ) / u ** 2 + jpus * kpvs / (v * kvs)
-        dte_dv = (
-            jus
-            * (n ** 2 * kvs ** 2 / v + v * (kvs ** 2 - kpvs ** 2) - 2 * kvs * kpvs)
-            / (v ** 2 * kvs ** 2)
-        )
-        tm = e1 * jpus / u + e2 * kpvs * jus / (v * kvs)
-        dtm_du = e1 * dte_du
-        dtm_dv = e2 * dte_dv
-        if n == 0:
-            if pol == "M":
-                f = tm
-                val = dtm_du * du_dh2 + dtm_dv * dv_dh2
-            else:
-                f = te
-                val = dte_du * du_dh2 + dte_dv * dv_dh2
-        else:
-            f = tm * te - h2comp * (n / w) ** 2 * ((1 / u ** 2 + 1 / v ** 2) * jus) ** 2
-            dre_dh2 = (
-                -((n / w) ** 2)
-                * jus
-                * (
-                    jus
-                    * (
-                        (1 / u ** 2 + 1 / v ** 2) ** 2
-                        - self.r * h2comp * (1 / u ** 4 - 1 / v ** 4)
-                    )
-                    + jpus * 2 * h2comp * (1 / u ** 2 + 1 / v ** 2) ** 2
-                )
-            )
-            val = (
-                (dte_du * du_dh2 + dte_dv * dv_dh2) * tm
-                + (dtm_du * du_dh2 + dtm_dv * dv_dh2) * te
-                + dre_dh2
-            )
-        return f, val
 
     def beta2_w_min(self, n):
         """Return roots and convergences of the characteristic equation at
@@ -459,6 +398,62 @@ class Samples(Sampling):
                         )
         return betas, convs
 
+    def __call__(self, n: int):
+        """Return a dict of the roots of the characteristic equation
+
+        Args:
+            n: A integer indicating the order of the mode
+        Returns:
+            betas: A dict containing arrays of roots, whose key is as follows:
+                (pol, n, m):
+                    pol: 'E' or 'M' indicating the polarization.
+                    n: A integer indicating the order of the mode.
+                    m: A integer indicating the ordinal of the mode in the same
+                        order.
+            convs: A dict containing the convergence information for betas,
+                whose key is the same as above.
+        """
+        num_m = self.params["num_m"]
+        xs_array = np.zeros((len(self.ws), len(self.wis), 2 * num_m + 1), dtype=complex)
+        success_array = np.zeros(
+            (len(self.ws), len(self.wis), 2 * num_m + 1), dtype=bool
+        )
+        iwr = iwi = 0
+        wi = self.wis[iwi]
+        xis, success = self.beta2_w_min(n)
+        xs_array[iwr, iwi] = xis
+        success_array[iwr, iwi] = success
+        for iwr in range(1, len(self.ws)):
+            wr = self.ws[iwr]
+            w = wr + 1j * wi
+            e1 = self.fill(w)
+            e2 = self.clad(w)
+            xs, success = self.beta2(w, n, e1, e2, xis)
+            xs = np.where(success, xs, xis)
+            xs_array[iwr, iwi] = xs
+            success_array[iwr, iwi] = success
+            xis = xs
+        for iwi in range(1, len(self.wis)):
+            wi = self.wis[iwi]
+            for iwr in range(len(self.ws)):
+                wr = self.ws[iwr]
+                w = wr + 1j * wi
+                e1 = self.fill(w)
+                e2 = self.clad(w)
+                if iwr == 0:
+                    xis = xs_array[iwr, iwi - 1]
+                else:
+                    xis = (
+                        xs_array[iwr, iwi - 1]
+                        + xs_array[iwr - 1, iwi]
+                        - xs_array[iwr - 1, iwi - 1]
+                    )
+                xs, success = self.beta2(w, n, e1, e2, xis)
+                xs = np.where(success, xs, xis)
+                xs_array[iwr, iwi] = xs
+                success_array[iwr, iwi] = success
+        return xs_array, success_array
+
 
 class SamplesLowLoss(Samples):
     """A class defining samples of phase constants of cylindrical waveguide
@@ -583,18 +578,10 @@ class SamplesForRay(Samples):
             e1 = self.fill(w)
             e2 = self.clad(w)
             xs, success = self.beta2(w, n, e1, e2, xis)
-            for i, ok in enumerate(success):
-                # if ok:
-                #     if abs(xs[i] - xis[i]) > max(0.1 * abs(xis[i]), 5.0):
-                #         success[i] = False
-                #         xs[i] = xis[i]
-                # else:
-                if not ok:
-                    xs[i] = xis[i]
+            xs = np.where(success, xs, xis)
             xs_array[iwr, iwi] = xs
             success_array[iwr, iwi] = success
             xis = xs
-            # print(iwr, iwi, success)
         for iwi in range(1, len(self.wis)):
             wi = self.wis[iwi]
             for iwr in range(len(self.ws)):
@@ -611,18 +598,9 @@ class SamplesForRay(Samples):
                         - xs_array[iwr - 1, iwi - 1]
                     )
                 xs, success = self.beta2(w, n, e1, e2, xis)
-                for i, ok in enumerate(success):
-                    # if ok:
-                    #     if abs(xs[i] - xis[i]) > max(
-                    #             0.1 * abs(xis[i]), 5.0):
-                    #         success[i] = False
-                    #         xs[i] = xis[i]
-                    # else:
-                    if not ok:
-                        xs[i] = xis[i]
+                xs = np.where(success, xs, xis)
                 xs_array[iwr, iwi] = xs
                 success_array[iwr, iwi] = success
-                # print(iwr, iwi, success)
         return xs_array, success_array
 
 

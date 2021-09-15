@@ -27,7 +27,7 @@ jobs:
   deploy_conda_linux:
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 6
+      max-parallel: 3
       matrix:
         python-version: [3.7, 3.8, 3.9]
     steps:
@@ -50,7 +50,7 @@ jobs:
   deploy_conda_windows:
     runs-on: windows-latest
     strategy:
-      max-parallel: 6
+      max-parallel: 3
       matrix:
         python-version: [3.7, 3.8, 3.9]
     steps:

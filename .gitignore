@@ -1,8 +1,4 @@
 # Byte-compiled / optimized / DLL files
-riip/data/refractiveindex.info-database/
-riip/data/catalog.csv
-riip/data/grid_data.csv
-riip/data/raw_data.csv
 __pycache__/
 *.py[cod]
 *$py.class
@@ -10,8 +6,6 @@ __pycache__/
 # C extensions
 *.so
 *.fsp
-pymwm/cylinder/utils/cylinder_utils.cpp
-pymwm/slit/utils/slit_utils.cpp
 
 # Distribution / packaging
 .Python
@@ -151,3 +145,5 @@ cython_debug/
 
 # VSCode
 .idea/
+src/pymwm/utils/cylinder_utils.cpp
+src/pymwm/utils/slit_utils.cpp
