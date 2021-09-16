@@ -6,10 +6,9 @@ from setuptools import Extension, find_packages, setup
 
 ext_modules = []
 for name in ["cylinder", "slit", "bessel", "cutoff"]:
-    pkg = f"pymwm.utils.{name}_utils"
     basename = os.path.join("src", "pymwm", "utils", f"{name}_utils")
     e = Extension(
-        pkg,
+        f"pymwm.utils.{name}_utils",
         sources=[basename + ".pyx"],
         depends=[basename + ".pxd"],
         include_dirs=[np.get_include(), "."],
