@@ -2,6 +2,6 @@ numpy
 scipy
 pandas
 ray-core
-ray-dachboard
+ray-dashboard
 matplotlib
 riip
