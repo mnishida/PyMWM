@@ -59,7 +59,7 @@ The number of sets indexed by n and m are indicated by the parameters 'num_n' an
 >>> import pymwm
 >>> params = {
      'core': {'shape': 'cylinder', 'size': 0.15, 'fill': {'RI': 1.333}},
-     'clad': {'model': 'gold_dl'},
+     'clad': {'book': 'Au', 'page': 'Stewart-DLF'},
      'bounds': {'wl_max': 1.0, 'wl_min': 0.5, 'wl_imag': 10.0},
      'modes': {'num_n': 6, 'num_m': 2}
      }
