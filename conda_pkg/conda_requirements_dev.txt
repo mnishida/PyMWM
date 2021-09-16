@@ -5,12 +5,15 @@ anaconda-client
 Cython
 pytest
 pytest-regressions
+pytest-cov
 pre-commit
 flake8
 black
+isort
+bumpversion
 tox
+tox-conda
 tox-gh-actions
-doc8
 pydocstyle
 mypy
 pandas-stubs
