@@ -22,7 +22,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        run: make install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt --upgrade
+          pip install -e .
       - name: Lint with flake8
         run: flake8
       - name: Test using pytest
@@ -43,7 +46,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
           activate-conda: true
       - name: Install dependencies with Conda
-        run: make conda
+        run: |
+          conda build -c mnishida -c defaults -c conda-forge --numpy 1.20 conda_pkg
+          conda install -c mnishida  -c defaults -c conda-forge --use-local --force-reinstall pymwm
       - name: Lint with flake8
         run: flake8
       - name: Test using pytest

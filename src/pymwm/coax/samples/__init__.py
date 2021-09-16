@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import cmath
 from typing import Dict, List, Tuple
 
 import numpy as np
@@ -82,17 +83,17 @@ class Samples(Sampling):
         return self.fill(w) * w ** 2 - self.co_list[n] ** 2 / self.r ** 2
 
     def u(self, h2: complex, w: complex, e2: complex) -> complex:
-        # return np.sqrt(e2 * w ** 2 - h2) * self.r
-        return (1 - 1j) * np.sqrt(0.5j * (h2 - e2 * w ** 2)) * self.ri
+        # return cmath.sqrt(e2 * w ** 2 - h2) * self.r
+        return (1 - 1j) * cmath.sqrt(0.5j * (h2 - e2 * w ** 2)) * self.ri
 
     def v(self, h2: complex, w: complex, e1: complex) -> complex:
-        return (1 + 1j) * np.sqrt(-0.5j * (e1 * w ** 2 - h2)) * self.ri
+        return (1 + 1j) * cmath.sqrt(-0.5j * (e1 * w ** 2 - h2)) * self.ri
 
     def x(self, h2: complex, w: complex, e1: complex) -> complex:
-        return (1 + 1j) * np.sqrt(-0.5j * (e1 * w ** 2 - h2)) * self.r
+        return (1 + 1j) * cmath.sqrt(-0.5j * (e1 * w ** 2 - h2)) * self.r
 
     def y(self, h2: complex, w: complex, e2: complex) -> complex:
-        return (1 - 1j) * np.sqrt(0.5j * (h2 - e2 * w ** 2)) * self.r
+        return (1 - 1j) * cmath.sqrt(0.5j * (h2 - e2 * w ** 2)) * self.r
 
     def eig_eq(
         self, h2: complex, w: complex, pol: str, n: int, e1: complex, e2: complex
@@ -269,33 +270,6 @@ class Samples(Sampling):
             xis = xs
         return xs, success
 
-    def beta2_w_max(self, n):
-        """Return roots and convergences of the characteristic equation at
-            the highest angular frequency, ws[-1].
-
-        Args:
-            n: A integer indicating the order of the mode
-        Returns:
-            xs: A 1D array indicating the roots, whose length is 2*num_m+1.
-            success: A 1D array indicating the convergence information for xs.
-        """
-        w = self.ws[-1]
-        xis = xs = self.beta2_pec(w, n)
-        success = np.ones_like(xs, dtype=bool)
-        if self.clad.model == "pec":
-            return xs, success
-        e1 = self.fill(w)
-        e2_0 = -1.0e7 + self.clad(w).imag * 1j
-        de2 = (self.clad(w) - e2_0) / 100000
-        for i in range(100001):
-            e2 = e2_0 + de2 * i
-            xs, success = self.beta2(w, n, e1, e2, xis)
-            for _, ok in enumerate(success):
-                if not ok:
-                    xs[_] = xis[_]
-            xis = xs
-        return xs, success
-
     @staticmethod
     def beta_from_beta2(x):
         return (1 + 1j) * np.sqrt(-0.5j * x)
@@ -304,32 +278,6 @@ class Samples(Sampling):
         #    (abs(val.real) < abs(val.imag) and val.imag < 0)):
         #     val *= -1
         # return val
-
-    def _betas_convs(self, n, xs_array, success_array):
-        num_m = self.params["num_m"]
-        betas = {}
-        convs = {}
-        for m in range(1, num_m + 2):
-            betas[("M", n, m)] = np.zeros((len(self.ws), len(self.wis)), dtype=complex)
-            convs[("M", n, m)] = np.zeros((len(self.ws), len(self.wis)), dtype=bool)
-        for m in range(1, num_m + 1):
-            betas[("E", n, m)] = np.zeros((len(self.ws), len(self.wis)), dtype=complex)
-            convs[("E", n, m)] = np.zeros((len(self.ws), len(self.wis)), dtype=bool)
-        for iwi in range(len(self.wis)):
-            for iwr in range(len(self.ws)):
-                for i in range(num_m + 1):
-                    betas[("M", n, i + 1)][iwr, iwi] = self.beta_from_beta2(
-                        xs_array[iwr, iwi][i]
-                    )
-                    convs[("M", n, i + 1)][iwr, iwi] = success_array[iwr, iwi][i]
-                for i in range(num_m):
-                    betas[("E", n, i + 1)][iwr, iwi] = self.beta_from_beta2(
-                        xs_array[iwr, iwi][i + num_m + 1]
-                    )
-                    convs[("E", n, i + 1)][iwr, iwi] = success_array[iwr, iwi][
-                        i + num_m + 1
-                    ]
-        return betas, convs
 
     def __call__(self, n: int):
         """Return a dict of the roots of the characteristic equation

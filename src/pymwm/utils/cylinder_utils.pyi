@@ -37,3 +37,13 @@ def eig_eq_cython(
 def jac_cython(
     h2vec: np.ndarray, w: complex, pol: str, n: int, e1: complex, e2: complex, r: float
 ) -> np.ndarray: ...
+def func_cython(
+    h2vec: np.ndarray,
+    w: complex,
+    pol: str,
+    n: int,
+    e1: complex,
+    e2: complex,
+    r: float,
+    roots: np.ndarray,
+) -> tuple[float, float]: ...

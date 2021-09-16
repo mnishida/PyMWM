@@ -9,7 +9,7 @@ import riip
 from scipy.optimize import root
 from scipy.special import jn_zeros, jnp_zeros, jv, jvp, kv, kvp
 
-from pymwm.utils.cylinder_utils import eig_eq_cython
+from pymwm.utils.cylinder_utils import func_cython
 from pymwm.waveguide import Sampling
 
 
@@ -119,15 +119,17 @@ class Samples(Sampling):
             )
         return val
 
-    def beta2(self, w, n, e1, e2, xis):
+    def beta2(
+        self, w: complex, n: int, e1: complex, e2: complex, xis: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Return roots and convergences of the characteristic equation
 
         Args:
-            w: A complex indicating the angular frequency.
-            n: A integer indicating the order of the mode
-            e1: A complex indicating the permittivity of tha core.
-            e2: A complex indicating the permittivity of tha clad.
-            xis: A complex indicating the initial approximations for the roots
+            w (complex): Angular frequency.
+            n (int): Order of the mode
+            e1 (complex): Permittivity of tha core.
+            e2 (complex): Permittivity of tha clad.
+            xis (np.ndarray): Initial approximations for the roots
                 whose number of elements is 2*num_m+1.
         Returns:
             xs: A 1D array indicating the roots, whose length is 2*num_m+1.
@@ -141,27 +143,15 @@ class Samples(Sampling):
         vals = []
         success: list[bool] = []
 
-        def func(h2vec, *pars):
-            h2 = h2vec[0] + h2vec[1] * 1j
-            f = eig_eq_cython(h2, *pars)
-            denom = 1.0
-            for h2_0 in roots:
-                denom *= h2 - h2_0
-            norm = abs(denom)
-            if norm < 1e-14:
-                denom /= norm * 1e14
-            f /= denom
-            return np.array([f.real, f.imag])
-
         for i, xi in enumerate(xis):
             if i < num_m + 1:
-                args = (w, "M", n, e1, e2, self.r)
+                pol = "M"
             else:
-                args = (w, "E", n, e1, e2, self.r)
+                pol = "E"
             result = root(
-                func,
+                func_cython,
                 np.array([xi.real, xi.imag]),
-                args=args,
+                args=(w, pol, n, e1, e2, self.r, np.array(roots, dtype=complex)),
                 method="hybr",
                 options={"xtol": 1.0e-9},
             )
@@ -174,7 +164,7 @@ class Samples(Sampling):
             else:
                 success.append(False)
             vals.append(x)
-        return np.array(vals), success
+        return np.array(vals), np.array(success)
 
     @staticmethod
     def beta_from_beta2(x):
@@ -303,59 +293,6 @@ class Samples(Sampling):
                     xs[_] = xis[_]
             xis = xs
         return xs, success
-
-    def beta2_w_max(self, n):
-        """Return roots and convergences of the characteristic equation at
-            the highest angular frequency, ws[-1].
-
-        Args:
-            n: A integer indicating the order of the mode
-        Returns:
-            xs: A 1D array indicating the roots, whose length is 2*num_m+1.
-            success: A 1D array indicating the convergence information for xs.
-        """
-        w = self.ws[-1]
-        xis = xs = self.beta2_pec(w, n)
-        success = np.ones_like(xs, dtype=bool)
-        if self.clad(w).real < -1e7:
-            return xs, success
-        e1 = self.fill(w)
-        e2_0 = -1.0e7 + self.clad(w).imag * 1j
-        de2 = (self.clad(w) - e2_0) / 100000
-        for i in range(100001):
-            e2 = e2_0 + de2 * i
-            xs, success = self.beta2(w, n, e1, e2, xis)
-            for _, ok in enumerate(success):
-                if not ok:
-                    xs[_] = xis[_]
-            xis = xs
-        return xs, success
-
-    def _betas_convs(self, n, xs_array, success_array):
-        num_m = self.params["num_m"]
-        betas = {}
-        convs = {}
-        for m in range(1, num_m + 2):
-            betas[("M", n, m)] = np.zeros((len(self.ws), len(self.wis)), dtype=complex)
-            convs[("M", n, m)] = np.zeros((len(self.ws), len(self.wis)), dtype=bool)
-        for m in range(1, num_m + 1):
-            betas[("E", n, m)] = np.zeros((len(self.ws), len(self.wis)), dtype=complex)
-            convs[("E", n, m)] = np.zeros((len(self.ws), len(self.wis)), dtype=bool)
-        for iwi in range(len(self.wis)):
-            for iwr in range(len(self.ws)):
-                for i in range(num_m + 1):
-                    betas[("M", n, i + 1)][iwr, iwi] = self.beta_from_beta2(
-                        xs_array[iwr, iwi][i]
-                    )
-                    convs[("M", n, i + 1)][iwr, iwi] = success_array[iwr, iwi][i]
-                for i in range(num_m):
-                    betas[("E", n, i + 1)][iwr, iwi] = self.beta_from_beta2(
-                        xs_array[iwr, iwi][i + num_m + 1]
-                    )
-                    convs[("E", n, i + 1)][iwr, iwi] = success_array[iwr, iwi][
-                        i + num_m + 1
-                    ]
-        return betas, convs
 
     def betas_convs(self, xs_success_list):
         num_n = self.params["num_n"]
@@ -562,46 +499,7 @@ class SamplesForRay(Samples):
             convs: A dict containing the convergence information for betas,
                 whose key is the same as above.
         """
-        num_m = self.params["num_m"]
-        xs_array = np.zeros((len(self.ws), len(self.wis), 2 * num_m + 1), dtype=complex)
-        success_array = np.zeros(
-            (len(self.ws), len(self.wis), 2 * num_m + 1), dtype=bool
-        )
-        iwr = iwi = 0
-        wi = self.wis[iwi]
-        xis, success = self.beta2_w_min(n)
-        xs_array[iwr, iwi] = xis
-        success_array[iwr, iwi] = success
-        for iwr in range(1, len(self.ws)):
-            wr = self.ws[iwr]
-            w = wr + 1j * wi
-            e1 = self.fill(w)
-            e2 = self.clad(w)
-            xs, success = self.beta2(w, n, e1, e2, xis)
-            xs = np.where(success, xs, xis)
-            xs_array[iwr, iwi] = xs
-            success_array[iwr, iwi] = success
-            xis = xs
-        for iwi in range(1, len(self.wis)):
-            wi = self.wis[iwi]
-            for iwr in range(len(self.ws)):
-                wr = self.ws[iwr]
-                w = wr + 1j * wi
-                e1 = self.fill(w)
-                e2 = self.clad(w)
-                if iwr == 0:
-                    xis = xs_array[iwr, iwi - 1]
-                else:
-                    xis = (
-                        xs_array[iwr, iwi - 1]
-                        + xs_array[iwr - 1, iwi]
-                        - xs_array[iwr - 1, iwi - 1]
-                    )
-                xs, success = self.beta2(w, n, e1, e2, xis)
-                xs = np.where(success, xs, xis)
-                xs_array[iwr, iwi] = xs
-                success_array[iwr, iwi] = success
-        return xs_array, success_array
+        return super().__call__(n)
 
 
 @ray.remote

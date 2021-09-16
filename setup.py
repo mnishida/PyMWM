@@ -5,9 +5,9 @@ from Cython.Distutils import build_ext
 from setuptools import Extension, find_packages, setup
 
 ext_modules = []
-for shape in ["cylinder", "slit"]:
-    pkg = f"{shape}_utils"
-    basename = os.path.join("src", "pymwm", "utils", f"{shape}_utils")
+for name in ["cylinder", "slit", "bessel", "cutoff"]:
+    pkg = f"pymwm.utils.{name}_utils"
+    basename = os.path.join("src", "pymwm", "utils", f"{name}_utils")
     e = Extension(
         pkg,
         sources=[basename + ".pyx"],
@@ -43,7 +43,6 @@ setup(
         "Topic :: Scientific/Engineering",
     ],
     keywords="metallic waveguide mode, electromagnetism",
-    ext_package="pymwm.utils",
     ext_modules=ext_modules,
     cmdclass={"build_ext": build_ext},
     entry_points={

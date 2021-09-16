@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
+
 import unittest
 
 import numpy as np
@@ -50,7 +52,7 @@ class TestSlitSamples(unittest.TestCase):
         }
 
     def test_attributes(self):
-        params = self.params.copy()
+        params: dict = self.params.copy()
         r = params["core"]["size"]
         fill = params["core"]["fill"]
         clad = params["clad"]
@@ -67,13 +69,13 @@ class TestSlitSamples(unittest.TestCase):
 
     @staticmethod
     def beta2_pec(w: complex, n: np.ndarray, e1: complex, r: float) -> np.ndarray:
-        h2 = e1 * w ** 2 - (n * np.pi / r) ** 2
+        h2: np.ndarray = e1 * w ** 2 - (n * np.pi / r) ** 2
         return h2
 
     def test_beta2_pec(self):
         import riip
 
-        params = self.params.copy()
+        params: dict = self.params.copy()
         r = params["core"]["size"]
         fill = params["core"]["fill"]
         clad = params["clad"]
@@ -83,10 +85,15 @@ class TestSlitSamples(unittest.TestCase):
         pec = self.beta2_pec(
             w, np.arange(6), riip.Material(fill)(w), params["core"]["size"]
         )
-        npt.assert_allclose(wg.beta2_pec(w, 6), pec)
+        h2_e = wg.beta2_pec(w, "even", 6)
+        h2_o = wg.beta2_pec(w, "odd", 6)
+        h2 = []
+        for i in range(3):
+            h2 += [h2_e[i], h2_o[i]]
+        npt.assert_allclose(h2, pec)
 
     def test_beta2_w_min(self):
-        params = self.params.copy()
+        params: dict = self.params.copy()
         r = params["core"]["size"]
         fill = params["core"]["fill"]
         clad = params["clad"]
@@ -98,20 +105,24 @@ class TestSlitSamples(unittest.TestCase):
             ray.init()
             p_modes_id = ray.put(params["modes"])
             pool = ray.util.ActorPool(
-                SamplesForRay.remote(r, fill, clad, p_modes_id) for _ in range(2)
+                SamplesForRay.remote(r, fill, clad, p_modes_id) for _ in range(4)
             )
-            args = [("M", num_n), ("E", num_n)]
+            args = [
+                ("M", "even", num_n),
+                ("M", "odd", num_n),
+                ("E", "even", num_n),
+                ("E", "odd", num_n),
+            ]
             vals = list(pool.map(lambda a, arg: a.beta2_w_min.remote(*arg), args))
         finally:
             ray.shutdown()
-        for i in range(2):
+        for i in range(4):
             h2s, success = vals[i]
-            for j in range(6):
-                self.assertAlmostEqual(h2s[j], self.betas[i][j] ** 2)
-                # self.assertEqual(success[j], self.convs[i][j])
+            for j in range(3):
+                self.assertAlmostEqual(h2s[j], self.betas[i // 2][2 * j + i % 2] ** 2)
 
     def test_db(self):
-        params = self.params.copy()
+        params: dict = self.params.copy()
         r = params["core"]["size"]
         fill = params["core"]["fill"]
         clad = params["clad"]
@@ -146,7 +157,7 @@ class TestSlitSamples(unittest.TestCase):
             )
 
     def test_interpolation(self):
-        params = self.params.copy()
+        params: dict = self.params.copy()
         r = params["core"]["size"]
         fill = params["core"]["fill"]
         clad = params["clad"]

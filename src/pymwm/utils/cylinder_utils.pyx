@@ -4,40 +4,7 @@ import numpy as np
 
 cimport cython
 cimport numpy as np
-cimport scipy.linalg.cython_blas as blas
 
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef void jv_jvp(int n, cdouble z, cdouble vals[2]) nogil:
-    cdef:
-         cdouble j = jv(n, z)
-         cdouble jp = jv(n + 1, z)
-    vals[0] = j
-    vals[1] = -jp + n * j / z
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef cdouble jvp(int n, cdouble z) nogil:
-    return 0.5 * (jv(n - 1, z) - jv(n + 1, z))
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef void kv_kvp(int n, cdouble z, cdouble vals[2]) nogil:
-    cdef:
-        cdouble k = kv(n, z)
-        cdouble kp = kv(n + 1, z)
-    vals[0] = k
-    vals[1] = -kp + n * k / z
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef cdouble kvp(int n, cdouble z) nogil:
-    return -0.5 * (kv(n - 1, z) + kv(n + 1, z))
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -527,3 +494,64 @@ def jac_cython(double[::1] h2vec, cdouble w, str pol, int n, cdouble e1, cdouble
             + dre_dh2
         )
     return np.array([[val.real, -val.imag], [val.imag, val.real]])
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def func_cython(
+    double[::1] h2vec, cdouble w, str pol, int n, cdouble e1, cdouble e2, double r, cdouble[::1] roots
+):
+    """Return the value of the characteristic equation
+
+    Args:
+        h2: The square of the phase constant.
+        w: The angular frequency
+        pol: The polarization
+        n: The order of the modes
+        e1: The permittivity of the core
+        e2: The permittivity of the clad.
+        r: The radius of hole
+        roots: Already obtained roots
+    Returns:
+        val: A complex indicating the left-hand value of the characteristic
+            equation.
+    """
+    cdef:
+        int i
+        cdouble h2 = h2vec[0] + 1j * h2vec[1]
+        cdouble u = u_func(h2, w, e1, r)
+        cdouble v = v_func(h2, w, e2, r)
+        cdouble jus, jpus
+        cdouble kvs, kpvs
+        cdouble te, tm
+        cdouble vals[2]
+        cdouble f
+        cdouble denom = 1.0 + 0.0j
+        double norm
+        int num = len(roots)
+
+    jv_jvp(n, u, vals)
+    jus = vals[0]
+    jpus = vals[1]
+    kv_kvp(n, v, vals)
+    kvs = vals[0]
+    kpvs = vals[1]
+    te = jpus / u + kpvs * jus / (v * kvs)
+    tm = e1 * jpus / u + e2 * kpvs * jus / (v * kvs)
+    if n == 0:
+        if pol == "M":
+            f = tm
+        else:
+            f = te
+    else:
+        f = (
+            tm * te - h2 * (n / w) ** 2 * ((1 / u ** 2 + 1 / v ** 2) * jus) ** 2
+        )
+    for i in range(num):
+        denom *= h2 - roots[i]
+    norm = cabs(denom)
+    if norm < 1e-14:
+        denom /= norm * 1e14
+    f /= denom
+    return f.real, f.imag

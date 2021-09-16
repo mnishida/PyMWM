@@ -4,7 +4,6 @@ import numpy as np
 
 cimport cython
 cimport numpy as np
-cimport scipy.linalg.cython_blas as blas
 
 
 @cython.boundscheck(False)
@@ -228,3 +227,91 @@ def uvABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
         us[i] = u
         vs[i] = v
     return us_array, vs_array, As_array, Bs_array, Ys_array
+
+
+@cython.cdivision(True)
+cdef u_func(cdouble h2, cdouble w, cdouble e1, double r):
+    return (1 + 1j) * csqrt(-0.5j * (e1 * w ** 2 - h2)) * r / 2
+
+@cython.cdivision(True)
+cdef v_func(cdouble h2, cdouble w, cdouble e2, double r):
+    return (1 - 1j) * csqrt(0.5j * (-e2 * w ** 2 + h2)) * r / 2
+
+@cython.cdivision(True)
+def eig_eq_cython(cdouble h2, cdouble w, str pol, int n, cdouble e1, cdouble e2, double r
+):
+    """Return the value of the characteristic equation
+
+    Args:
+        h2: The square of the phase constant.
+        w: The angular frequency
+        pol: The polarization
+        n: The order of the modes
+        e1: The permittivity of the core
+        e2: The permittivity of the clad.
+        r: The radius of hole
+    Returns:
+        val: A complex indicating the left-hand value of the characteristic
+            equation.
+    """
+    cdef:
+        cdouble u = u_func(h2, w, e1, r)
+        cdouble v = v_func(h2, w, e2, r)
+    if pol == "E":
+        if n % 2 == 0:
+            return u / v + ctan(u)
+        else:
+            return u / v - 1 / ctan(u)
+    else:
+        if n % 2 == 0:
+            return u * ctan(u) - (e1 * v) / e2
+        else:
+            return u / ctan(u) + (e1 * v) / e2
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def func_cython(
+    double[::1] h2vec, cdouble w, str pol, int n, cdouble e1, cdouble e2, double r, cdouble[::1] roots
+):
+    """Return the value of the characteristic equation
+
+    Args:
+        h2: The square of the phase constant.
+        w: The angular frequency
+        pol: The polarization
+        n: The order of the modes
+        e1: The permittivity of the core
+        e2: The permittivity of the clad.
+        r: The radius of hole
+        roots: Already obtained roots
+    Returns:
+        val: A complex indicating the left-hand value of the characteristic
+            equation.
+    """
+    cdef:
+        int i
+        cdouble h2 = h2vec[0] + 1j * h2vec[1]
+        cdouble u = u_func(h2, w, e1, r)
+        cdouble v = v_func(h2, w, e2, r)
+        cdouble f
+        cdouble denom = 1.0 + 0.0j
+        double norm
+        int num = len(roots)
+    if pol == "E":
+        if n % 2 == 0:
+            f = u / v + ctan(u)
+        else:
+            f = u / v - 1 / ctan(u)
+    else:
+        if n % 2 == 0:
+            f = u * ctan(u) - (e1 * v) / e2
+        else:
+            f = u / ctan(u) + (e1 * v) / e2
+    for i in range(num):
+        denom *= h2 - roots[i]
+    norm = cabs(denom)
+    if norm < 1e-14:
+        denom /= norm * 1e14
+    f /= denom
+    return f.real, f.imag

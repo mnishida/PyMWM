@@ -1,4 +1,6 @@
-# -*- coding: utf-8 -*-
+from __future__ import annotations
+
+import cmath
 from logging import getLogger
 from typing import Dict, List, Tuple
 
@@ -68,6 +70,23 @@ class Slit(Waveguide):
                 alphas["h"].append(alpha)
         return alphas
 
+    def merge_even_and_odd_data(
+        self, even: tuple[np.ndarray, np.ndarray], odd: tuple[np.ndarray, np.ndarray]
+    ) -> tuple[np.ndarray, np.ndarray]:
+        xs_e, success_e = even
+        xs_o, success_o = odd
+        num_n_e = xs_e.shape[2]
+        num_n_o = xs_o.shape[2]
+        xs_list = []
+        success_list = []
+        for i in range(num_n_o):
+            xs_list += [xs_e[:, :, i], xs_o[:, :, i]]
+            success_list += [success_e[:, :, i], success_o[:, :, i]]
+        if num_n_e > num_n_o:
+            xs_list.append(xs_e[:, :, -1])
+            success_list.append(success_e[:, :, -1])
+        return np.dstack(xs_list), np.dstack(success_list)
+
     def betas_convs_samples(
         self, params: Dict
     ) -> Tuple[np.ndarray, np.ndarray, Samples]:
@@ -99,17 +118,28 @@ class Slit(Waveguide):
                     SamplesForRay.remote(
                         self.r, self.fill_params, self.clad_params, p_modes_id
                     )
-                    for _ in range(2)
+                    for _ in range(4)
                 )
                 xs_success_list = list(
                     pool.map(
                         lambda a, arg: a.task.remote(arg),
-                        [("M", num_n_0), ("E", num_n_0)],
+                        [
+                            ("M", "even", num_n_0),
+                            ("M", "odd", num_n_0),
+                            ("E", "even", num_n_0),
+                            ("E", "odd", num_n_0),
+                        ],
                     )
                 )
             finally:
                 ray.shutdown()
-            betas, convs = smp.betas_convs(xs_success_list)
+            xs_success_M = self.merge_even_and_odd_data(
+                xs_success_list[0], xs_success_list[1]
+            )
+            xs_success_E = self.merge_even_and_odd_data(
+                xs_success_list[2], xs_success_list[3]
+            )
+            betas, convs = smp.betas_convs([xs_success_M, xs_success_E])
             smp.database.save(betas, convs)
         if im_factor != 1.0:
             self.clad.im_factor = im_factor
@@ -119,12 +149,17 @@ class Slit(Waveguide):
             except IndexError:
                 self.clad.im_factor = im_factor
                 num_n = p_modes["num_n"]
+                ns = list(range(num_n))
+                ns_e = ns[::2]
+                ns_o = ns[1::2]
                 args = []
                 for iwr in range(len(smp.ws)):
                     for iwi in range(len(smp.wis)):
                         xis_list = [
-                            [betas[("M", n, 1)][iwr, iwi] ** 2 for n in range(num_n)],
-                            [betas[("E", n, 1)][iwr, iwi] ** 2 for n in range(num_n)],
+                            [betas[("M", n, 1)][iwr, iwi] ** 2 for n in ns_e],
+                            [betas[("M", n, 1)][iwr, iwi] ** 2 for n in ns_o],
+                            [betas[("E", n, 1)][iwr, iwi] ** 2 for n in ns_e],
+                            [betas[("E", n, 1)][iwr, iwi] ** 2 for n in ns_o],
                         ]
                         args.append((iwr, iwi, xis_list))
                 import ray
@@ -186,7 +221,7 @@ class Slit(Waveguide):
         """
         w_comp = w.real + 1j * w.imag
         pol, n, m = alpha
-        val = np.sqrt(self.fill(w_comp) * w_comp ** 2 - (n * np.pi / self.r) ** 2)
+        val = cmath.sqrt(self.fill(w_comp) * w_comp ** 2 - (n * np.pi / self.r) ** 2)
         if abs(val.real) > abs(val.imag):
             if val.real < 0:
                 val *= -1
@@ -233,28 +268,28 @@ class Slit(Waveguide):
         pol, n, m = alpha
         if self.clad(w).real < -1e6:
             if pol == "M" and n == 0:
-                return np.sqrt(a2_b2 * self.r)
+                return cmath.sqrt(a2_b2 * self.r)
             else:
-                return np.sqrt(a2_b2 * self.r / 2)
+                return cmath.sqrt(a2_b2 * self.r / 2)
         u = self.samples.u(h ** 2, w, e1)
         # uc = u.conjugate()
         v = self.samples.v(h ** 2, w, e2)
         # vc = v.conjugate()
         if n % 2 == 0:
             if pol == "E":
-                b_a = np.sin(u)
+                b_a = cmath.sin(u)
                 parity = -1
             else:
-                b_a = u / v * np.sin(u)
+                b_a = u / v * cmath.sin(u)
                 parity = 1
         else:
             if pol == "E":
-                b_a = np.cos(u)
+                b_a = cmath.cos(u)
                 parity = 1
             else:
-                b_a = -u / v * np.cos(u)
+                b_a = -u / v * cmath.cos(u)
                 parity = -1
-        val = np.sqrt(
+        val = cmath.sqrt(
             a2_b2
             * self.r
             * (b_a ** 2 / (2 * v) + (1.0 + parity * self.sinc(2 * u)) / 2)

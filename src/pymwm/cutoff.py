@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+from __future__ import annotations
+
 import os
 from typing import Dict, List, Tuple
 
@@ -7,16 +8,27 @@ import pandas as pd
 import scipy.optimize as so
 import scipy.special as sp
 
+from pymwm.utils.cutoff_utils import f_cython, f_fprime_cython, fprime_cython
+
 
 class Cutoff:
 
     dirname = os.path.join(os.path.expanduser("~"), ".pymwm")
     filename = os.path.join(dirname, "cutoff.h5")
 
-    def __init__(self, num_n, num_m):
+    def __init__(self, num_n: int, num_m: int) -> None:
         """Init Cutoff class."""
         self.num_n, self.num_m = num_n, num_m
         self.r_ratios = 0.001 * np.arange(1000)
+        if os.path.exists(self.filename):
+            samples = pd.read_hdf(self.filename)
+            if self.num_n > samples["n"].max() + 1 or self.num_m > samples["m"].max():
+                self.samples = self.cutoffs()
+                self.samples.to_hdf(self.filename, "cutoff")
+            else:
+                self.samples = samples[
+                    (samples["n"] < num_n) & (samples["m"] <= num_m)
+                ].reset_index()
         if not os.path.exists(self.filename):
             if not os.path.exists(self.dirname):
                 print("Folder Not Found.")
@@ -24,43 +36,59 @@ class Cutoff:
             print("File Not Found.")
             self.samples = self.cutoffs()
             self.samples.to_hdf(self.filename, "cutoff")
-        self.samples = pd.read_hdf(self.filename)
 
-    def __call__(self, alpha, r_ratio):
-        x = self.samples.query(
-            f"pol=='{alpha[0]}' and n=={alpha[1]} and m=={alpha[2]}"
-        )["rr"]
-        y = self.samples.query(
-            f"pol=='{alpha[0]}' and n=={alpha[1]} and m=={alpha[2]}"
-        )["val"]
-        x = x.to_numpy()
-        y = y.to_numpy()
-        i = np.where(x < r_ratio)[0][-1]
-        a = r_ratio - x[i]
-        b = x[i + 1] - r_ratio
-        val = (b * y[i] + a * y[i + 1]) / (a + b)
+    def __call__(self, alpha: tuple, r_ratio: float) -> float:
+        df = self.samples
+        df = df[(df["pol"] == alpha[0]) & (df["n"] == alpha[1]) & (df["m"] == alpha[2])]
+        print(df)
+        x = df["rr"].to_numpy()
+        y = df["val"].to_numpy()
+        print(x)
+        i: int = np.where(x < r_ratio)[0][-1]
+        a: float = r_ratio - x[i]
+        b: float = x[i + 1] - r_ratio
+        val: float = (b * y[i] + a * y[i + 1]) / (a + b)
         return val
 
-    def PEC(self, x, r_ratio, n, pol):
+    def PEC(
+        self, x: float, r_ratio: float, n: int, pol: str
+    ) -> tuple[float, float, float]:
         v = x * r_ratio
 
-        def f_fp_fpp(func, z):
+        def f_fp_fpp_fppp(func, z):
             f = func(n, z)
             fp = -func(n + 1, z) + n / z * f
             fpp = -fp / z - (1 - n ** 2 / z ** 2) * f
-            return f, fp, fpp
+            fppp = -fpp / z - fp + (n ** 2 + 1) * fp / z ** 2 - 2 * n ** 2 / z ** 3 * f
+            return f, fp, fpp, fppp
 
-        jv, jpv, jppv = f_fp_fpp(sp.jv, v)
-        yv, ypv, yppv = f_fp_fpp(sp.yv, v)
-        jx, jpx, jppx = f_fp_fpp(sp.jv, x)
-        yx, ypx, yppx = f_fp_fpp(sp.yv, x)
+        jv, jpv, jppv, jpppv = f_fp_fpp_fppp(sp.jv, v)
+        yv, ypv, yppv, ypppv = f_fp_fpp_fppp(sp.yv, v)
+        jx, jpx, jppx, jpppx = f_fp_fpp_fppp(sp.jv, x)
+        yx, ypx, yppx, ypppx = f_fp_fpp_fppp(sp.yv, x)
         if pol == "E":
             f = jpv * ypx - ypv * jpx
-            fp = v * jppv * ypx + x * jpv * yppx - v * yppv * jpx - x * ypv * jppx
+            fp = r_ratio * jppv * ypx + jpv * yppx - r_ratio * yppv * jpx - ypv * jppx
+            fpp = (
+                r_ratio ** 2 * jpppv * ypx
+                + 2 * r_ratio * jppv * yppx
+                + jpv * ypppx
+                - r_ratio ** 2 * ypppv * jpx
+                - 2 * r_ratio * yppv * jppx
+                - ypv * jpppx
+            )
         else:
             f = jv * yx - yv * jx
-            fp = v * jpv * yx + x * jv * ypx - v * ypv * jx - x * yv * jpx
-        return f, fp
+            fp = r_ratio * jpv * yx + jv * ypx - r_ratio * ypv * jx - yv * jpx
+            fpp = (
+                r_ratio ** 2 * jppv * yx
+                + 2 * r_ratio * jpv * ypx
+                + jv * yppx
+                - r_ratio ** 2 * yppv * jx
+                - 2 * ypv * jpx
+                - yv * jppx
+            )
+        return f, fp, fpp
 
     def cutoffs_old(self):
         num_n, num_m = self.num_n, self.num_m
@@ -85,7 +113,11 @@ class Cutoff:
                         else:
                             ini_val = z[-1][(pol, n, m)] * 2 - z[-2][(pol, n, m)]
                         sol = so.root_scalar(
-                            self.PEC, x0=ini_val, fprime=True, args=(r_ratio, n, pol)
+                            self.PEC,
+                            x0=ini_val,
+                            fprime=True,
+                            fprime2=True,
+                            args=(r_ratio, n, pol),
                         )
                         kini = sol.root
                         data[(pol, n, m)] = kini
@@ -106,10 +138,9 @@ class Cutoff:
                             },
                             ignore_index=True,
                         )
-        df = df.astype({"irr": int, "n": int, "m": int})
-        return df
+        return df.astype({"irr": int, "n": int, "m": int})
 
-    def cutoffs(self):
+    def cutoffs(self) -> pd.DataFrame:
         import ray
 
         if not ray.is_initialized():
@@ -120,12 +151,22 @@ class Cutoff:
         def func(alpha, kini, rrs):
             pol, n, m = alpha
             z = [kini]
-            sol = so.root_scalar(self.PEC, x0=kini, fprime=True, args=(rrs[1], n, pol))
+            sol = so.root_scalar(
+                f_fprime_cython,
+                x0=kini,
+                fprime=True,
+                method="newton",
+                args=(rrs[1], n, pol),
+            )
             z = [kini, sol.root]
             for r_ratio in rrs[2:]:
                 ini_val = z[-1] * 2 - z[-2]
                 sol = so.root_scalar(
-                    self.PEC, x0=ini_val, fprime=True, args=(r_ratio, n, pol)
+                    f_fprime_cython,
+                    x0=ini_val,
+                    fprime=True,
+                    method="newton",
+                    args=(r_ratio, n, pol),
                 )
                 z.append(sol.root)
             return z

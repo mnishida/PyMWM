@@ -23,3 +23,16 @@ def uvABY_cython(
     e1: complex,
     e2: complex,
 ) -> tuple[np.ndaray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]: ...
+def eig_eq_cython(
+    h2: complex, w: complex, pol: str, n: int, e1: complex, e2: complex, r: float
+) -> complex: ...
+def func_cython(
+    h2vec: np.ndarray,
+    w: complex,
+    pol: str,
+    n: int,
+    e1: complex,
+    e2: complex,
+    r: float,
+    roots: np.ndarray,
+) -> tuple[float, float]: ...

@@ -147,3 +147,5 @@ cython_debug/
 .idea/
 src/pymwm/utils/cylinder_utils.cpp
 src/pymwm/utils/slit_utils.cpp
+src/pymwm/utils/bessel_utils.cpp
+src/pymwm/utils/cutoff_utils.cpp

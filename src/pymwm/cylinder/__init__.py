@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import cmath
 from typing import Dict, List, Tuple
 
 import numpy as np
@@ -200,7 +201,7 @@ class Cylinder(Waveguide):
             chi = jn_zeros(n, m)[-1]
         else:
             raise ValueError("pol must be 'E' or 'M")
-        val = np.sqrt(self.fill(w_comp) * w_comp ** 2 - chi ** 2 / self.r ** 2)
+        val = cmath.sqrt(self.fill(w_comp) * w_comp ** 2 - chi ** 2 / self.r ** 2)
         if abs(val.real) > abs(val.imag):
             if val.real < 0:
                 val *= -1
@@ -269,7 +270,7 @@ class Cylinder(Waveguide):
                 u = jn_zeros(n, m)[-1]
                 jnu = 0.0
                 jnpu = jvp(n, u)
-            return np.sqrt(
+            return cmath.sqrt(
                 a ** 2 * np.pi * radius ** 2 / en * (1 - n ** 2 / u ** 2) * jnu ** 2
                 + b ** 2 * np.pi * radius ** 2 / en * jnpu ** 2
             )
@@ -294,7 +295,7 @@ class Cylinder(Waveguide):
         vpart_diag = self.vpart_diag(n, v, knv, knpv, v, knv, knpv)
         upart_off = self.upart_off(n, u, jnu, u, jnu)
         vpart_off = self.vpart_off(n, v, knv, v, knv)
-        return np.sqrt(
+        return cmath.sqrt(
             val_u
             * (
                 a * (a * upart_diag + b * upart_off)
@@ -310,7 +311,7 @@ class Cylinder(Waveguide):
         # vpart_diag = self.vpart_diag(n, vc, knvc, knpvc, v, knv, knpv)
         # upart_off = self.upart_off(n, uc, jnuc, u, jnu)
         # vpart_off = self.vpart_off(n, vc, knvc, v, knv)
-        # return np.sqrt(np.real(
+        # return cmath.sqrt(np.real(
         #     val_u * (
         #         a * (ac * upart_diag + bc * upart_off) +
         #         b * (bc * upart_diag + ac * upart_off)) -

@@ -1,26 +1,8 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
+from . cimport M_PI, cabs, cdouble, creal, csqrt, sqrt
+from .bessel_utils cimport jv, jv_jvp, jvp, kv, kv_kvp, kvp
 
-import numpy as np
-
-cimport numpy as np
-
-ctypedef np.complex128_t cdouble
-
-from libc.math cimport M_PI, atan2, cos, sin, sqrt
-from libc.stdio cimport printf
-from libc.stdlib cimport free, malloc
-from scipy.special.cython_special cimport jv, kv
-
-
-cdef extern from "<complex>" namespace "std" nogil:
-    cdouble csqrt "sqrt" (cdouble z)
-    double cabs "abs" (cdouble z)
-    cdouble cconj "conj" (cdouble z)
-    cdouble cexp "exp" (cdouble z)
-    double creal "real" (cdouble z)
-    double cimag "imag" (cdouble z)
-#     cdouble cpow "pow"(cdouble x, cdouble n)
 
 cdef void jk_to_coefs(int n, int pol, cdouble h,
                       cdouble u, cdouble jnu, cdouble jnpu,

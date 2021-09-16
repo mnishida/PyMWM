@@ -5,6 +5,7 @@ import os
 from collections import OrderedDict
 from typing import Optional
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import riip
@@ -73,14 +74,6 @@ class Sampling(metaclass=abc.ABCMeta):
         shape = self.shape
         size = self.size
         size2 = self.size2
-        # if self.fill.model == "dielectric":
-        #     core = "RI_{}".format(self.fill.params["RI"])
-        # else:
-        #     core = "{0}".format(self.fill.model)
-        # if self.clad.model == "dielectric":
-        #     clad = "RI_{}".format(self.clad.params["RI"])
-        # else:
-        #     clad = "{0}".format(self.clad.model)
         num_n = p["num_n"]
         num_m = p["num_m"]
         num_all = self.num_all
@@ -102,27 +95,42 @@ class Sampling(metaclass=abc.ABCMeta):
         )
         return d
 
-    def plot_convs(self, convs, alpha):
-        import matplotlib.pyplot as plt
+    def plot_convs(self, convs: np.ndarray, alpha: tuple[str, int, int]) -> None:
+        """Show area of convergence where a solution is found in complex angular frequency plane
 
+        Args:
+            convs (np.ndarray[bool]): True if a solution is found.
+            alpha (tuple[pol: str, n: int, m: int]): Label of mode specifying
+                TE-like (pol="E") or TM-like (pol="M") polalization and the order (n, m).
+        """
         x, y = np.meshgrid(self.ws, self.wis, indexing="ij")
         z = convs[alpha]
         plt.pcolormesh(x, y, z, shading="auto", rasterized=True)
         plt.colorbar(pad=0.02)
         plt.show()
 
-    def plot_real_betas(self, betas, alpha):
-        import matplotlib.pyplot as plt
+    def plot_real_betas(self, betas: np.ndarray, alpha: tuple[str, int, int]) -> None:
+        """Show a colormap of phase constant in complex angular frequency plane
 
+        Args:
+            betas (np.ndarray[bool]): Complex propagation constant.
+            alpha (tuple[pol: str, n: int, m: int]): Label of mode specifying
+                TE-like (pol="E") or TM-like (pol="M") polalization and the order (n, m).
+        """
         x, y = np.meshgrid(self.ws, self.wis, indexing="ij")
         z = betas[alpha]
         plt.pcolormesh(x, y, z.real, shading="auto", rasterized=True)
         plt.colorbar(pad=0.02)
         plt.show()
 
-    def plot_imag_betas(self, betas, alpha):
-        import matplotlib.pyplot as plt
+    def plot_imag_betas(self, betas: np.ndarray, alpha: tuple[str, int, int]) -> None:
+        """Show colormap of attenuation constant in complex angular frequency plane
 
+        Args:
+            betas (np.ndarray[bool]): Complex propagation constant.
+            alpha (tuple[pol: str, n: int, m: int]): Label of mode specifying
+                TE-like (pol="E") or TM-like (pol="M") polalization and the order (n, m).
+        """
         x, y = np.meshgrid(self.ws, self.wis, indexing="ij")
         z = betas[alpha]
         plt.pcolormesh(x, y, z.imag, shading="auto", rasterized=True)
@@ -361,13 +369,10 @@ class Waveguide(metaclass=abc.ABCMeta):
             comp: "real" (phase constants) or "imag" (attenuation constants).
             nw: The number of calculational points within the frequency range.
         """
-        import matplotlib.pyplot as plt
-
         wls = np.linspace(wl_max, wl_min, nw + 1)
         ws = 2 * np.pi / wls
         pol, n, m = alpha
-        # label = r"{0}".format(pol) + r"$_{" + r"{}{}".format(n, m) + "}$"
-        label = "({},{},{})".format(pol, n, m)
+        label = f"({pol},{n},{m})"
         if comp == "real":
             hs = [self.beta(wr + 1j * wi, alpha).real for wr in ws]
         elif comp == "imag":
@@ -422,8 +427,6 @@ class Waveguide(metaclass=abc.ABCMeta):
             x_max: A float indicating the maximum x coordinate in the figure
             y_max: A float indicating the maximum y coordinate in the figure
         """
-        import matplotlib.pyplot as plt
-
         xs = np.linspace(-x_max, x_max, 129)
         ys = np.linspace(-y_max, y_max, 129)
         X, Y = np.meshgrid(xs, ys, indexing="ij")
@@ -486,8 +489,6 @@ class Waveguide(metaclass=abc.ABCMeta):
             x_max: A float indicating the maximum x coordinate in the figure
             y_max: A float indicating the maximum y coordinate in the figure
         """
-        import matplotlib.pyplot as plt
-
         xs = np.linspace(-x_max, x_max, 129)
         ys = np.linspace(-y_max, y_max, 129)
         X, Y = np.meshgrid(xs, ys, indexing="ij")
@@ -552,8 +553,6 @@ class Waveguide(metaclass=abc.ABCMeta):
             nx: An integer indicating the number of calculational points
                 (default: 128)
         """
-        import matplotlib.pyplot as plt
-
         xs = np.linspace(-x_max, x_max, nx + 1)
         ys = np.linspace(-x_max, x_max, nx + 1)
         _, Y = np.meshgrid(xs, ys, indexing="ij")
@@ -611,8 +610,6 @@ class Waveguide(metaclass=abc.ABCMeta):
             nx: An integer indicating the number of calculational points
                 (default: 128)
         """
-        import matplotlib.pyplot as plt
-
         xs = np.linspace(-x_max, x_max, nx + 1)
         ys = np.linspace(-x_max, x_max, nx + 1)
         _, Y = np.meshgrid(xs, ys, indexing="ij")
@@ -703,7 +700,7 @@ class Database:
             self.num_all = key["num_all"]
             cond = ""
             for col in list(self.catalog_columns.keys())[1:-3]:
-                cond += "{0} == @self.{0} & ".format(col)
+                cond += f"{col} == @self.{col} & "
             self.cond = cond.rstrip("& ")
             ind_w_min = int(np.floor(2 * np.pi / self.wl_max / self.dw))
             ind_w_max = int(np.ceil(2 * np.pi / self.wl_min / self.dw))
@@ -713,18 +710,17 @@ class Database:
         self.sn = self.get_sn()
 
     def load_catalog(self) -> DataFrame:
-        return pd.read_hdf(self.filename, "catalog")
+        df: DataFrame = pd.read_hdf(self.filename, "catalog")
+        return df
 
     def get_sn(self) -> int:
         if not os.path.exists(self.filename):
             if not os.path.exists(self.dirname):
                 os.mkdir(self.dirname)
-            with pd.HDFStore(self.filename, complevel=9, complib="blosc") as store:
-                catalog = pd.DataFrame(columns=self.catalog_columns.keys())
-                store["catalog"] = catalog
+            catalog = pd.DataFrame(columns=self.catalog_columns.keys())
+            catalog.to_hdf(self.filename, "catalog", complevel=9, complib="blosc")
             return 0
-        with pd.HDFStore(self.filename, "r") as store:
-            catalog = store["catalog"]
+        catalog = pd.read_hdf(self.filename, "catalog")
         if len(catalog.index) == 0:
             return 0
         sns = catalog.query(self.cond)["sn"]
@@ -734,9 +730,10 @@ class Database:
                 print(catalog[self.cond])
                 print(len(sns), self.num_all)
                 raise Exception("Database is broken.")
-            return min(sns)
+            sn: int = min(sns)
         else:
-            return max(catalog["sn"]) + 1
+            sn = max(catalog["sn"]) + 1
+        return sn
 
     @staticmethod
     def set_columns_dtype(df: DataFrame, columns: dict):
@@ -747,70 +744,73 @@ class Database:
     def load(self) -> tuple[dict, dict]:
         num_wr = len(self.ws)
         num_wi = len(self.wis)
-        with pd.HDFStore(self.filename, "r") as store:
-            betas = dict()
-            convs = dict()
-            catalog = store["catalog"]
-            sns = range(self.sn, self.sn + self.num_all)
-            #  If there is no data for sn, IndexError should be raised
-            #  in the following expression.
-            indices = [catalog[catalog["sn"] == sn].index[0] for sn in sns]
-            for i, sn in zip(indices, sns):
-                em = catalog.loc[i, "EM"]
-                n = catalog.loc[i, "n"]
-                m = catalog.loc[i, "m"]
-                data = store["sn_{}".format(sn)]
-                conv = data["conv"]
-                beta_real = data["beta_real"]
-                beta_imag = data["beta_imag"]
-                convs[(em, n, m)] = conv.values.reshape(num_wr, num_wi)
-                beta = np.zeros_like(beta_real.values, dtype=np.complex128)
-                beta.real = beta_real.values
-                beta.imag = beta_imag.values
-                betas[(em, n, m)] = beta.reshape(num_wr, num_wi)
+        betas = dict()
+        convs = dict()
+        sns = range(self.sn, self.sn + self.num_all)
+        catalog = pd.read_hdf(self.filename, "catalog")
+        indices = [catalog[catalog["sn"] == sn].index[0] for sn in sns]
+        #  If there is no data for sn, IndexError should be raised
+        #  in the following expression.
+        for i, sn in zip(indices, sns):
+            em = catalog.loc[i, "EM"]
+            n = catalog.loc[i, "n"]
+            m = catalog.loc[i, "m"]
+            data = pd.read_hdf(self.filename, f"sn_{sn}")
+            conv = data["conv"]
+            beta_real = data["beta_real"]
+            beta_imag = data["beta_imag"]
+            convs[(em, n, m)] = conv.values.reshape(num_wr, num_wi)
+            beta = np.zeros_like(beta_real.values, dtype=np.complex128)
+            beta.real = beta_real.values
+            beta.imag = beta_imag.values
+            betas[(em, n, m)] = beta.reshape(num_wr, num_wi)
         return betas, convs
 
     def save(self, betas: dict, convs: dict):
-        with pd.HDFStore(self.filename, complevel=9, complib="blosc") as store:
-            catalog = store["catalog"]
-            indices = catalog.query(self.cond).index
-            sns = catalog.query(self.cond)["sn"]
+        catalog = pd.read_hdf(self.filename, "catalog")
+        indices = catalog.query(self.cond).index
+        sns = catalog.query(self.cond)["sn"]
+        with pd.HDFStore(self.filename) as store:
             for i, sn in zip(indices, sns):
                 catalog = catalog.drop(i)
-                store.remove("sn_{}".format(sn))
-            sn = self.sn
-            for EM, n, m in sorted(convs.keys()):
-                se = pd.Series(
-                    [
-                        sn,
-                        self.shape,
-                        self.size,
-                        self.size2,
-                        self.core,
-                        self.clad,
-                        self.wl_max,
-                        self.wl_min,
-                        self.wl_imag,
-                        self.dw,
-                        self.num_n,
-                        self.num_m,
-                        EM,
-                        n,
-                        m,
-                    ],
-                    index=self.catalog_columns.keys(),
-                )
-                catalog = catalog.append(se, ignore_index=True)
-                conv = convs[(EM, n, m)].ravel()
-                beta = betas[(EM, n, m)].ravel()
-                df = pd.DataFrame(
-                    {"conv": conv, "beta_real": beta.real, "beta_imag": beta.imag},
-                    columns=self.data_columns.keys(),
-                )
-                self.set_columns_dtype(df, self.data_columns)
-                store.append("sn_{}".format(sn), df)
-                sn += 1
-            self.set_columns_dtype(catalog, self.catalog_columns)
+                del store[f"sn_{sn}"]
+        dfs = {}
+        sn = self.sn
+        for EM, n, m in sorted(convs.keys()):
+            se = pd.Series(
+                [
+                    sn,
+                    self.shape,
+                    self.size,
+                    self.size2,
+                    self.core,
+                    self.clad,
+                    self.wl_max,
+                    self.wl_min,
+                    self.wl_imag,
+                    self.dw,
+                    self.num_n,
+                    self.num_m,
+                    EM,
+                    n,
+                    m,
+                ],
+                index=self.catalog_columns.keys(),
+            )
+            catalog = catalog.append(se, ignore_index=True)
+            conv = convs[(EM, n, m)].ravel()
+            beta = betas[(EM, n, m)].ravel()
+            df = pd.DataFrame(
+                {"conv": conv, "beta_real": beta.real, "beta_imag": beta.imag},
+                columns=self.data_columns.keys(),
+            )
+            self.set_columns_dtype(df, self.data_columns)
+            dfs[sn] = df
+            sn += 1
+        self.set_columns_dtype(catalog, self.catalog_columns)
+        with pd.HDFStore(self.filename, complevel=9, complib="blosc") as store:
+            for sn, df in dfs.items():
+                store[f"sn_{sn}"] = df
             store["catalog"] = catalog
 
     def compress(self):
@@ -849,7 +849,7 @@ class Database:
             indices = [catalog[catalog["sn"] == sn].index[0] for sn in sns]
             for i, sn in zip(indices, sns):
                 catalog.drop(i, inplace=True)
-                store.remove("sn_{}".format(sn))
+                del store[f"sn_{sn}"]
             store["catalog"] = catalog
         self.sn = self.get_sn()
 
@@ -860,7 +860,7 @@ class Database:
             indices = [catalog[catalog["sn"] == sn].index[0] for sn in sns]
             for i, sn in zip(indices, sns):
                 catalog.drop(i, inplace=True)
-                store.remove("sn_{}".format(sn))
+                del store[f"sn_{sn}"]
             store["catalog"] = catalog
         self.sn = self.get_sn()
 
