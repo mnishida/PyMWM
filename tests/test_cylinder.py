@@ -23,7 +23,7 @@ def test_attributes():
     #
     # def test_Yab_pec(self):
     #     params = self.params.copy()
-    #     params['clad'] = {'model': 'pec'}
+    #     params['clad'] = {'PEC': True}
     #     wg = pymwm.create(params)
     #     w = 2 * np.pi / 5.0
     #     alpha1 = ('E', 1, 1)
@@ -53,7 +53,7 @@ def test_attributes():
 
     # def test_Yab_no_loss(self):
     #     params = self.params.copy()
-    #     params['clad'] = {'model': 'gold_dl', 'im_factor': 0.0}
+    #     params['clad'] = {'book': 'Au', 'page': 'Stewart-DLF', 'im_factor': 0.0}
     #     wg = pymwm.create(params)
     #     w = 2 * np.pi / 2.0
     #     print(wg.clad(w))

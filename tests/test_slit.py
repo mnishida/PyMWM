@@ -15,7 +15,7 @@ class TestSlit(unittest.TestCase):
             "bounds": {"wl_max": 5.0, "wl_min": 1.0, "wl_imag": 50.0},
             "modes": {"wl_max": 5.0, "wl_min": 1.0, "wl_imag": 50.0, "num_n": 6},
         }
-        self.pec = {"e": -1e8}
+        self.pec = {"PEC": True}
 
     def test_attributes(self):
         params = self.params.copy()

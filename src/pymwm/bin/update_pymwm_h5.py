@@ -20,7 +20,7 @@ def main():
             "gold_d": "Au Vial-DF",
             "silver_dl": "Ag Vial-DLF",
             "aluminium_dl": "Al Rakic-DLF",
-            "pec": "eps: -100000000.0",
+            "pec": "PEC",
         }
     )
     catalog["core"] = catalog["core"].str.replace("RI_", "RI: ")

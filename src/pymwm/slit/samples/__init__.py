@@ -141,7 +141,7 @@ class Samples(Sampling):
             xs: The roots, whose length is 2.
             success: The convergence information for xs.
         """
-        if self.clad(w).real < -1e7:
+        if self.clad.label == "PEC":
             xs = self.beta2_pec(w, parity, num_n)
             s = np.ones_like(xs, dtype=bool)
             if parity == "even" and pol == "E":
@@ -201,7 +201,7 @@ class Samples(Sampling):
             xs (np.ndarray): A 1D array indicating the roots, whose length is 2.
             success (np.ndarray): A 1D array indicating the convergence information for xs.
         """
-        if self.clad(self.ws[0]).real < -1e7:
+        if self.clad.label == "PEC":
             xs = self.beta2_pec(self.ws[0], parity, num_n)
             success = np.ones_like(xs, dtype=bool)
             if parity == "even" and pol == "E":

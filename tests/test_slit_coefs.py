@@ -23,7 +23,7 @@ class TestSlitCoefs(unittest.TestCase):
                 "ls": ["h", "v"],
             },
         }
-        self.pec = {"e": -1e8}
+        self.pec = {"PEC": True}
 
     def test_coefs(self):
         params = self.params.copy()

@@ -135,7 +135,7 @@ class Samples(Sampling):
             xs: A 1D array indicating the roots, whose length is 2*num_m+1.
             success: A 1D array indicating the convergence information for xs.
         """
-        if self.clad(w).real < -1e7:
+        if self.clad.label == "PEC":
             xs = self.beta2_pec(w, n)
             return xs, np.ones_like(xs, dtype=bool)
         num_m = self.params["num_m"]
@@ -265,7 +265,7 @@ class Samples(Sampling):
             xs: A 1D array indicating the roots, whose length is 2*num_m+1.
             success: A 1D array indicating the convergence information for xs.
         """
-        if self.clad(self.ws[0]).real < -1e7:
+        if self.clad.label == "PEC":
             xs = self.beta2_pec(self.ws[0], n)
             success = np.ones_like(xs, dtype=bool)
             return xs, success
