@@ -2,11 +2,14 @@
 
 [![PyPI version][pypi-image]][pypi-link]
 [![Anaconda Version][anaconda-v-image]][anaconda-v-link]
+[![Lint and Test][github-workflow-image]][github-workflow-link]
 
 [pypi-image]: https://badge.fury.io/py/pymwm.svg
 [pypi-link]: https://pypi.org/project/pymwm
 [anaconda-v-image]: https://anaconda.org/mnishida/pymwm/badges/version.svg
 [anaconda-v-link]: https://anaconda.org/mnishida/pymwm
+[github-workflow-image]: https://github.com/mnishida/PyMWM/actions/workflows/pythonapp.yml/badge.svg
+[github-workflow-link]: https://github.com/mnishida/PyMWM/actions/workflows/pythonapp.yml
 
 PyMWM is a metallic waveguide mode solver written in Python.
 
