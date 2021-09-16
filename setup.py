@@ -20,7 +20,7 @@ for name in ["cylinder", "slit", "bessel", "cutoff"]:
 
 setup(
     name="pymwm",
-    version="0.1.3",
+    version="0.2.0",
     url="https://github.com/mnishida/PyMWM",
     license="MIT",
     author="Munehiro Nishida",
@@ -36,7 +36,7 @@ setup(
     install_requires=[line.strip() for line in open("requirements.txt").readlines()],
     python_requires=">=3.7",
     classifiers=[
-        "Development Status :: 2 - Pre-Alpha",
+        "Development Status :: 3 - Alpha",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
