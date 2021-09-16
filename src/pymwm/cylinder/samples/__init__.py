@@ -6,6 +6,7 @@ from typing import Dict, List, Tuple
 import numpy as np
 import ray
 import riip
+from numpy.typing import ArrayLike
 from scipy.optimize import root
 from scipy.special import jn_zeros, jnp_zeros, jv, jvp, kv, kvp
 
@@ -77,11 +78,11 @@ class Samples(Sampling):
         h2s = np.hstack((h2s_mag, h2s_elec))
         return h2s
 
-    def u(self, h2: complex, w: complex, e1: complex) -> complex:
-        return (1 + 1j) * cmath.sqrt(-0.5j * (e1 * w ** 2 - h2)) * self.r
+    def u(self, h2: ArrayLike, w: complex, e1: complex) -> ArrayLike:
+        return (1 + 1j) * np.sqrt(-0.5j * (e1 * w ** 2 - h2)) * self.r
 
-    def v(self, h2: complex, w: complex, e2: complex) -> complex:
-        return (1 - 1j) * cmath.sqrt(0.5j * (-e2 * w ** 2 + h2)) * self.r
+    def v(self, h2: ArrayLike, w: complex, e2: complex) -> ArrayLike:
+        return (1 - 1j) * np.sqrt(0.5j * (-e2 * w ** 2 + h2)) * self.r
 
     def eig_eq(
         self, h2: complex, w: complex, pol: str, n: int, e1: complex, e2: complex
