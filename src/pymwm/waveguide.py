@@ -720,7 +720,7 @@ class Database:
             catalog = pd.DataFrame(columns=self.catalog_columns.keys())
             catalog.to_hdf(self.filename, "catalog", complevel=9, complib="blosc")
             return 0
-        catalog = pd.read_hdf(self.filename, "catalog")
+        catalog = self.load_catalog()
         if len(catalog.index) == 0:
             return 0
         sns = catalog.query(self.cond)["sn"]

@@ -7,7 +7,7 @@ from typing import Dict, List, Tuple
 import numpy as np
 
 from pymwm.utils.slit_utils import ABY_cython, coefs_cython, uvABY_cython
-from pymwm.waveguide import Waveguide
+from pymwm.waveguide import Database, Waveguide
 
 from .samples import Samples, SamplesForRay, SamplesLowLoss, SamplesLowLossForRay
 
@@ -96,15 +96,18 @@ class Slit(Waveguide):
         num_n_0 = p_modes["num_n"]
         betas = convs = None
         success = False
-        for num_n in [n for n in range(num_n_0, 25)]:
-            p_modes["num_n"] = num_n
-            smp = Samples(self.r, self.fill_params, self.clad_params, p_modes)
-            try:
-                betas, convs = smp.database.load()
-                success = True
-                break
-            except IndexError:
-                continue
+        catalog = Database().load_catalog()
+        num_n_max = catalog["num_n"].max()
+        if not np.isnan(num_n_max):
+            for num_n in [n for n in range(num_n_0, num_n_max + 1)]:
+                p_modes["num_n"] = num_n
+                smp = Samples(self.r, self.fill_params, self.clad_params, p_modes)
+                try:
+                    betas, convs = smp.database.load()
+                    success = True
+                    break
+                except IndexError:
+                    continue
         if not success:
             import ray
 

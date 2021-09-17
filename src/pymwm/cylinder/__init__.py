@@ -7,7 +7,7 @@ import ray
 from scipy.special import jn_zeros, jnp_zeros, jv, jvp, kv, kvp
 
 from pymwm.utils.cylinder_utils import ABY_cython, coefs_cython, uvABY_cython
-from pymwm.waveguide import Waveguide
+from pymwm.waveguide import Database, Waveguide
 
 from .samples import Samples, SamplesForRay, SamplesLowLoss, SamplesLowLossForRay
 
@@ -88,18 +88,24 @@ class Cylinder(Waveguide):
         num_m_0 = p_modes["num_m"]
         betas = convs = None
         success = False
-        for num_n, num_m in [
-            (n, m) for n in range(num_n_0, 17) for m in range(num_m_0, 5)
-        ]:
-            p_modes["num_n"] = num_n
-            p_modes["num_m"] = num_m
-            smp = Samples(self.r, self.fill_params, self.clad_params, p_modes)
-            try:
-                betas, convs = smp.database.load()
-                success = True
-                break
-            except IndexError:
-                continue
+        catalog = Database().load_catalog()
+        num_n_max = catalog["num_n"].max()
+        num_m_max = catalog["num_m"].max()
+        if not np.isnan(num_n_max):
+            for num_n, num_m in [
+                (n, m)
+                for n in range(num_n_0, num_n_max + 1)
+                for m in range(num_m_0, num_m_max + 1)
+            ]:
+                p_modes["num_n"] = num_n
+                p_modes["num_m"] = num_m
+                smp = Samples(self.r, self.fill_params, self.clad_params, p_modes)
+                try:
+                    betas, convs = smp.database.load()
+                    success = True
+                    break
+                except IndexError:
+                    continue
         if not success:
             p_modes["num_n"] = num_n_0
             p_modes["num_m"] = num_m_0

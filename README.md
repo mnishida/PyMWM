@@ -25,10 +25,7 @@ $ pip install -U pymwm
 ```
 #### Install using conda
 ```
-$ conda create -n pymwm
-$ conda activate pymwm
 $ conda install -c mnishida pymwm
-$ pip install ray
 ```
 
 ## Dependencies
@@ -202,63 +199,3 @@ For more information, see the [tutorial notebook](https://github.com/mnishida/Py
      alt="TM3 electric field" title="TM3 electric field" width="300"/>
 <img src="https://github.com/mnishida/PyMWM/wiki/images/TM3_magnetic.png"
      alt="TM3 magnetic field" title="TM3 magnetic field" width="300"/>
-
-#### Ey, Hx and Hz distributions on x axis
-* TE1
-<img src="https://github.com/mnishida/PyMWM/wiki/images/TE1_Ey.png"
-     alt="TE1 Ey" title="TE1 Ey" width="300"/>
-<img src="https://github.com/mnishida/PyMWM/wiki/images/TE1_Hx.png"
-     alt="TE1 Hx" title="TE1 Hx" width="300"/>
-<img src="https://github.com/mnishida/PyMWM/wiki/images/TE1_Hz.png"
-     alt="TE1 Hz" title="TE1 Hz" width="300"/>
-* TE2
-<img src="https://github.com/mnishida/PyMWM/wiki/images/TE2_Ey.png"
-     alt="TE2 Ey" title="TE2 Ey" width="300"/>
-<img src="https://github.com/mnishida/PyMWM/wiki/images/TE2_Hx.png"
-     alt="TE2 Hx" title="TE2 Hx" width="300"/>
-<img src="https://github.com/mnishida/PyMWM/wiki/images/TE2_Hz.png"
-     alt="TE2 Hz" title="TE2 Hz" width="300"/>
-* TE3
-<img src="https://github.com/mnishida/PyMWM/wiki/images/TE3_Ey.png"
-     alt="TE3 Ey" title="TE3 Ey" width="300"/>
-<img src="https://github.com/mnishida/PyMWM/wiki/images/TE3_Hx.png"
-     alt="TE3 Hx" title="TE3 Hx" width="300"/>
-<img src="https://github.com/mnishida/PyMWM/wiki/images/TE3_Hz.png"
-     alt="TE3 Hz" title="TE3 Hz" width="300"/>
-* TE4
-<img src="https://github.com/mnishida/PyMWM/wiki/images/TE4_Ey.png"
-     alt="TE4 Ey" title="TE4 Ey" width="300"/>
-<img src="https://github.com/mnishida/PyMWM/wiki/images/TE4_Hx.png"
-     alt="TE4 Hx" title="TE4 Hx" width="300"/>
-<img src="https://github.com/mnishida/PyMWM/wiki/images/TE4_Hz.png"
-     alt="TE4 Hz" title="TE4 Hz" width="300"/>
-
-#### Ex, Ez and Hy distributions on x axis
-* TM0
-<img src="https://github.com/mnishida/PyMWM/wiki/images/TM0_Ex.png"
-     alt="TM0 Ex" title="TM0 Ex" width="300"/>
-<img src="https://github.com/mnishida/PyMWM/wiki/images/TM0_Ez.png"
-     alt="TM0 Ez" title="TM0 Ez" width="300"/>
-<img src="https://github.com/mnishida/PyMWM/wiki/images/TM0_Hy.png"
-     alt="TM0 Hy" title="TM0 Hy" width="300"/>
-* TM1
-<img src="https://github.com/mnishida/PyMWM/wiki/images/TM1_Ex.png"
-     alt="TM1 Ex" title="TM1 Ex" width="300"/>
-<img src="https://github.com/mnishida/PyMWM/wiki/images/TM1_Ez.png"
-     alt="TM1 Ez" title="TM1 Ez" width="300"/>
-<img src="https://github.com/mnishida/PyMWM/wiki/images/TM1_Hy.png"
-     alt="TM1 Hy" title="TM1 Hy" width="300"/>
-* TM2
-<img src="https://github.com/mnishida/PyMWM/wiki/images/TM2_Ex.png"
-     alt="TM2 Ex" title="TM2 Ex" width="300"/>
-<img src="https://github.com/mnishida/PyMWM/wiki/images/TM2_Ez.png"
-     alt="TM2 Ez" title="TM2 Ez" width="300"/>
-<img src="https://github.com/mnishida/PyMWM/wiki/images/TM2_Hy.png"
-     alt="TM2 Hy" title="TM2 Hy" width="300"/>
-* TM3
-<img src="https://github.com/mnishida/PyMWM/wiki/images/TM3_Ex.png"
-     alt="TM3 Ex" title="TM3 Ex" width="300"/>
-<img src="https://github.com/mnishida/PyMWM/wiki/images/TM3_Ez.png"
-     alt="TM3 Ez" title="TM3 Ez" width="300"/>
-<img src="https://github.com/mnishida/PyMWM/wiki/images/TM3_Hy.png"
-     alt="TM3 Hy" title="TM3 Hy" width="300"/>
