@@ -27,6 +27,7 @@ requirements:
     - scipy
     - pandas
     - ray-default=1.6
+    - ray-dashboard=1.6
     - ipython
 
 test:
