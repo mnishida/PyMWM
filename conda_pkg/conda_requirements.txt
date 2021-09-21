@@ -1,6 +1,6 @@
 numpy
 scipy
 pandas
-ray-core
+ray-core>=1.6
 matplotlib
 riip
