@@ -19,7 +19,7 @@ for name in ["cylinder", "slit", "bessel", "cutoff"]:
 
 setup(
     name="pymwm",
-    version="0.2.8",
+    version="0.2.9",
     url="https://github.com/mnishida/PyMWM",
     license="MIT",
     author="Munehiro Nishida",
