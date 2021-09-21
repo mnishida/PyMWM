@@ -27,7 +27,6 @@ requirements:
     - scipy
     - pandas
     - ray-core
-    - ray-dashboard
     - ipython
 
 test:
