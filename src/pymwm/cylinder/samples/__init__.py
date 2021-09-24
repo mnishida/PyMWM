@@ -536,9 +536,9 @@ class SamplesLowLossForRay(SamplesLowLoss):
         for n, x0s in enumerate(xis_list):
             xis = xs = x0s
             success = np.ones_like(xs, dtype=bool)
-            for i in range(1, 16):
-                self.clad.im_factor = 0.7 ** i
-                if i == 15 or self.clad.im_factor < im_factor:
+            for i in range(1, 8):
+                self.clad.im_factor = 0.5 ** i
+                if i == 7 or self.clad.im_factor < im_factor:
                     self.clad.im_factor = im_factor
                 e2 = self.clad(w)
                 xs, success = self.beta2(w, n, e1, e2, xis)

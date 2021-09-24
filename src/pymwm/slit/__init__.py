@@ -92,6 +92,7 @@ class Slit(Waveguide):
     ) -> Tuple[np.ndarray, np.ndarray, Samples]:
         im_factor = self.clad.im_factor
         self.clad.im_factor = 1.0
+        self.clad_params["im_factor"] = 1.0
         p_modes = params["modes"].copy()
         num_n_0 = p_modes["num_n"]
         betas = convs = None
@@ -146,11 +147,13 @@ class Slit(Waveguide):
             smp.database.save(betas, convs)
         if im_factor != 1.0:
             self.clad.im_factor = im_factor
+            self.clad_params["im_factor"] = im_factor
             smp = SamplesLowLoss(self.r, self.fill_params, self.clad_params, p_modes)
             try:
                 betas, convs = smp.database.load()
             except IndexError:
                 self.clad.im_factor = im_factor
+                self.clad_params["im_factor"] = im_factor
                 num_n = p_modes["num_n"]
                 ns = list(range(num_n))
                 ns_e = ns[::2]
