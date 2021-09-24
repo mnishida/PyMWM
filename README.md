@@ -25,7 +25,10 @@ $ pip install -U pymwm
 ```
 #### Install using conda
 ```
+$ conda create -n pymwm python=3.8
+$ conda activate pymwm
 $ conda install -c mnishida pymwm
+$ pip install "ray[default]"
 ```
 
 ## Dependencies
