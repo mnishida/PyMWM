@@ -363,7 +363,7 @@ class SamplesLowLoss(Samples):
                 'num_m': An integer indicating the number of modes in each
                     order and polarization.
         """
-        super(SamplesLowLoss, self).__init__(size, fill, clad, params)
+        super().__init__(size, fill, clad, params)
 
     def betas_convs(self, xs_success_list):
         num_iwr = len(self.ws)
@@ -384,31 +384,31 @@ class SamplesLowLoss(Samples):
                 j = iwr * num_iwi + iwi
                 w = self.ws[iwr] + 1j * self.wis[iwi]
                 e2 = self.clad(w)
-                for n in ns_e:
-                    x = xs_success_list[j][0][0][n]
+                for i_n, n in enumerate(ns_e):
+                    x = xs_success_list[j][0][0][i_n]
                     v = self.v(x, w, e2)
                     betas[("M", n, 1)][iwr, iwi] = self.beta_from_beta2(x)
                     convs[("M", n, 1)][iwr, iwi] = (
-                        xs_success_list[j][1][0][n] if v.real > abs(v.imag) else False
+                        xs_success_list[j][1][0][i_n] if v.real > abs(v.imag) else False
                     )
-                    x = xs_success_list[j][0][2][n]
+                    x = xs_success_list[j][0][2][i_n]
                     v = self.v(x, w, e2)
                     betas[("E", n, 1)][iwr, iwi] = self.beta_from_beta2(x)
                     convs[("E", n, 1)][iwr, iwi] = (
-                        xs_success_list[j][1][1][n] if v.real > abs(v.imag) else False
+                        xs_success_list[j][1][2][i_n] if v.real > abs(v.imag) else False
                     )
-                for n in ns_o:
-                    x = xs_success_list[j][0][1][n]
+                for i_n, n in enumerate(ns_o):
+                    x = xs_success_list[j][0][1][i_n]
                     v = self.v(x, w, e2)
                     betas[("M", n, 1)][iwr, iwi] = self.beta_from_beta2(x)
                     convs[("M", n, 1)][iwr, iwi] = (
-                        xs_success_list[j][1][1][n] if v.real > abs(v.imag) else False
+                        xs_success_list[j][1][1][i_n] if v.real > abs(v.imag) else False
                     )
-                    x = xs_success_list[j][0][3][n]
+                    x = xs_success_list[j][0][3][i_n]
                     v = self.v(x, w, e2)
                     betas[("E", n, 1)][iwr, iwi] = self.beta_from_beta2(x)
                     convs[("E", n, 1)][iwr, iwi] = (
-                        xs_success_list[j][1][1][n] if v.real > abs(v.imag) else False
+                        xs_success_list[j][1][3][i_n] if v.real > abs(v.imag) else False
                     )
         return betas, convs
 
