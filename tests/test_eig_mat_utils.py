@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import numpy as np
 import numpy.testing as npt
 
@@ -49,16 +47,16 @@ def test_deriv_det4():
     da_dz = (a1 - a2) / 2e-4
     val1 = eig_mat_utils.deriv_det4_cython(a, b)
     val2 = deriv_det_func(a0, z)
-    print(f"{a=}")
-    print(f"{b=}")
-    print(f"{da_dz=}")
-    print(f"{np.linalg.det(a)=}")
-    print(f"{eigs(a, k=1, which = 'SM', return_eigenvectors=False)=}")
-    print(f"{np.linalg.eigvals(a)=}")
+    print(f"{a}")
+    print(f"{b}")
+    print(f"{da_dz}")
+    print(f"{np.linalg.det(a)}")
+    print(f"{eigs(a, k=1, which = 'SM', return_eigenvectors=False)}")
+    print(f"{np.linalg.eigvals(a)}")
     s, val = np.linalg.slogdet(a)
-    print(f"{s * np.exp(val)=}")
-    print(f"{eig_mat_utils.det4_cython(a)=}")
-    print(f"{val1=}")
-    print(f"{val2=}")
+    print(f"{s * np.exp(val)}")
+    print(f"{eig_mat_utils.det4_cython(a)}")
+    print(f"{val1}")
+    print(f"{val2}")
     npt.assert_allclose(b, da_dz)
     npt.assert_almost_equal(val1, val2)

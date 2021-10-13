@@ -1,12 +1,6 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-import unittest
-
 import numpy as np
 import numpy.testing as npt
-import ray
 
-import pymwm
 from pymwm.cylinder.samples import Samples
 
 
@@ -35,10 +29,10 @@ def test_eig_mat():
     a3, _ = wg.eig_mat(h2 + eps * 1j, w, "M", 0, e1, e2)
     a4, _ = wg.eig_mat(h2 - eps * 1j, w, "M", 0, e1, e2)
     da_dh2_2 = -1j * (a3 - a4) / (2 * eps)
-    print(f"{a=}")
-    print(f"{b=}")
-    print(f"{da_dh2_1=}")
-    print(f"{da_dh2_2=}")
+    print(f"{a}")
+    print(f"{b}")
+    print(f"{da_dh2_1}")
+    print(f"{da_dh2_2}")
     npt.assert_almost_equal(b, da_dh2_1)
     npt.assert_almost_equal(b, da_dh2_2)
     a, b = wg.eig_mat(h2, w, "E", 0, e1, e2)
@@ -48,10 +42,10 @@ def test_eig_mat():
     a3, _ = wg.eig_mat(h2 + eps * 1j, w, "E", 0, e1, e2)
     a4, _ = wg.eig_mat(h2 - eps * 1j, w, "E", 0, e1, e2)
     da_dh2_2 = -1j * (a3 - a4) / (2 * eps)
-    print(f"{a=}")
-    print(f"{b=}")
-    print(f"{da_dh2_1=}")
-    print(f"{da_dh2_2=}")
+    print(f"{a}")
+    print(f"{b}")
+    print(f"{da_dh2_1}")
+    print(f"{da_dh2_2}")
     npt.assert_almost_equal(b, da_dh2_1)
     npt.assert_almost_equal(b, da_dh2_2)
     a, b = wg.eig_mat(h2, w, "M", 1, e1, e2)
@@ -61,10 +55,10 @@ def test_eig_mat():
     a3, _ = wg.eig_mat(h2 + eps * 1j, w, "M", 1, e1, e2)
     a4, _ = wg.eig_mat(h2 - eps * 1j, w, "M", 1, e1, e2)
     da_dh2_2 = -1j * (a3 - a4) / (2 * eps)
-    print(f"{a=}")
-    print(f"{b=}")
-    print(f"{da_dh2_1=}")
-    print(f"{da_dh2_2=}")
+    print(f"{a}")
+    print(f"{b}")
+    print(f"{da_dh2_1}")
+    print(f"{da_dh2_2}")
     npt.assert_almost_equal(b, da_dh2_1)
     npt.assert_almost_equal(b, da_dh2_2)
 
@@ -76,10 +70,10 @@ def test_eig_mat():
     a3, _ = wg.eig_mat(h2 + eps * 1j, w, "M", 0, e1, e2)
     a4, _ = wg.eig_mat(h2 - eps * 1j, w, "M", 0, e1, e2)
     da_dh2_2 = -1j * (a3 - a4) / (2 * eps)
-    print(f"{a=}")
-    print(f"{b=}")
-    print(f"{da_dh2_1=}")
-    print(f"{da_dh2_2=}")
+    print(f"{a}")
+    print(f"{b}")
+    print(f"{da_dh2_1}")
+    print(f"{da_dh2_2}")
     npt.assert_almost_equal(b, da_dh2_1)
     npt.assert_almost_equal(b, da_dh2_2)
     a, b = wg.eig_mat(h2, w, "E", 0, e1, e2)
@@ -89,10 +83,10 @@ def test_eig_mat():
     a3, _ = wg.eig_mat(h2 + eps * 1j, w, "E", 0, e1, e2)
     a4, _ = wg.eig_mat(h2 - eps * 1j, w, "E", 0, e1, e2)
     da_dh2_2 = -1j * (a3 - a4) / (2 * eps)
-    print(f"{a=}")
-    print(f"{b=}")
-    print(f"{da_dh2_1=}")
-    print(f"{da_dh2_2=}")
+    print(f"{a}")
+    print(f"{b}")
+    print(f"{da_dh2_1}")
+    print(f"{da_dh2_2}")
     npt.assert_almost_equal(b, da_dh2_1)
     npt.assert_almost_equal(b, da_dh2_2)
     a, b = wg.eig_mat(h2, w, "M", 1, e1, e2)
@@ -102,9 +96,9 @@ def test_eig_mat():
     a3, _ = wg.eig_mat(h2 + eps * 1j, w, "M", 1, e1, e2)
     a4, _ = wg.eig_mat(h2 - eps * 1j, w, "M", 1, e1, e2)
     da_dh2_2 = -1j * (a3 - a4) / (2 * eps)
-    print(f"{a=}")
-    print(f"{b=}")
-    print(f"{da_dh2_1=}")
-    print(f"{da_dh2_2=}")
+    print(f"{a}")
+    print(f"{b}")
+    print(f"{da_dh2_1}")
+    print(f"{da_dh2_2}")
     npt.assert_almost_equal(b, da_dh2_1)
     npt.assert_almost_equal(b, da_dh2_2)

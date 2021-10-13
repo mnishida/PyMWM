@@ -189,10 +189,10 @@ def test_eiq_eq_for_min():
     )
     fpr = (f1 - f2) / 2e-4
     fpi = (f3 - f4) / 2e-4
-    print(f"{f=}")
-    print(f"{fp=}")
-    print(f"{fpr=}")
-    print(f"{fpi=}")
+    print(f"{f}")
+    print(f"{fp}")
+    print(f"{fpr}")
+    print(f"{fpi}")
     npt.assert_almost_equal(fp, np.array([fpr, fpi]))
 
 
