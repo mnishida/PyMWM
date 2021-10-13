@@ -7,7 +7,7 @@ import numpy as np
 import ray
 import riip
 
-from pymwm.utils.slit_utils import func_cython
+from pymwm.utils import slit_utils
 from pymwm.waveguide import Sampling
 
 logger = getLogger(__package__)
@@ -17,7 +17,26 @@ class Samples(Sampling):
     """A class defining samples of phase constants of slit waveguide modes.
 
     Attributes:
-        r: A float indicating the radius of the circular cross section [um].
+        fill: An instance of Material class for the core
+        clad: An instance of Material class for the clad
+        size: A float indicating the size of core [um].
+        size2: A float indicating the optional size of core [um].
+        params: A dict whose keys and values are as follows:
+            'wl_max': A float indicating the maximum wavelength [um]
+            'wl_min': A float indicating the minimum wavelength [um]
+            'wl_imag': A float indicating the minimum value of
+                abs(c / f_imag) [um] where f_imag is the imaginary part of
+                the frequency.
+            'dw': A float indicating frequency interval
+                [rad * c / 1um]=[2.99792458e14 rad / s].
+            'num_n': An integer indicating the number of orders of modes.
+            'num_m': An integer indicating the number of modes in each
+                order and polarization.
+        ws: A 1D array indicating the real part of the angular frequencies
+            to be calculated [rad (c / 1um)]=[2.99792458e14 rad / s].
+        wis: A 1D array indicating the imaginary part of the angular
+            frequencies to be calculated [rad * (c / 1um)].
+        r: A float indicating the width of slit [um].
     """
 
     def __init__(self, size: float, fill: dict, clad: dict, params: dict):
@@ -78,14 +97,24 @@ class Samples(Sampling):
         h2: np.ndarray = self.fill(w_comp) * w_comp ** 2 - (ns * np.pi / self.r) ** 2
         return h2
 
-    def u(self, h2: complex, w: complex, e1: complex) -> complex:
+    def u(
+        self, h2: complex | np.ndarray, w: complex, e1: complex
+    ) -> complex | np.ndarray:
         # return cmath.sqrt(e1 * w ** 2 - h2) * self.r / 2
-        return (1 + 1j) * cmath.sqrt(-0.5j * (e1 * w ** 2 - h2)) * self.r / 2
+        val: complex | np.ndarray = (
+            (1 + 1j) * np.sqrt(-0.5j * (e1 * w ** 2 - h2)) * self.r / 2
+        )
+        return val
 
-    def v(self, h2: complex, w: complex, e2: complex) -> complex:
+    def v(
+        self, h2: complex | np.ndarray, w: complex, e2: complex
+    ) -> complex | np.ndarray:
         # This definition is very important!!
         # Other definitions can not give good results in some cases
-        return (1 - 1j) * cmath.sqrt(0.5j * (-e2 * w ** 2 + h2)) * self.r / 2
+        val: complex | np.ndarray = (
+            (1 - 1j) * np.sqrt(0.5j * (-e2 * w ** 2 + h2)) * self.r / 2
+        )
+        return val
 
     def eig_eq(
         self, h2: complex, w: complex, pol: str, n: int, e1: complex, e2: complex
@@ -165,7 +194,7 @@ class Samples(Sampling):
                 success.append(False)
                 continue
             result = root(
-                func_cython,
+                slit_utils.func_cython,
                 np.array([xi.real, xi.imag]),
                 args=(w, pol, n, e1, e2, self.r, np.array(roots, dtype=complex)),
                 method="hybr",
@@ -232,7 +261,7 @@ class Samples(Sampling):
             xis = xs
         return xs, success
 
-    def betas_convs(self, xs_success_list):
+    def betas_convs(self, xs_success_list: list) -> tuple[dict, dict]:
         betas = {}
         convs = {}
         for i_pol, pol in enumerate(["M", "E"]):
@@ -323,14 +352,15 @@ class Samples(Sampling):
 
 
 class SamplesLowLoss(Samples):
-    """A class defining samples of phase constants of cylindrical waveguide
-    modes in a virtual low-loss clad waveguide by subclassing the SlitSamples
+    """A class defining samples of phase constants of slit waveguide
+    modes in a virtual low-loss clad waveguide by subclassing the Samples
     class.
 
     Attributes:
         fill: An instance of Material class for the core
         clad: An instance of Material class for the clad
-        r: A float indicating the width of the slit [um].
+        size: A float indicating the size of core [um].
+        size2: A float indicating the optional size of core [um].
         params: A dict whose keys and values are as follows:
             'wl_max': A float indicating the maximum wavelength [um]
             'wl_min': A float indicating the minimum wavelength [um]
@@ -340,10 +370,17 @@ class SamplesLowLoss(Samples):
             'dw': A float indicating frequency interval
                 [rad * c / 1um]=[2.99792458e14 rad / s].
             'num_n': An integer indicating the number of orders of modes.
+            'num_m': An integer indicating the number of modes in each
+                order and polarization.
+        ws: A 1D array indicating the real part of the angular frequencies
+            to be calculated [rad (c / 1um)]=[2.99792458e14 rad / s].
+        wis: A 1D array indicating the imaginary part of the angular
+            frequencies to be calculated [rad * (c / 1um)].
+        r: A float indicating the width of slit [um].
     """
 
     def __init__(self, size: float, fill: dict, clad: dict, params: dict):
-        """Init Samples class.
+        """Init SamplesLowLoss class.
 
         Args:
             size: A float indicating the width of the slit [um].

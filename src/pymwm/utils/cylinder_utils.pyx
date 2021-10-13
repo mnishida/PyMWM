@@ -2,6 +2,8 @@
 # cython: profile=False
 import numpy as np
 
+from pymwm.utils import eig_mat_utils
+
 cimport cython
 cimport numpy as np
 
@@ -391,6 +393,7 @@ def uvABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
 
 @cython.cdivision(True)
 cdef cdouble u_func(cdouble h2, cdouble w, cdouble e1, double r):
+    # return 1j * csqrt(-e1 * w ** 2 + h2) * r   This definition is bad because branch-cut crossing occurs
     return (1 + 1j) * csqrt(-0.5j * (e1 * w ** 2 - h2)) * r
 
 
@@ -402,156 +405,116 @@ cdef cdouble v_func(cdouble h2, cdouble w, cdouble e2, double r):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def eig_eq_cython(cdouble h2, cdouble w, str pol, int n, cdouble e1, cdouble e2, double r):
-    """Return the left value of the characteristic equation"""
-
-    cdef:
-        cdouble u = u_func(h2, w, e1, r)
-        cdouble v = v_func(h2, w, e2, r)
-        cdouble jus, jpus
-        cdouble kvs, kpvs
-        cdouble te, tm, val
-        cdouble vals[2]
-
-    jv_jvp(n, u, vals)
-    jus = vals[0]
-    jpus = vals[1]
-    kv_kvp(n, v, vals)
-    kvs = vals[0]
-    kpvs = vals[1]
-    te = jpus / u + kpvs * jus / (v * kvs)
-    tm = e1 * jpus / u + e2 * kpvs * jus / (v * kvs)
-    if n == 0:
-        if pol == "M":
-            val = tm
-        else:
-            val = te
-    else:
-        val = (
-            tm * te - h2 * (n / w) ** 2 * ((1 / u ** 2 + 1 / v ** 2) * jus) ** 2
-        )
-    return val
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-def jac_cython(double[::1] h2vec, cdouble w, str pol, int n, cdouble e1, cdouble e2, double r):
-    """Return Jacobian of the characteristic equation"""
-
-    cdef:
-        cdouble h2 = h2vec[0] + 1j * h2vec[1]
-        cdouble u = u_func(h2, w, e1, r)
-        cdouble v = v_func(h2, w, e2, r)
-        cdouble jus, jpus
-        cdouble kvs, kpvs, k_k
-        cdouble te, tm, val
-        cdouble du_dh2, dv_dh2, dte_du, dte_dv, dtm_du, dtm_dv, dre_dh2
-        cdouble vals[2]
-
-    jv_jvp(n, u, vals)
-    jus = vals[0]
-    jpus = vals[1]
-    kv_kvp(n, v, vals)
-    kvs = vals[0]
-    kpvs = vals[1]
-    k_k = kpvs / kvs
-    te = jpus / u + k_k * jus / v
-    tm = e1 * jpus / u + e2 * k_k * jus / v
-
-    du_dh2 = -r / (2 * u)
-    dv_dh2 = r / (2 * v)
-
-    dte_du = -(1 - n ** 2 / u ** 2) * jus / u - 2 * jpus / u ** 2 + k_k * jpus / v
-
-    dte_dv = jus * (n ** 2 / v + v * (1 - k_k ** 2) - 2 * k_k) / v ** 2
-
-    dtm_du = e1 * dte_du
-    dtm_dv = e2 * dte_dv
-
-
-    if n == 0:
-        if pol == "M":
-            val = dtm_du * du_dh2 + dtm_dv * dv_dh2
-        else:
-            val = dte_du * du_dh2 + dte_dv * dv_dh2
-    else:
-        dre_dh2 = (
-            -((n / w) ** 2)
-            * jus
-            * (
-                jus
-                * (
-                    (1 / u ** 2 + 1 / v ** 2) ** 2
-                    - r * h2 * (1 / u ** 4 - 1 / v ** 4)
-                )
-                + jpus * 2 * h2 * (1 / u ** 2 + 1 / v ** 2) ** 2
-            )
-        )
-        val = (
-            (dte_du * du_dh2 + dte_dv * dv_dh2) * tm
-            + (dtm_du * du_dh2 + dtm_dv * dv_dh2) * te
-            + dre_dh2
-        )
-    return np.array([[val.real, -val.imag], [val.imag, val.real]])
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-def func_cython(
-    double[::1] h2vec, cdouble w, str pol, int n, cdouble e1, cdouble e2, double r, cdouble[::1] roots
+cdef void eig_mat_cython(
+    cdouble h2, cdouble w, str pol, int n, cdouble e1, cdouble e2, double r, cdouble[:, ::1] a, cdouble[:, ::1] b
 ):
+    cdef:
+        cdouble vals[3]
+        cdouble w2 = w ** 2
+        cdouble hew = h2 / e2 / w2
+        cdouble ee = e1 / e2
+        cdouble u = u_func(h2, w, e1, r)
+        int sign
+        cdouble v = v_func(h2, w, e2, r)
+        cdouble ju, jpu, jppu, kv, kpv, kppv
+
+    if cimag(u) > 0:
+        sign = 1
+    elif cimag(u) == 0:
+        sign = 0
+    else:
+        sign = -1
+    jve_jvpe_jvppe(n, u, vals)
+    ju = vals[0]
+    jpu = vals[1]
+    jppu = vals[2]
+    kve_kvpe_kvppe(n, v, vals)
+    kv = vals[0]
+    kpv = vals[1]
+    kppv = vals[2]
+
+    cdef:
+        cdouble te = jpu * kv * v + kpv * ju * u
+        cdouble tm = ee * jpu * kv * v + kpv * ju * u
+        cdouble du_dh2 = -r ** 2 / (2 * u)
+        cdouble dv_dh2 = r ** 2 / (2 * v)
+        cdouble dte_du = jppu * kv * v + kpv * (jpu * u + ju) + 1j * sign * te
+        cdouble dte_dv = jpu * (kpv * v + kv) + kppv * ju * u + te
+        cdouble dte_dh2 = dte_du * du_dh2 + dte_dv * dv_dh2
+        cdouble dtm_du = ee * (jppu * kv * v) + kpv * (jpu * u + ju) + 1j * sign * tm
+        cdouble dtm_dv = ee * jpu * (kpv * v + kv) + kppv * ju * u + tm
+        cdouble dtm_dh2 = dtm_du * du_dh2 + dtm_dv * dv_dh2
+        cdouble nuv = n * (v / u + u / v) * ju * kv
+        cdouble dnuv_du = n * (- v / u ** 2 + 1 / v) * ju * kv + n * (v / u + u / v) * (jpu + 1j * sign * ju) * kv
+        cdouble dnuv_dv = n * (- u / v ** 2 + 1 / u) * ju * kv + n * (v / u + u / v) * ju * (kpv + kv)
+        cdouble dnuv_dh2 = dnuv_du * du_dh2 + dnuv_dv * dv_dh2
+
+    if n == 0:
+        if pol == "M":
+            a[0, 0] = tm
+            b[0, 0] = dtm_dh2
+        else:
+            a[0, 0] = te
+            b[0, 0] = dte_dh2
+    else:
+        a[0, 0] = te
+        a[0, 1] = nuv
+        a[1, 0] = hew * nuv
+        a[1, 1] = tm
+        b[0, 0] = dte_dh2
+        b[0, 1] = dnuv_dh2
+        b[1, 0] = hew * dnuv_dh2 + nuv / e2 / w2
+        b[1, 1] = dtm_dh2
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def eig_eq_cython(
+    double[::1] h2vec, cdouble w, str pol, int n, cdouble e1, cdouble e2, double r, cdouble[::1] roots
+) -> tuple[np.ndarray, np.ndarray]:
     """Return the value of the characteristic equation
 
     Args:
-        h2: The square of the phase constant.
+        h2vec: The real and imaginary parts of the square of propagation constant.
         w: The angular frequency
         pol: The polarization
         n: The order of the modes
         e1: The permittivity of the core
         e2: The permittivity of the clad.
-        r: The radius of hole
-        roots: Already obtained roots
     Returns:
         val: A complex indicating the left-hand value of the characteristic
             equation.
     """
     cdef:
-        int i
-        cdouble h2 = h2vec[0] + 1j * h2vec[1]
-        cdouble u = u_func(h2, w, e1, r)
-        cdouble v = v_func(h2, w, e2, r)
-        cdouble jus, jpus
-        cdouble kvs, kpvs
-        cdouble te, tm
-        cdouble vals[2]
-        cdouble f
-        cdouble denom = 1.0 + 0.0j
+        cdouble h2 = h2vec[0] + h2vec[1] * 1j
+        cdouble[:, ::1] a = np.empty((2, 2), dtype=complex)
+        cdouble[:, ::1] b = np.empty((2, 2), dtype=complex)
         double norm
+        cdouble f, fp, ddi, dd, denom, rt
+        int i, j
         int num = len(roots)
+        cdouble[::1] tanhs = np.empty(num, dtype=complex)
 
-    jv_jvp(n, u, vals)
-    jus = vals[0]
-    jpus = vals[1]
-    kv_kvp(n, v, vals)
-    kvs = vals[0]
-    kpvs = vals[1]
-    te = jpus / u + kpvs * jus / (v * kvs)
-    tm = e1 * jpus / u + e2 * kpvs * jus / (v * kvs)
+    eig_mat_cython(h2, w, pol, n, e1, e2, r, a, b)
     if n == 0:
-        if pol == "M":
-            f = tm
-        else:
-            f = te
+        f = a[0, 0]
+        fp = b[0, 0]
     else:
-        f = (
-            tm * te - h2 * (n / w) ** 2 * ((1 / u ** 2 + 1 / v ** 2) * jus) ** 2
-        )
+        f = a[0, 0] * a[1, 1] - a[0, 1] * a[1, 0]
+        fp = deriv_det2(a, b)
+
+    denom = 1.0
+    dd = 0.0
     for i in range(num):
-        denom *= h2 - roots[i]
-    norm = cabs(denom)
-    if norm < 1e-14:
-        denom /= norm * 1e14
+        tanhs[i] = ctanh(h2 - roots[i])
+    for i in range(num):
+        denom *= tanhs[i]
+        ddi = (tanhs[i] ** 2 - 1) / tanhs[i] ** 2
+        for j in range(num):
+            if j != i:
+                ddi /= tanhs[j]
+        dd += ddi
+    fp = fp / denom + f * dd
     f /= denom
-    return f.real, f.imag
+    return np.array([f.real, f.imag]), np.array([[fp.real, -fp.imag], [fp.imag, fp.real]])

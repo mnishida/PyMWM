@@ -5,7 +5,7 @@ from Cython.Distutils import build_ext
 from setuptools import Extension, find_packages, setup
 
 ext_modules = []
-for name in ["cylinder", "slit", "bessel", "cutoff"]:
+for name in ["cylinder", "slit", "bessel", "cutoff", "coax", "eig_mat"]:
     basename = os.path.join("src", "pymwm", "utils", f"{name}_utils")
     e = Extension(
         f"pymwm.utils.{name}_utils",
@@ -31,6 +31,10 @@ setup(
     packages=find_packages("src"),
     package_dir={"": "src"},
     include_package_data=True,
+    package_data={
+        "pymwm": ["py.typed"],
+        "pymwm.utils": ["py.typed", "*.pyi"],
+    },
     setup_requires=["Cython", "numpy", "scipy"],
     install_requires=[line.strip() for line in open("requirements.txt").readlines()],
     python_requires=">=3.7",

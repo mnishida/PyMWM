@@ -95,6 +95,18 @@ class Sampling(metaclass=abc.ABCMeta):
         )
         return d
 
+    @abc.abstractmethod
+    def u(
+        self, h2: complex | np.ndarray, w: complex, e1: complex
+    ) -> complex | np.ndarray:
+        pass
+
+    @abc.abstractmethod
+    def v(
+        self, h2: complex | np.ndarray, w: complex, e2: complex
+    ) -> complex | np.ndarray:
+        pass
+
     def plot_convs(self, convs: np.ndarray, alpha: tuple[str, int, int]) -> None:
         """Show area of convergence where a solution is found in complex angular frequency plane
 
@@ -240,9 +252,7 @@ class Waveguide(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def betas_convs_samples(
-        self, params: dict
-    ) -> tuple[np.ndarray, np.ndarray, Sampling]:
+    def betas_convs_samples(self, params: dict) -> tuple[dict, dict, Sampling]:
         pass
 
     @abc.abstractmethod
@@ -766,7 +776,9 @@ class Database:
             betas[(em, n, m)] = beta.reshape(num_wr, num_wi)
         return betas, convs
 
-    def save(self, betas: dict, convs: dict):
+    def save(self, betas: dict, convs: dict) -> None:
+        if len(betas) == 0 or len(convs) == 0:
+            raise ValueError("No mode could be obtained.")
         catalog = pd.read_hdf(self.filename, "catalog")
         indices = catalog.query(self.cond).index
         sns = catalog.query(self.cond)["sn"]
@@ -864,7 +876,7 @@ class Database:
             store["catalog"] = catalog
         self.sn = self.get_sn()
 
-    def interpolation(self, betas: np.ndarray, convs: np.ndarray, bounds: dict) -> dict:
+    def interpolation(self, betas: dict, convs: dict, bounds: dict) -> dict:
         from scipy.interpolate import RectBivariateSpline
 
         wl_max = bounds["wl_max"]

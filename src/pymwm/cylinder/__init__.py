@@ -1,13 +1,13 @@
-# -*- coding: utf-8 -*-
+from __future__ import annotations
+
 import cmath
-from typing import Dict, List, Tuple
 
 import numpy as np
 import ray
-from scipy.special import jn_zeros, jnp_zeros, jv, jvp, kv, kvp
+import scipy.special as ssp
 
-from pymwm.utils.cylinder_utils import ABY_cython, coefs_cython, uvABY_cython
-from pymwm.waveguide import Database, Waveguide
+from pymwm.utils import cylinder_utils
+from pymwm.waveguide import Database, Sampling, Waveguide
 
 from .samples import Samples, SamplesForRay, SamplesLowLoss, SamplesLowLossForRay
 
@@ -56,8 +56,8 @@ class Cylinder(Waveguide):
             self.num_n, self.num_m
         )
 
-    def get_alphas(self, alpha_list: List[Tuple[str, int, int]]) -> Dict:
-        alphas = {"h": [], "v": []}
+    def get_alphas(self, alpha_list: list[tuple[str, int, int]]) -> dict:
+        alphas: dict = {"h": [], "v": []}
         for alpha in [("E", 0, m) for m in range(1, self.num_m + 1)]:
             if alpha in alpha_list:
                 alphas["v"].append(alpha)
@@ -78,16 +78,15 @@ class Cylinder(Waveguide):
                 alphas["v"].append(alpha)
         return alphas
 
-    def betas_convs_samples(
-        self, params: Dict
-    ) -> Tuple[np.ndarray, np.ndarray, Samples]:
+    def betas_convs_samples(self, params: dict) -> tuple[dict, dict, Sampling]:
         im_factor = self.clad.im_factor
         self.clad.im_factor = 1.0
         self.clad_params["im_factor"] = 1.0
         p_modes = params["modes"].copy()
         num_n_0 = p_modes["num_n"]
         num_m_0 = p_modes["num_m"]
-        betas = convs = None
+        betas: dict = {}
+        convs: dict = {}
         success = False
         catalog = Database().load_catalog()
         num_n_max = catalog["num_n"].max()
@@ -169,7 +168,7 @@ class Cylinder(Waveguide):
                 smp.database.save(betas, convs)
         return betas, convs, smp
 
-    def beta(self, w: complex, alpha: Tuple[str, int, int]) -> complex:
+    def beta(self, w: complex, alpha: tuple[str, int, int]) -> complex:
         """Return phase constant
 
         Args:
@@ -183,8 +182,8 @@ class Cylinder(Waveguide):
         """
         wr = w.real
         wi = w.imag
-        hr = self.beta_funcs[(alpha, "real")](wr, wi)[0, 0]
-        hi = self.beta_funcs[(alpha, "imag")](wr, wi)[0, 0]
+        hr: float = self.beta_funcs[(alpha, "real")](wr, wi)[0, 0]
+        hi: float = self.beta_funcs[(alpha, "imag")](wr, wi)[0, 0]
         # if hr < 0:
         #     hr = 1e-16
         # if hi < 0:
@@ -205,9 +204,9 @@ class Cylinder(Waveguide):
         w_comp = w.real + 1j * w.imag
         pol, n, m = alpha
         if pol == "E":
-            chi = jnp_zeros(n, m)[-1]
+            chi = ssp.jnp_zeros(n, m)[-1]
         elif pol == "M":
-            chi = jn_zeros(n, m)[-1]
+            chi = ssp.jn_zeros(n, m)[-1]
         else:
             raise ValueError("pol must be 'E' or 'M")
         val = cmath.sqrt(self.fill(w_comp) * w_comp ** 2 - chi ** 2 / self.r ** 2)
@@ -248,10 +247,10 @@ class Cylinder(Waveguide):
         else:
             u = self.samples.u(h ** 2, w, e1)
             v = self.samples.v(h ** 2, w, e2)
-            knv = kv(n, v)
-            knpv = kvp(n, v)
-            jnu = jv(n, u)
-            jnpu = jvp(n, u)
+            knv = ssp.kv(n, v)
+            knpv = ssp.kvp(n, v)
+            jnu = ssp.jv(n, u)
+            jnpu = ssp.jvp(n, u)
             ci = -n * (u ** 2 + v ** 2) * jnu * knv / (u * v)
             if pol == "E":
                 ci *= (h / w) ** 2
@@ -272,38 +271,29 @@ class Cylinder(Waveguide):
         if self.clad(w).real < -1e6:
             radius = self.r
             if pol == "E":
-                u = jnp_zeros(n, m)[-1]
-                jnu = jv(n, u)
+                u = ssp.jnp_zeros(n, m)[-1]
+                jnu = ssp.jv(n, u)
                 jnpu = 0.0
             else:
-                u = jn_zeros(n, m)[-1]
+                u = ssp.jn_zeros(n, m)[-1]
                 jnu = 0.0
-                jnpu = jvp(n, u)
+                jnpu = ssp.jvp(n, u)
             return cmath.sqrt(
                 a ** 2 * np.pi * radius ** 2 / en * (1 - n ** 2 / u ** 2) * jnu ** 2
                 + b ** 2 * np.pi * radius ** 2 / en * jnpu ** 2
             )
-        # ac = a.conjugate()
-        # bc = b.conjugate()
         u = self.samples.u(h ** 2, w, self.fill(w))
-        jnu = jv(n, u)
-        jnpu = jvp(n, u)
+        jnu = ssp.jv(n, u)
+        jnpu = ssp.jvp(n, u)
         v = self.samples.v(h ** 2, w, self.clad(w))
-        knv = kv(n, v)
-        knpv = kvp(n, v)
-        # uc = u.conjugate()
-        # jnuc = jnu.conjugate()
-        # jnpuc = jnpu.conjugate()
-        # vc = v.conjugate()
-        # knvc = knv.conjugate()
-        # knpvc = knpv.conjugate()
+        knv = ssp.kv(n, v)
+        knpv = ssp.kvp(n, v)
         val_u = 2 * np.pi * self.r ** 2 / en
         val_v = val_u * ((u * jnu) / (v * knv)) ** 2
-        # val_v = val_u * (uc * u * jnuc * jnu) / (vc * v * knvc * knv)
-        upart_diag = self.upart_diag(n, u, jnu, jnpu, u, jnu, jnpu)
-        vpart_diag = self.vpart_diag(n, v, knv, knpv, v, knv, knpv)
-        upart_off = self.upart_off(n, u, jnu, u, jnu)
-        vpart_off = self.vpart_off(n, v, knv, v, knv)
+        upart_diag = self.upart_diag(n, u, jnu, jnpu)
+        vpart_diag = self.vpart_diag(n, v, knv, knpv)
+        upart_off = self.upart_off(n, u, jnu)
+        vpart_off = self.vpart_off(n, v, knv)
         return cmath.sqrt(
             val_u
             * (
@@ -316,65 +306,22 @@ class Cylinder(Waveguide):
                 + b * (b * vpart_diag + a * vpart_off)
             )
         )
-        # upart_diag = self.upart_diag(n, uc, jnuc, jnpuc, u, jnu, jnpu)
-        # vpart_diag = self.vpart_diag(n, vc, knvc, knpvc, v, knv, knpv)
-        # upart_off = self.upart_off(n, uc, jnuc, u, jnu)
-        # vpart_off = self.vpart_off(n, vc, knvc, v, knv)
-        # return cmath.sqrt(np.real(
-        #     val_u * (
-        #         a * (ac * upart_diag + bc * upart_off) +
-        #         b * (bc * upart_diag + ac * upart_off)) -
-        #     val_v * (
-        #         a * (ac * vpart_diag + bc * vpart_off) +
-        #         b * (bc * vpart_diag + ac * vpart_off))))
 
     @staticmethod
-    def upart_diag(n, uc, jnuc, jnpuc, u, jnu, jnpu):
-        if abs(uc - u) < 1e-10:
-            u0 = (u + uc) / 2
-            jnu0 = jv(n, u0)
-            jnpu0 = jvp(n, u0)
-            return (
-                jnu0 * jnpu0 / u0
-                + (jnpu0 ** 2 + (1 - n ** 2 / u0 ** 2) * jnu0 ** 2) / 2
-            )
-        if abs(uc + u) < 1e-10:
-            u0 = (u - uc) / 2
-            jnu0 = jv(n, u0)
-            jnpu0 = jvp(n, u0)
-            return (-1) ** (n - 1) * (
-                jnu0 * jnpu0 / u0
-                + (jnpu0 ** 2 + (1 - n ** 2 / u0 ** 2) * jnu0 ** 2) / 2
-            )
-        return (uc * jnuc * jnpu - u * jnu * jnpuc) / (uc ** 2 - u ** 2)
+    def upart_diag(n, u, jnu, jnpu):
+        return jnu * jnpu / u + (jnpu ** 2 + (1 - n ** 2 / u ** 2) * jnu ** 2) / 2
 
     @staticmethod
-    def upart_off(n, uc, jnuc, u, jnu):
-        return n * (jnuc * jnu) / (uc * u)
+    def upart_off(n, u, jnu):
+        return n * (jnu / u) ** 2
 
     @staticmethod
-    def vpart_diag(n, vc, knvc, knpvc, v, knv, knpv):
-        if abs(vc - v) < 1e-10:
-            v0 = (v + vc) / 2
-            knv0 = kv(n, v0)
-            knpv0 = kvp(n, v0)
-            return (
-                knv0 * knpv0 / v0
-                + (knpv0 ** 2 - (1 + n ** 2 / v0 ** 2) * knv0 ** 2) / 2
-            )
-        if abs(vc + v) < 1e-10:
-            v0 = (v - vc) / 2
-            knv0 = kv(n, v0)
-            knpv0 = kvp(n, v0)
-            return (-1) ** (n - 1) * (
-                knv0 * knpv0 / v0
-                + (knpv0 ** 2 - (1 + n ** 2 / v0 ** 2) * knv0 ** 2) / 2
-            )
-        return (vc * knvc * knpv - v * knv * knpvc) / (vc ** 2 - v ** 2)
+    def vpart_diag(n, v, knv, knpv):
+        return knv * knpv / v + (knpv ** 2 - (1 + n ** 2 / v ** 2) * knv ** 2) / 2
 
     @staticmethod
-    def vpart_off(n, vc, knvc, v, knv):
-        return n * (knvc * knv) / (vc * v)
+    def vpart_off(n, v, knv):
+        return n * (knv / v) ** 2
 
     def Y(self, w, h, alpha, a, b):
         """Return the effective admittance of the waveguide mode
@@ -401,90 +348,23 @@ class Cylinder(Waveguide):
                 val = e1 * w / h
         else:
             u = self.samples.u(h ** 2, w, e1)
-            jnu = jv(n, u)
-            jnpu = jvp(n, u)
+            jnu = ssp.jv(n, u)
+            jnpu = ssp.jvp(n, u)
             v = self.samples.v(h ** 2, w, e2)
-            knv = kv(n, v)
-            knpv = kvp(n, v)
+            knv = ssp.kv(n, v)
+            knpv = ssp.kvp(n, v)
             val_u = 2 * np.pi * self.r ** 2 / en
             val_v = val_u * ((u * jnu) / (v * knv)) ** 2
-            upart_diag = self.upart_diag(n, u, jnu, jnpu, u, jnu, jnpu)
-            vpart_diag = self.vpart_diag(n, v, knv, knpv, v, knv, knpv)
-            upart_off = self.upart_off(n, u, jnu, u, jnu)
-            vpart_off = self.vpart_off(n, v, knv, v, knv)
+            upart_diag = self.upart_diag(n, u, jnu, jnpu)
+            vpart_diag = self.vpart_diag(n, v, knv, knpv)
+            upart_off = self.upart_off(n, u, jnu)
+            vpart_off = self.vpart_off(n, v, knv)
             val = val_u * (
                 h / w * a * (a * upart_diag + b * upart_off)
                 + e1 * w / h * b * (b * upart_diag + a * upart_off)
             ) - val_v * (
                 h / w * a * (a * vpart_diag + b * vpart_off)
                 + e2 * w / h * b * (b * vpart_diag + a * vpart_off)
-            )
-        return val
-
-    def Yab(self, w, h1, s1, l1, n1, m1, a1, b1, h2, s2, l2, n2, m2, a2, b2):
-        """Return the admittance matrix element of the waveguide modes using
-        orthogonality.
-
-        Args:
-            w: A complex indicating the angular frequency
-            h1: A complex indicating the phase constant.
-            s1: 0 for TE-like mode or 1 for TM-like mode
-            l1: 0 for h mode or 1 for v mode
-            n1: the order of the mode
-            m1: the number of modes in the order and the polarization
-            a1: A complex indicating the coefficient of TE-component
-            b1: A complex indicating the coefficient of TM-component
-            h2: A complex indicating the phase constant.
-            s2: 0 for TE-like mode or 1 for TM-like mode
-            l2: 0 for h mode or 1 for v mode
-            n2: the order of the mode
-            m2: the number of modes in the order and the polarization
-            a2: A complex indicating the coefficient of TE-component
-            b2: A complex indicating the coefficient of TM-component
-        Returns:
-            y: A complex indicating the effective admittance
-        """
-        if n1 != n2 or l1 != l2:
-            return 0.0
-        n = n1
-        e1 = self.fill(w)
-        e2 = self.clad(w)
-        en = 1 if n == 0 else 2
-        if e2.real < -1e6:
-            if s1 != s2 or m1 != m2:
-                return 0.0
-            if s1 == 0:
-                val = h2 / w
-            else:
-                val = e1 * w / h2
-        else:
-            ac = a1
-            bc = b1
-            a, b = a2, b2
-            uc = self.samples.u(h1 ** 2, w, e1)
-            vc = self.samples.v(h1 ** 2, w, e2)
-            u = self.samples.u(h2 ** 2, w, e1)
-            v = self.samples.v(h2 ** 2, w, e2)
-            jnuc = jv(n, uc)
-            jnpuc = jvp(n, uc)
-            knvc = kv(n, vc)
-            knpvc = kvp(n, vc)
-            jnu = jv(n, u)
-            jnpu = jvp(n, u)
-            knv = kv(n, v)
-            knpv = kvp(n, v)
-            val_u = 2 * np.pi * self.r ** 2 / en
-            val_v = val_u * (uc * u * jnuc * jnu) / (vc * v * knvc * knv)
-            upart_diag = self.upart_diag(n, uc, jnuc, jnpuc, u, jnu, jnpu)
-            vpart_diag = self.vpart_diag(n, vc, knvc, knpvc, v, knv, knpv)
-            upart_off = self.upart_off(n, uc, jnuc, u, jnu)
-            vpart_off = self.vpart_off(n, vc, knvc, v, knv)
-            val = val_u * (
-                h2 / w * a * (ac * upart_diag + bc * upart_off)
-                + e1 * w / h2 * b * (bc * upart_diag + ac * upart_off)
-            ) - val_v * (
-                h2 / w * a * (ac * vpart_diag + bc * vpart_off)
-                + e2 * w / h2 * b * (bc * vpart_diag + ac * vpart_off)
             )
         return val
 
@@ -534,29 +414,29 @@ class Cylinder(Waveguide):
         y_te = self.y_te(w, h)
         if r <= self.r:
             y_tm = self.y_tm_inner(w, h)
-            er_te = (jv(n - 1, ur) + jv(n + 1, ur)) / 2 * fr
-            er_tm = jvp(n, ur) * fr
+            er_te = (ssp.jv(n - 1, ur) + ssp.jv(n + 1, ur)) / 2 * fr
+            er_tm = ssp.jvp(n, ur) * fr
             er = a * er_te + b * er_tm
-            ep_te = jvp(n, ur) * fp
-            ep_tm = (jv(n - 1, ur) + jv(n + 1, ur)) / 2 * fp
+            ep_te = ssp.jvp(n, ur) * fp
+            ep_tm = (ssp.jv(n - 1, ur) + ssp.jv(n + 1, ur)) / 2 * fp
             ep = a * ep_te + b * ep_tm
-            ez = u / (1j * h * self.r) * b * jv(n, ur) * fr
+            ez = u / (1j * h * self.r) * b * ssp.jv(n, ur) * fr
             hr = -y_te * a * ep_te - y_tm * b * ep_tm
             hp = y_te * a * er_te + y_tm * b * er_tm
-            hz = -u / (1j * h * self.r) * y_te * a * jv(n, ur) * fp
+            hz = -u / (1j * h * self.r) * y_te * a * ssp.jv(n, ur) * fp
         else:
             y_tm = self.y_tm_outer(w, h)
-            val = -u * jv(n, u) / (v * kv(n, v))
-            er_te = -(kv(n - 1, vr) - kv(n + 1, vr)) / 2 * fr * val
-            er_tm = kvp(n, vr) * fr * val
+            val = -u * ssp.jv(n, u) / (v * ssp.kv(n, v))
+            er_te = -(ssp.kv(n - 1, vr) - ssp.kv(n + 1, vr)) / 2 * fr * val
+            er_tm = ssp.kvp(n, vr) * fr * val
             er = a * er_te + b * er_tm
-            ep_te = kvp(n, vr) * fp * val
-            ep_tm = -(kv(n - 1, vr) - kv(n + 1, vr)) / 2 * fp * val
+            ep_te = ssp.kvp(n, vr) * fp * val
+            ep_tm = -(ssp.kv(n - 1, vr) - ssp.kv(n + 1, vr)) / 2 * fp * val
             ep = a * ep_te + b * ep_tm
-            ez = -v / (1j * h * self.r) * b * kv(n, vr) * fr * val
+            ez = -v / (1j * h * self.r) * b * ssp.kv(n, vr) * fr * val
             hr = -y_te * a * ep_te - y_tm * b * ep_tm
             hp = y_te * a * er_te + y_tm * b * er_tm
-            hz = v / (1j * h * self.r) * y_te * a * kv(n, vr) * fp * val
+            hz = v / (1j * h * self.r) * y_te * a * ssp.kv(n, vr) * fp * val
         ex = er * np.cos(p) - ep * np.sin(p)
         ey = er * np.sin(p) + ep * np.cos(p)
         hx = hr * np.cos(p) - hp * np.sin(p)
@@ -595,22 +475,22 @@ class Cylinder(Waveguide):
             fr = np.sin(n * p)
             fp = np.cos(n * p)
         if r <= self.r:
-            er_te = (jv(n - 1, ur) + jv(n + 1, ur)) / 2 * fr
-            er_tm = jvp(n, ur) * fr
+            er_te = (ssp.jv(n - 1, ur) + ssp.jv(n + 1, ur)) / 2 * fr
+            er_tm = ssp.jvp(n, ur) * fr
             er = a * er_te + b * er_tm
-            ep_te = jvp(n, ur) * fp
-            ep_tm = (jv(n - 1, ur) + jv(n + 1, ur)) / 2 * fp
+            ep_te = ssp.jvp(n, ur) * fp
+            ep_tm = (ssp.jv(n - 1, ur) + ssp.jv(n + 1, ur)) / 2 * fp
             ep = a * ep_te + b * ep_tm
-            ez = u / (1j * h * self.r) * b * jv(n, ur) * fr
+            ez = u / (1j * h * self.r) * b * ssp.jv(n, ur) * fr
         else:
-            val = -u * jv(n, u) / (v * kv(n, v))
-            er_te = -(kv(n - 1, vr) - kv(n + 1, vr)) / 2 * fr * val
-            er_tm = kvp(n, vr) * fr * val
+            val = -u * ssp.jv(n, u) / (v * ssp.kv(n, v))
+            er_te = -(ssp.kv(n - 1, vr) - ssp.kv(n + 1, vr)) / 2 * fr * val
+            er_tm = ssp.kvp(n, vr) * fr * val
             er = a * er_te + b * er_tm
-            ep_te = kvp(n, vr) * fp * val
-            ep_tm = -(kv(n - 1, vr) - kv(n + 1, vr)) / 2 * fp * val
+            ep_te = ssp.kvp(n, vr) * fp * val
+            ep_tm = -(ssp.kv(n - 1, vr) - ssp.kv(n + 1, vr)) / 2 * fp * val
             ep = a * ep_te + b * ep_tm
-            ez = -v / (1j * h * self.r) * b * kv(n, vr) * fr * val
+            ez = -v / (1j * h * self.r) * b * ssp.kv(n, vr) * fr * val
         ex = er * np.cos(p) - ep * np.sin(p)
         ey = er * np.sin(p) + ep * np.cos(p)
         return np.array([ex, ey, ez])
@@ -649,23 +529,23 @@ class Cylinder(Waveguide):
         y_te = self.y_te(w, h)
         if r <= self.r:
             y_tm = self.y_tm_inner(w, h)
-            er_te = (jv(n - 1, ur) + jv(n + 1, ur)) / 2 * fr
-            er_tm = jvp(n, ur) * fr
-            ep_te = jvp(n, ur) * fp
-            ep_tm = (jv(n - 1, ur) + jv(n + 1, ur)) / 2 * fp
+            er_te = (ssp.jv(n - 1, ur) + ssp.jv(n + 1, ur)) / 2 * fr
+            er_tm = ssp.jvp(n, ur) * fr
+            ep_te = ssp.jvp(n, ur) * fp
+            ep_tm = (ssp.jv(n - 1, ur) + ssp.jv(n + 1, ur)) / 2 * fp
             hr = -y_te * a * ep_te - y_tm * b * ep_tm
             hp = y_te * a * er_te + y_tm * b * er_tm
-            hz = -u / (1j * h * self.r) * y_te * a * jv(n, ur) * fp
+            hz = -u / (1j * h * self.r) * y_te * a * ssp.jv(n, ur) * fp
         else:
             y_tm = self.y_tm_outer(w, h)
-            val = -u * jv(n, u) / (v * kv(n, v))
-            er_te = -(kv(n - 1, vr) - kv(n + 1, vr)) / 2 * fr * val
-            er_tm = kvp(n, vr) * fr * val
-            ep_te = kvp(n, vr) * fp * val
-            ep_tm = -(kv(n - 1, vr) - kv(n + 1, vr)) / 2 * fp * val
+            val = -u * ssp.jv(n, u) / (v * ssp.kv(n, v))
+            er_te = -(ssp.kv(n - 1, vr) - ssp.kv(n + 1, vr)) / 2 * fr * val
+            er_tm = ssp.kvp(n, vr) * fr * val
+            ep_te = ssp.kvp(n, vr) * fp * val
+            ep_tm = -(ssp.kv(n - 1, vr) - ssp.kv(n + 1, vr)) / 2 * fp * val
             hr = -y_te * a * ep_te - y_tm * b * ep_tm
             hp = y_te * a * er_te + y_tm * b * er_tm
-            hz = v / (1j * h * self.r) * y_te * a * kv(n, vr) * fp * val
+            hz = v / (1j * h * self.r) * y_te * a * ssp.kv(n, vr) * fp * val
         hx = hr * np.cos(p) - hp * np.sin(p)
         hy = hr * np.sin(p) + hp * np.cos(p)
         return np.array([hx, hy, hz])
@@ -676,12 +556,12 @@ class Cylinder(Waveguide):
         jnus = np.empty((2, num_n, num_m))
         jnpus = np.empty((2, num_n, num_m))
         for n in range(num_n):
-            us[0, n] = jnp_zeros(n, num_m)
-            us[1, n] = jn_zeros(n, num_m)
-            jnus[0, n] = jv(n, us[0, n])
+            us[0, n] = ssp.jnp_zeros(n, num_m)
+            us[1, n] = ssp.jn_zeros(n, num_m)
+            jnus[0, n] = ssp.jv(n, us[0, n])
             jnus[1, n] = np.zeros(num_m)
             jnpus[0, n] = np.zeros(num_m)
-            jnpus[1, n] = jvp(n, us[1, n])
+            jnpus[1, n] = ssp.jvp(n, us[1, n])
         return us, jnus, jnpus
 
     def coefs_numpy(self, hs, w):
@@ -695,7 +575,7 @@ class Cylinder(Waveguide):
         return np.ascontiguousarray(As), np.ascontiguousarray(Bs)
 
     def coefs(self, hs, w):
-        return coefs_cython(self, hs, w)
+        return cylinder_utils.coefs_cython(self, hs, w)
 
     def Ys(self, w, hs, As, Bs):
         vals = []
@@ -703,20 +583,6 @@ class Cylinder(Waveguide):
             pol = "E" if s == 0 else "M"
             vals.append(self.Y(w, h, (pol, n, 1), a, b))
         return np.array(vals)
-
-    # def Ymat(self, w, hs, As, Bs):
-    #     mat = []
-    #     for h1, s1, l1, n1, m1, a1, b1 in zip(
-    #             hs, self.s_all, self.l_all, self.n_all, self.m_all, As, Bs):
-    #         row = []
-    #         for h2, s2, l2, n2, m2, a2, b2 in zip(
-    #                 hs, self.s_all, self.l_all, self.n_all, self.m_all,
-    #                 As, Bs):
-    #             row.append(self.modes.Y_orthogonal(
-    #                 w, h1, s1, l1, n1, m1, a1, b1,
-    #                 h2, s2, l2, n2, m2, a2, b2))
-    #         mat.append(row)
-    #     return np.array(mat)
 
     def hAB(self, w):
         hs = np.array([self.beta(w, alpha) for alpha in self.alpha_all])
@@ -726,7 +592,7 @@ class Cylinder(Waveguide):
     def ABY(self, w, hs):
         e1 = self.fill(w)
         e2 = self.clad(w)
-        return ABY_cython(
+        return cylinder_utils.ABY_cython(
             w,
             self.r,
             self.s_all,
@@ -740,19 +606,11 @@ class Cylinder(Waveguide):
             self.jnpu_pec,
         )
 
-    # def ABYmat(self, w, hs):
-    #     e1 = self.fill(w)
-    #     e2 = self.clad(w)
-    #     return ABYmat_cython(
-    #         w, self.r, self.s_all, self.l_all,
-    #         self.n_all, self.m_all, hs, e1, e2, self.u_pec, self.jnu_pec,
-    #         self.jnpu_pec)
-
     def hABY(self, w):
         e1 = self.fill(w)
         e2 = self.clad(w)
         hs = np.array([self.beta(w, alpha) for alpha in self.alpha_all])
-        As, Bs, Y = ABY_cython(
+        As, Bs, Y = cylinder_utils.ABY_cython(
             w,
             self.r,
             self.s_all,
@@ -771,7 +629,7 @@ class Cylinder(Waveguide):
         e1 = self.fill(w)
         e2 = self.clad(w)
         hs = np.array([self.beta(w, alpha) for alpha in self.alpha_all])
-        us, vs, As, Bs, Y = uvABY_cython(
+        us, vs, As, Bs, Y = cylinder_utils.uvABY_cython(
             w,
             self.r,
             self.s_all,
@@ -785,14 +643,3 @@ class Cylinder(Waveguide):
             self.jnpu_pec,
         )
         return hs, us, vs, As, Bs, Y
-
-    # def hABYmat(self, w):
-    #     e1 = self.fill(w)
-    #     e2 = self.clad(w)
-    #     hs = np.array([self.beta(w, alpha)
-    #                    for alpha in self.alpha_all])
-    #     As, Bs, Ymat = ABYmat_cython(
-    #         w, self.r, self.s_all, self.l_all,
-    #         self.n_all, self.m_all, hs, e1, e2, self.u_pec, self.jnu_pec,
-    #         self.jnpu_pec)
-    #     return hs, As, Bs, Ymat

@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import cmath
 from logging import getLogger
-from typing import Dict, List, Tuple
 
 import numpy as np
 
-from pymwm.utils.slit_utils import ABY_cython, coefs_cython, uvABY_cython
-from pymwm.waveguide import Database, Waveguide
+from pymwm.utils import slit_utils
+from pymwm.waveguide import Database, Sampling, Waveguide
 
 from .samples import Samples, SamplesForRay, SamplesLowLoss, SamplesLowLossForRay
 
@@ -60,8 +59,8 @@ class Slit(Waveguide):
             params["modes"]["num_m"] = 1
         super().__init__(params)
 
-    def get_alphas(self, alpha_list: List[Tuple[str, int, int]]) -> Dict:
-        alphas = {"h": [], "v": []}
+    def get_alphas(self, alpha_list: list[tuple[str, int, int]]) -> dict:
+        alphas: dict = {"h": [], "v": []}
         for alpha in [("E", n, 1) for n in range(1, self.num_n)]:
             if alpha in alpha_list:
                 alphas["v"].append(alpha)
@@ -87,15 +86,14 @@ class Slit(Waveguide):
             success_list.append(success_e[:, :, -1])
         return np.dstack(xs_list), np.dstack(success_list)
 
-    def betas_convs_samples(
-        self, params: Dict
-    ) -> Tuple[np.ndarray, np.ndarray, Samples]:
+    def betas_convs_samples(self, params: dict) -> tuple[dict, dict, Sampling]:
         im_factor = self.clad.im_factor
         self.clad.im_factor = 1.0
         self.clad_params["im_factor"] = 1.0
         p_modes = params["modes"].copy()
         num_n_0 = p_modes["num_n"]
-        betas = convs = None
+        betas: dict = {}
+        convs: dict = {}
         success = False
         catalog = Database().load_catalog()
         num_n_max = catalog["num_n"].max()
@@ -678,7 +676,7 @@ class Slit(Waveguide):
         return np.ascontiguousarray(As), np.ascontiguousarray(Bs)
 
     def coefs(self, hs, w):
-        return coefs_cython(self, hs, w)
+        return slit_utils.coefs_cython(self, hs, w)
 
     def Ys(self, w, hs, As, Bs):
         vals = []
@@ -695,18 +693,20 @@ class Slit(Waveguide):
     def ABY(self, w, hs):
         e1 = self.fill(w)
         e2 = self.clad(w)
-        return ABY_cython(w, self.r, self.s_all, self.n_all, hs, e1, e2)
+        return slit_utils.ABY_cython(w, self.r, self.s_all, self.n_all, hs, e1, e2)
 
     def hABY(self, w):
         e1 = self.fill(w)
         e2 = self.clad(w)
         hs = np.array([self.beta(w, alpha) for alpha in self.alpha_all])
-        As, Bs, Y = ABY_cython(w, self.r, self.s_all, self.n_all, hs, e1, e2)
+        As, Bs, Y = slit_utils.ABY_cython(w, self.r, self.s_all, self.n_all, hs, e1, e2)
         return hs, As, Bs, Y
 
     def huvABY(self, w):
         e1 = self.fill(w)
         e2 = self.clad(w)
         hs = np.array([self.beta(w, alpha) for alpha in self.alpha_all])
-        us, vs, As, Bs, Y = uvABY_cython(w, self.r, self.s_all, self.n_all, hs, e1, e2)
+        us, vs, As, Bs, Y = slit_utils.uvABY_cython(
+            w, self.r, self.s_all, self.n_all, hs, e1, e2
+        )
         return hs, us, vs, As, Bs, Y

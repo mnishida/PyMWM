@@ -150,3 +150,5 @@ src/pymwm/utils/slit_utils.cpp
 src/pymwm/utils/bessel_utils.cpp
 src/pymwm/utils/cutoff_utils.cpp
 .vscode/launch.json
+src/pymwm/utils/coax_utils.cpp
+src/pymwm/utils/eig_mat_utils.cpp
