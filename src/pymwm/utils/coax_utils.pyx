@@ -217,7 +217,7 @@ def eig_eq_with_jac(
         dd += ddi
     fp = fp / denom + f * dd
     f /= denom
-    return np.array([f.real, f.imag]), np.array([[fp.real, -fp.imag], [fp.imag, fp.real]])
+    return np.array([f.real, f.imag]), np.array([[fp.real, fp.imag], [-fp.imag, fp.real]])
 
 
 @cython.boundscheck(False)

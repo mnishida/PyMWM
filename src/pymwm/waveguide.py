@@ -737,7 +737,7 @@ class Database:
         if len(sns):
             if len(sns) != self.num_all:
                 print(sns)
-                print(catalog[self.cond])
+                print(catalog.query(self.cond))
                 print(len(sns), self.num_all)
                 raise Exception("Database is broken.")
             sn: int = min(sns)

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import unittest
 
 import numpy as np
@@ -33,7 +31,7 @@ class TestCylinderSamples(unittest.TestCase):
                 6.65409650e-01 + 30.69581722j,
             ]
         )
-        convs.append([True, False, True, True, True])
+        convs.append([True, True, True, True, True])
         betas.append(
             [
                 -3.14039183e-04 + 34.21067616j,
@@ -43,7 +41,7 @@ class TestCylinderSamples(unittest.TestCase):
                 9.90337935e-01 + 38.34855698j,
             ]
         )
-        convs.append([True, False, True, True, True])
+        convs.append([True, True, True, True, True])
         betas.append(
             [
                 -1.22828011e-03 + 42.51416161j,
@@ -53,7 +51,7 @@ class TestCylinderSamples(unittest.TestCase):
                 1.56012941e00 + 45.43872731j,
             ]
         )
-        convs.append([True, False, True, True, False])
+        convs.append([True, True, True, True, True])
         betas.append(
             [
                 -0.00274348 + 50.57304098j,
@@ -63,7 +61,7 @@ class TestCylinderSamples(unittest.TestCase):
                 2.57935560 + 52.37067052j,
             ]
         )
-        convs.append([False, False, True, True, False])
+        convs.append([True, True, True, True, True])
         betas.append(
             [
                 -0.00422390 + 58.46301045j,
@@ -73,7 +71,7 @@ class TestCylinderSamples(unittest.TestCase):
                 3.79669182 + 59.48095715j,
             ]
         )
-        convs.append([False, False, True, True, False])
+        convs.append([True, True, True, True, True])
         self.betas = np.array(betas)
         self.convs = np.array(convs)
         self.params = {
@@ -374,36 +372,6 @@ class TestCylinderSamples(unittest.TestCase):
         a2, b2 = wg.eig_mat(h2 - eps, w, "M", 2, e1, e2)
         da_dh2 = (a1 - a2) / (2 * eps)
         npt.assert_almost_equal(b, da_dh2)
-
-
-# def test_beta2_w_min():
-#     params: dict = {
-#         "core": {"shape": "cylinder", "size": 0.15, "fill": {"RI": 1.0}},
-#         "clad": {"book": "Au", "page": "Stewart-DLF", "bound_check": False},
-#         "modes": {
-#             "wl_max": 5.0,
-#             "wl_min": 1.0,
-#             "wl_imag": 50.0,
-#             "dw": 1.0 / 64,
-#             "num_n": 6,
-#             "num_m": 2,
-#         },
-#     }
-#     size: float = params["core"]["size"]
-#     fill = params["core"]["fill"]
-#     clad = params["clad"]
-#     p = params["modes"]
-#     wg = pymwm.cylinder.samples.Samples(size, fill, clad, p)
-
-#     for n in range(6):
-#         try:
-#             val = wg.beta2_w_min(n)
-#             # npt.assert_allclose(val, 1.0, rtol=0.05)
-#             print(f"{n=}")
-#             print(f"{val=}")
-#         except Exception as e:
-#             raise e
-#     raise Exception
 
 
 if __name__ == "__main__":

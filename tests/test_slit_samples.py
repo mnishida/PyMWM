@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 import unittest
@@ -35,7 +33,7 @@ class TestSlitSamples(unittest.TestCase):
         )
         self.convs = np.array(
             [
-                [True, True, True, True, True, False],
+                [True, True, True, True, True, True],
                 [False, True, True, True, True, True],
             ]
         )

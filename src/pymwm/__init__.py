@@ -14,7 +14,12 @@ def create(params):
         from .slit import Slit
 
         return Slit(params)
+    elif params["core"]["shape"] == "coax":
+        from .coax import Coax
+
+        return Coax(params)
     else:
         raise ValueError(
-            "Only 'cylinder' and 'slit' can be chosen for 'shape'" "at this time."
+            "Only 'cylinder', 'slit' and 'coax' can be chosen for 'shape'"
+            "at this time."
         )

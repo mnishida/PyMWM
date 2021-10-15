@@ -274,17 +274,10 @@ class Samples(Sampling):
                 convs[(pol, n, 1)] = np.zeros((len(self.ws), len(self.wis)), dtype=bool)
             for iwi in range(len(self.wis)):
                 for iwr in range(len(self.ws)):
-                    w = self.ws[iwr] + 1j * self.wis[iwi]
-                    e2 = self.clad(w)
                     for n in range(num_n):
                         x = xs_array[iwr, iwi][n]
-                        v = self.v(x, w, e2)
                         betas[(pol, n, 1)][iwr, iwi] = self.beta_from_beta2(x)
-                        convs[(pol, n, 1)][iwr, iwi] = (
-                            success_array[iwr, iwi][n]
-                            if v.real > abs(v.imag)
-                            else False
-                        )
+                        convs[(pol, n, 1)][iwr, iwi] = success_array[iwr, iwi][n]
         return betas, convs
 
     def __call__(self, arg: tuple[str, str, int]) -> tuple[np.ndarray, np.ndarray]:
@@ -348,6 +341,59 @@ class Samples(Sampling):
                 xs = np.where(success, xs, xis)
                 xs_array[iwr, iwi] = xs
                 success_array[iwr, iwi] = success
+        return xs_array, success_array
+
+    def wr_sampling(self, arg: tuple[str, str, int]) -> tuple[np.ndarray, np.ndarray]:
+        pol, parity, num_n = arg
+        num_ws = len(self.ws)
+        ns = list(range(num_n))
+        if parity == "even":
+            num = len(ns[::2])
+        else:
+            num = len(ns[1::2])
+        xs_array = np.zeros((num_ws, num), dtype=complex)
+        success_array = np.zeros((num_ws, num), dtype=bool)
+        iwr = iwi = 0
+        wi = self.wis[iwi]
+        xis, success = self.beta2_w_min(pol, parity, num_n)
+        xs_array[iwr] = xis
+        success_array[iwr] = success
+        xs0 = xs1 = xis
+        for iwr in range(1, len(self.ws)):
+            wr = self.ws[iwr]
+            w = wr + 1j * wi
+            e1 = self.fill(w)
+            e2 = self.clad(w)
+            xis = 2 * xs1 - xs0
+            xs, success = self.beta2(w, pol, parity, num_n, e1, e2, xis)
+            xs = np.where(success, xs, xis)
+            xs_array[iwr] = xs
+            success_array[iwr] = success
+            xs0 = xs1
+            xs1 = xs
+        return xs_array, success_array
+
+    def wi_sampling(
+        self, arg: tuple[str, str, int, int, np.ndarray]
+    ) -> tuple[np.ndarray, np.ndarray]:
+        pol, parity, num_n, iwr, xis0 = arg
+        num = len(xis0)
+        xs_array = np.zeros((len(self.wis), num), dtype=complex)
+        success_array = np.zeros((len(self.wis), num), dtype=bool)
+        wr = self.ws[iwr]
+        xs0 = xs1 = xis0
+        for iwi in range(len(self.wis)):
+            wi = self.wis[iwi]
+            w = wr + 1j * wi
+            e1 = self.fill(w)
+            e2 = self.clad(w)
+            xis = 2 * xs1 - xs0
+            xs, success = self.beta2(w, pol, parity, num_n, e1, e2, xis)
+            xs = np.where(success, xs, xis)
+            xs0 = xs1
+            xs1 = xs
+            xs_array[iwi] = xs
+            success_array[iwi] = success
         return xs_array, success_array
 
 
@@ -456,26 +502,6 @@ class SamplesForRay(Samples):
 
     def __init__(self, size: float, fill: dict, clad: dict, params: dict):
         super().__init__(size, fill, clad, params)
-
-    def task(self, arg: tuple[str, str, int]) -> tuple[np.ndarray, np.ndarray]:
-        """Return a dict of the roots of the characteristic equation
-
-        Args:
-            arg: (pol, parity, num_n)
-                pol ("E" or "M"): Polarization.
-                parity ("even" or "odd"): "even" ("odd") if even (odd) numbers in the list of n are evaluated.
-                num_n (int): The number of modes.
-        Returns:
-            betas: A dict containing arrays of roots, whose key is as follows:
-                (pol, n, m):
-                    pol: 'E' or 'M' indicating the polarization.
-                    n: An integer indicating the order of the mode.
-                    m: An integer indicating the ordinal of the mode in the
-                        same order.
-            convs: A dict containing the convergence information for betas,
-                whose key is the same as above.
-        """
-        return super().__call__(arg)
 
 
 @ray.remote

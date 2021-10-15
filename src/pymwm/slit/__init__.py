@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import cmath
+import enum
 from logging import getLogger
 
 import numpy as np
+import psutil
+import ray
 
 from pymwm.utils import slit_utils
 from pymwm.waveguide import Database, Sampling, Waveguide
@@ -108,84 +111,108 @@ class Slit(Waveguide):
                 except IndexError:
                     continue
         if not success:
-            import ray
-
             p_modes["num_n"] = num_n_0
-            smp = Samples(self.r, self.fill_params, self.clad_params, p_modes)
+            betas, convs, smp = self.do_sampling(p_modes)
+        if im_factor != 1.0:
+            self.clad.im_factor = im_factor
+            self.clad_params["im_factor"] = im_factor
+            betas, convs, smp = self.do_sampling_for_im_factor(betas, convs, p_modes)
+        return betas, convs, smp
+
+    def do_sampling(self, p_modes: dict) -> tuple[dict, dict, Samples]:
+        num_n_0 = p_modes["num_n"]
+        smp = Samples(self.r, self.fill_params, self.clad_params, p_modes)
+        ray.shutdown()
+        try:
+            ray.init()
+            p_modes_id = ray.put(p_modes)
+            pool = ray.util.ActorPool(
+                SamplesForRay.remote(
+                    self.r, self.fill_params, self.clad_params, p_modes_id
+                )
+                for _ in range(psutil.cpu_count())
+            )
+            args0 = [
+                ("M", "even", num_n_0),
+                ("M", "odd", num_n_0),
+                ("E", "even", num_n_0),
+                ("E", "odd", num_n_0),
+            ]
+            xs_success_wr_list = list(
+                pool.map(lambda a, arg: a.wr_sampling.remote(arg), args0)
+            )
+            num_wr = xs_success_wr_list[0][0].shape[0]
+            args1 = []
+            for i, (pol, parity, _) in enumerate(args0):
+                xs_array, _ = xs_success_wr_list[i]
+                for iwr in range(num_wr):
+                    args1.append((pol, parity, num_n_0, iwr, xs_array[iwr]))
+            xs_success_wi_list: list[tuple[np.ndarray, np.ndarray]] = list(
+                pool.map(lambda a, arg: a.wi_sampling.remote(arg), args1)
+            )
+        finally:
+            ray.shutdown()
+        num_wi = xs_success_wi_list[0][0].shape[0]
+        xs_success_list: list[tuple[np.ndarray, np.ndarray]] = []
+        for j, (pol, parity, _) in enumerate(args0):
+            num = xs_success_wi_list[j][0].shape[1]
+            xs_array = np.zeros((num_wr, num_wi, num), dtype=complex)
+            success_array = np.zeros((num_wr, num_wi, num), dtype=bool)
+            for iwr in range(num_wr):
+                i = j * num_wr + iwr
+                xs_i, success_i = xs_success_wi_list[i]
+                xs_array[iwr] = xs_i
+                success_array[iwr] = success_i
+            xs_success_list.append((xs_array, success_array))
+        xs_success_M = self.merge_even_and_odd_data(
+            xs_success_list[0], xs_success_list[1]
+        )
+        xs_success_E = self.merge_even_and_odd_data(
+            xs_success_list[2], xs_success_list[3]
+        )
+        betas, convs = smp.betas_convs([xs_success_M, xs_success_E])
+        smp.database.save(betas, convs)
+        return betas, convs, smp
+
+    def do_sampling_for_im_factor(
+        self, betas: dict, convs: dict, p_modes: dict
+    ) -> tuple[dict, dict, SamplesLowLoss]:
+        smp = SamplesLowLoss(self.r, self.fill_params, self.clad_params, p_modes)
+        try:
+            betas, convs = smp.database.load()
+        except IndexError:
+            num_n = p_modes["num_n"]
+            ns = list(range(num_n))
+            ns_e = ns[::2]
+            ns_o = ns[1::2]
+            args = []
+            for iwr in range(len(smp.ws)):
+                for iwi in range(len(smp.wis)):
+                    xis_list = [
+                        [betas[("M", n, 1)][iwr, iwi] ** 2 for n in ns_e],
+                        [betas[("M", n, 1)][iwr, iwi] ** 2 for n in ns_o],
+                        [betas[("E", n, 1)][iwr, iwi] ** 2 for n in ns_e],
+                        [betas[("E", n, 1)][iwr, iwi] ** 2 for n in ns_o],
+                    ]
+                    args.append((iwr, iwi, xis_list))
             ray.shutdown()
             try:
                 ray.init()
                 p_modes_id = ray.put(p_modes)
                 pool = ray.util.ActorPool(
-                    SamplesForRay.remote(
+                    SamplesLowLossForRay.remote(
                         self.r, self.fill_params, self.clad_params, p_modes_id
                     )
-                    for _ in range(4)
+                    for _ in range(psutil.cpu_count())
                 )
                 xs_success_list = list(
-                    pool.map(
-                        lambda a, arg: a.task.remote(arg),
-                        [
-                            ("M", "even", num_n_0),
-                            ("M", "odd", num_n_0),
-                            ("E", "even", num_n_0),
-                            ("E", "odd", num_n_0),
-                        ],
-                    )
+                    pool.map(lambda a, arg: a.task.remote(arg), args)
                 )
+
             finally:
                 ray.shutdown()
-            xs_success_M = self.merge_even_and_odd_data(
-                xs_success_list[0], xs_success_list[1]
-            )
-            xs_success_E = self.merge_even_and_odd_data(
-                xs_success_list[2], xs_success_list[3]
-            )
-            betas, convs = smp.betas_convs([xs_success_M, xs_success_E])
+            betas, convs = smp.betas_convs(xs_success_list)
             smp.database.save(betas, convs)
-        if im_factor != 1.0:
-            self.clad.im_factor = im_factor
-            self.clad_params["im_factor"] = im_factor
-            smp = SamplesLowLoss(self.r, self.fill_params, self.clad_params, p_modes)
-            try:
-                betas, convs = smp.database.load()
-            except IndexError:
-                self.clad.im_factor = im_factor
-                self.clad_params["im_factor"] = im_factor
-                num_n = p_modes["num_n"]
-                ns = list(range(num_n))
-                ns_e = ns[::2]
-                ns_o = ns[1::2]
-                args = []
-                for iwr in range(len(smp.ws)):
-                    for iwi in range(len(smp.wis)):
-                        xis_list = [
-                            [betas[("M", n, 1)][iwr, iwi] ** 2 for n in ns_e],
-                            [betas[("M", n, 1)][iwr, iwi] ** 2 for n in ns_o],
-                            [betas[("E", n, 1)][iwr, iwi] ** 2 for n in ns_e],
-                            [betas[("E", n, 1)][iwr, iwi] ** 2 for n in ns_o],
-                        ]
-                        args.append((iwr, iwi, xis_list))
-                import ray
-
-                ray.shutdown()
-                try:
-                    ray.init()
-                    p_modes_id = ray.put(p_modes)
-                    pool = ray.util.ActorPool(
-                        SamplesLowLossForRay.remote(
-                            self.r, self.fill_params, self.clad_params, p_modes_id
-                        )
-                        for _ in range(16)
-                    )
-                    xs_success_list = list(
-                        pool.map(lambda a, arg: a.task.remote(arg), args)
-                    )
-
-                finally:
-                    ray.shutdown()
-                betas, convs = smp.betas_convs(xs_success_list)
-                smp.database.save(betas, convs)
         return betas, convs, smp
 
     def beta(self, w, alpha):

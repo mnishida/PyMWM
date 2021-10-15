@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import cmath
 
 import numpy as np
@@ -38,7 +36,14 @@ def test_cutoffs_TE_r1_0():
 
 def test_cutoffs_TM_r1_0():
     co = Cutoff(3, 3)
-    for n in range(3):
+    s = co.samples.query("pol=='M' and n==0 and m==1 and irr==0").iloc[0]
+    assert s["val"] == 0.0
+    bessels = scipy.special.jn_zeros(0, 4)
+    for m in range(2, 5):
+        s = co.samples.query(f"pol=='M' and n==0 and m=={m} and irr==0").iloc[0]
+        print(s["val"], bessels[m - 2])
+        assert s["val"] == bessels[m - 2]
+    for n in range(1, 3):
         bessels = scipy.special.jn_zeros(n, 4)
         for m in range(1, 5):
             s = co.samples.query(f"pol=='M' and n=={n} and m=={m} and irr==0").iloc[0]
@@ -99,6 +104,6 @@ def test_cutoffs_samples(num_regression):
         for n in range(16):
             for m in range(1, m_end):
                 df1 = df[(df["pol"] == pol) & (df["n"] == n) & (df["m"] == m)]
-                d[(pol, n, m, "rr")] = df1["rr"].to_numpy()
-                d[(pol, n, m, "val")] = df1["val"].to_numpy()
+                d[f"{pol}_{n}_{m}_rr"] = df1["rr"].to_numpy()
+                d[f"{pol}_{n}_{m}_val"] = df1["val"].to_numpy()
     num_regression.check(d)

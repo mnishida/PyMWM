@@ -3,6 +3,7 @@ from __future__ import annotations
 import cmath
 
 import numpy as np
+import psutil
 import ray
 import scipy.special as ssp
 
@@ -109,63 +110,93 @@ class Cylinder(Waveguide):
         if not success:
             p_modes["num_n"] = num_n_0
             p_modes["num_m"] = num_m_0
-            smp = Samples(self.r, self.fill_params, self.clad_params, p_modes)
+            betas, convs, smp = self.do_sampling(p_modes)
+        if im_factor != 1.0:
+            self.clad.im_factor = im_factor
+            self.clad_params["im_factor"] = im_factor
+            betas, convs, smp = self.do_sampling_for_im_factor(betas, convs, p_modes)
+        return betas, convs, smp
+
+    def do_sampling(self, p_modes: dict) -> tuple[dict, dict, Samples]:
+        num_n_0 = p_modes["num_n"]
+        num_m_0 = p_modes["num_m"]
+        smp = Samples(self.r, self.fill_params, self.clad_params, p_modes)
+        ray.shutdown()
+        try:
+            ray.init()
+            p_modes_id = ray.put(p_modes)
+            pool = ray.util.ActorPool(
+                SamplesForRay.remote(
+                    self.r, self.fill_params, self.clad_params, p_modes_id
+                )
+                for _ in range(psutil.cpu_count())
+            )
+            xs_success_wr_list: list[tuple[np.ndarray, np.ndarray]] = list(
+                pool.map(lambda a, arg: a.wr_sampling.remote(arg), range(num_n_0))
+            )
+            num_wr = xs_success_wr_list[0][0].shape[0]
+            args = []
+            for n in range(num_n_0):
+                xs_array, _ = xs_success_wr_list[n]
+                for iwr in range(num_wr):
+                    args.append((n, iwr, xs_array[iwr]))
+            xs_success_wi_list: list[tuple[np.ndarray, np.ndarray]] = list(
+                pool.map(lambda a, arg: a.wi_sampling.remote(arg), args)
+            )
+            num_wi = xs_success_wi_list[0][0].shape[0]
+            xs_success_list: list[tuple[np.ndarray, np.ndarray]] = []
+            for n in range(num_n_0):
+                xs_array = np.zeros((num_wr, num_wi, 2 * num_m_0 + 1), dtype=complex)
+                success_array = np.zeros((num_wr, num_wi, 2 * num_m_0 + 1), dtype=bool)
+                for iwr in range(num_wr):
+                    i = num_wr * n + iwr
+                    xs_i, success_i = xs_success_wi_list[i]
+                    xs_array[iwr] = xs_i
+                    success_array[iwr] = success_i
+                xs_success_list.append((xs_array, success_array))
+        finally:
             ray.shutdown()
+        betas, convs = smp.betas_convs(xs_success_list)
+        smp.database.save(betas, convs)
+        return betas, convs, smp
+
+    def do_sampling_for_im_factor(
+        self, betas: dict, convs: dict, p_modes: dict
+    ) -> tuple[dict, dict, SamplesLowLoss]:
+        smp = SamplesLowLoss(self.r, self.fill_params, self.clad_params, p_modes)
+        try:
+            betas, convs = smp.database.load()
+        except IndexError:
+            num_n = p_modes["num_n"]
+            num_m = p_modes["num_m"]
+            args = []
+            for iwr in range(len(smp.ws)):
+                for iwi in range(len(smp.wis)):
+                    xis_list = []
+                    for n in range(num_n):
+                        xis = []
+                        for i in range(num_m + 1):
+                            xis.append(betas[("M", n, i + 1)][iwr, iwi] ** 2)
+                        for i in range(num_m):
+                            xis.append(betas[("E", n, i + 1)][iwr, iwi] ** 2)
+                        xis_list.append(xis)
+                    args.append((iwr, iwi, xis_list))
             try:
                 ray.init()
                 p_modes_id = ray.put(p_modes)
                 pool = ray.util.ActorPool(
-                    SamplesForRay.remote(
+                    SamplesLowLossForRay.remote(
                         self.r, self.fill_params, self.clad_params, p_modes_id
                     )
-                    for _ in range(num_n_0)
+                    for _ in range(psutil.cpu_count())
                 )
                 xs_success_list = list(
-                    pool.map(lambda a, arg: a.task.remote(arg), range(num_n_0))
+                    pool.map(lambda a, arg: a.task.remote(arg), args)
                 )
             finally:
                 ray.shutdown()
             betas, convs = smp.betas_convs(xs_success_list)
             smp.database.save(betas, convs)
-        if im_factor != 1.0:
-            self.clad.im_factor = im_factor
-            self.clad_params["im_factor"] = im_factor
-            smp = SamplesLowLoss(self.r, self.fill_params, self.clad_params, p_modes)
-            try:
-                betas, convs = smp.database.load()
-            except IndexError:
-                self.clad.im_factor = im_factor
-                self.clad_params["im_factor"] = im_factor
-                num_n = p_modes["num_n"]
-                num_m = p_modes["num_m"]
-                args = []
-                for iwr in range(len(smp.ws)):
-                    for iwi in range(len(smp.wis)):
-                        xis_list = []
-                        for n in range(num_n):
-                            xis = []
-                            for i in range(num_m + 1):
-                                xis.append(betas[("M", n, i + 1)][iwr, iwi] ** 2)
-                            for i in range(num_m):
-                                xis.append(betas[("E", n, i + 1)][iwr, iwi] ** 2)
-                            xis_list.append(xis)
-                        args.append((iwr, iwi, xis_list))
-                try:
-                    ray.init()
-                    p_modes_id = ray.put(p_modes)
-                    pool = ray.util.ActorPool(
-                        SamplesLowLossForRay.remote(
-                            self.r, self.fill_params, self.clad_params, p_modes_id
-                        )
-                        for _ in range(16)
-                    )
-                    xs_success_list = list(
-                        pool.map(lambda a, arg: a.task.remote(arg), args)
-                    )
-                finally:
-                    ray.shutdown()
-                betas, convs = smp.betas_convs(xs_success_list)
-                smp.database.save(betas, convs)
         return betas, convs, smp
 
     def beta(self, w: complex, alpha: tuple[str, int, int]) -> complex:

@@ -517,4 +517,4 @@ def eig_eq_cython(
         dd += ddi
     fp = fp / denom + f * dd
     f /= denom
-    return np.array([f.real, f.imag]), np.array([[fp.real, -fp.imag], [fp.imag, fp.real]])
+    return np.array([f.real, f.imag]), np.array([[fp.real, fp.imag], [-fp.imag, fp.real]])

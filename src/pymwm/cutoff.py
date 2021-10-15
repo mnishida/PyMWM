@@ -143,7 +143,13 @@ class Cutoff:
 
         num_m = self.num_m
         args = []
-        for n in range(self.num_n):
+        kinis = sp.jn_zeros(0, num_m)
+        for m in range(2, num_m + 2):
+            args.append((("M", 0, m), kinis[m - 2]))
+        kinis = sp.jnp_zeros(0, num_m)
+        for m in range(1, num_m + 1):
+            args.append((("E", 0, m), kinis[m - 1]))
+        for n in range(1, self.num_n):
             for (pol, m_end) in [("M", num_m + 2), ("E", num_m + 1)]:
                 if pol == "E":
                     kinis = sp.jnp_zeros(n, m_end - 1)
@@ -159,6 +165,12 @@ class Cutoff:
             ray.shutdown()
         df = pd.DataFrame()
         num_rr = len(self.r_ratios)
+        df["pol"] = np.full(num_rr, "M")
+        df["n"] = 0
+        df["m"] = 1
+        df["irr"] = np.arange(num_rr)
+        df["rr"] = self.r_ratios
+        df["val"] = 0.0
         for i in range(len(args)):
             (pol, n, m), _ = args[i]
             z = results[i]
@@ -202,7 +214,13 @@ class Cutoff:
 
         num_m = self.num_m
         args = []
-        for n in range(self.num_n):
+        kinis = sp.jn_zeros(0, num_m)
+        for m in range(2, num_m + 2):
+            args.append((("M", 0, m), kinis[m - 2]))
+        kinis = sp.jnp_zeros(0, num_m)
+        for m in range(1, num_m + 1):
+            args.append((("E", 0, m), kinis[m - 1]))
+        for n in range(1, self.num_n):
             for (pol, m_end) in [("M", num_m + 2), ("E", num_m + 1)]:
                 if pol == "E":
                     kinis = sp.jnp_zeros(n, m_end - 1)
@@ -218,6 +236,12 @@ class Cutoff:
             ray.shutdown()
         df = pd.DataFrame()
         num_rr = len(self.r_ratios)
+        df["pol"] = np.full(num_rr, "M")
+        df["n"] = 0
+        df["m"] = 1
+        df["irr"] = np.arange(num_rr)
+        df["rr"] = self.r_ratios
+        df["val"] = 0.0
         for i in range(len(args)):
             (pol, n, m), _ = args[i]
             z = results[i]
