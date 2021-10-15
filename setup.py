@@ -5,7 +5,7 @@ from Cython.Distutils import build_ext
 from setuptools import Extension, find_packages, setup
 
 ext_modules = []
-for name in ["basic", "cylinder", "slit", "bessel", "cutoff", "coax", "eig_mat"]:
+for name in ["cylinder", "slit", "bessel", "cutoff", "coax", "eig_mat"]:
     basename = os.path.join("src", "pymwm", "utils", f"{name}_utils")
     e = Extension(
         f"pymwm.utils.{name}_utils",

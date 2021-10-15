@@ -19,6 +19,7 @@ cdef extern from "<complex>" namespace "std"  nogil:
     cdouble ctan "tan" (cdouble z)
     cdouble csinh "sinh" (cdouble z)
     cdouble ccosh "cosh" (cdouble z)
+    cdouble ctanh "tanh" (cdouble z)
     cdouble cexp "exp" (cdouble z)
     double creal "real" (cdouble z)
     double cimag "imag" (cdouble z)

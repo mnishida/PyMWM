@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
-from . cimport M_PI, cabs, cdouble, cexp, cimag, creal, csinh, csqrt, sqrt
-from .basic_utils cimport ctanh
+from . cimport M_PI, cabs, cdouble, cexp, cimag, creal, csinh, csqrt, ctanh, sqrt
 from .bessel_utils cimport jv, jv_jvp, jve, jve_jvpe_jvppe, kv_kvp, kve, kve_kvpe_kvppe
 from .eig_mat_utils cimport deriv_det2
 

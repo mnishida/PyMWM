@@ -388,7 +388,11 @@ class Samples(Sampling):
             fp = eig_mat_utils.deriv_det4_cython(a, b)
         denom = 1.0
         dd = 0.0
-        tanhs = np.tanh(h2 - roots)
+        val1 = np.exp(-2 * (h2 - roots))
+        val2 = np.exp(2 * (h2 - roots))
+        tanhs = np.where(
+            (h2 - roots).real > 0, (1 - val1) / (1 + val1), (val2 - 1) / (val2 + 1)
+        )
         for i in range(num):
             denom *= tanhs[i]
             ddi = (tanhs[i] ** 2 - 1) / tanhs[i] ** 2

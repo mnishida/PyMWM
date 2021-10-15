@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
-from . cimport cabs, cdouble, cimag, creal, csqrt
-from .basic_utils cimport ctanh
+from . cimport cabs, cdouble, cimag, creal, csqrt, ctanh
 from .bessel_utils cimport (
     ive,
     ive_ivpe_ivppe,
