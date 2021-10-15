@@ -491,7 +491,7 @@ def eig_eq_cython(
         cdouble[:, ::1] a = np.empty((2, 2), dtype=complex)
         cdouble[:, ::1] b = np.empty((2, 2), dtype=complex)
         double norm
-        cdouble f, fp, ddi, dd, denom, rt
+        cdouble f, fp, ddi, dd, denom
         int i, j
         int num = len(roots)
         cdouble[::1] tanhs = np.empty(num, dtype=complex)

@@ -294,10 +294,9 @@ def func_cython(
         cdouble h2 = h2vec[0] + 1j * h2vec[1]
         cdouble u = u_func(h2, w, e1, r)
         cdouble v = v_func(h2, w, e2, r)
-        cdouble f
-        cdouble denom = 1.0 + 0.0j
-        double norm
+        cdouble f, denom
         int num = len(roots)
+        cdouble[::1] tanhs = np.empty(num, dtype=complex)
     if pol == "E":
         if n % 2 == 0:
             f = u / v + ctan(u)
@@ -308,10 +307,10 @@ def func_cython(
             f = u * ctan(u) - (e1 * v) / e2
         else:
             f = u / ctan(u) + (e1 * v) / e2
+    denom = 1.0
     for i in range(num):
-        denom *= h2 - roots[i]
-    norm = cabs(denom)
-    if norm < 1e-14:
-        denom /= norm * 1e14
+        tanhs[i] = ctanh(h2 - roots[i])
+    for i in range(num):
+        denom *= tanhs[i]
     f /= denom
     return f.real, f.imag
