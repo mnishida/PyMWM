@@ -213,7 +213,16 @@ class Waveguide(metaclass=abc.ABCMeta):
         self.bounds = params["bounds"]
         self.ls = params["modes"].get("ls", ["h", "v"])
         betas, convs, self.samples = self.betas_convs_samples(params)
-        self.beta_funcs = self.samples.database.interpolation(betas, convs, self.bounds)
+        vs = {}
+        for key in betas.keys():
+            h2s = betas[key] ** 2
+            ws = self.samples.ws
+            vs[key] = np.array(
+                [self.samples.v(h2, w, self.clad(w)) for h2, w in zip(h2s, ws)]
+            )
+        self.beta_funcs = self.samples.database.interpolation(
+            betas, convs, vs, self.bounds
+        )
 
         alpha_list = []
         alpha_candidates = params["modes"].get("alphas", None)
@@ -876,12 +885,13 @@ class Database:
             store["catalog"] = catalog
         self.sn = self.get_sn()
 
-    def interpolation(self, betas: dict, convs: dict, bounds: dict) -> dict:
+    def interpolation(self, betas: dict, convs: dict, vs: dict, bounds: dict) -> dict:
         from scipy.interpolate import RectBivariateSpline
 
         wl_max = bounds["wl_max"]
         wl_min = bounds["wl_min"]
         wl_imag = bounds["wl_imag"]
+        v_lim = bounds.get("v_lim", 0.0)
         beta_imag_max = bounds.get("beta_imag_max", None)
         wr_min = 2 * np.pi / wl_max
         wr_max = 2 * np.pi / wl_min
@@ -906,7 +916,8 @@ class Database:
                 for m in range(1, num_m + 1):
                     alpha = (pol, n, m)
                     conv = convs[alpha][:, ::-1]
-                    if np.all(conv[i_min : i_max + 1, j_min:]):
+                    vr = vs[alpha][i_min : i_max + 1, j_min:].real
+                    if np.all(conv[i_min : i_max + 1, j_min:]) and np.all(vr > v_lim):
                         data = betas[alpha][:, ::-1]
                         if beta_imag_max is not None:
                             imag_max = data[i_min : i_max + 1, j_min:].imag.max()
