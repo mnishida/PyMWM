@@ -119,7 +119,7 @@ def test_beta2_w_min(num_regression):
     size2: float = params["core"]["ri"]
     wg = Samples(size, fill, clad, p, size2)
     d = {}
-    for n in range(6):
+    for n in range(5):
         val = wg.beta2_w_min(n)
         d[f"{n}_real"] = val[0].real
         d[f"{n}_imag"] = val[0].imag

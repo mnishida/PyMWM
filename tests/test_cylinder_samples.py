@@ -299,8 +299,13 @@ class TestCylinderSamples(unittest.TestCase):
                 ray.shutdown()
             betas, convs = wg.betas_convs(xs_success_list)
             wg.database.save(betas, convs)
+        vs = {}
+        for key in betas.keys():
+            h2s = betas[key] ** 2
+            ws = wg.ws
+            vs[key] = np.array([wg.v(h2, w, wg.clad(w)) for h2, w in zip(h2s, ws)])
         beta_funcs = wg.database.interpolation(
-            betas, convs, bounds={"wl_max": 3.0, "wl_min": 1.0, "wl_imag": 100.0}
+            betas, convs, vs, bounds={"wl_max": 3.0, "wl_min": 1.0, "wl_imag": 100.0}
         )
         self.assertAlmostEqual(
             beta_funcs[(("M", 0, 1), "real")](2 * np.pi, 0.0)[0, 0],
