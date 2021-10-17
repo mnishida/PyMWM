@@ -458,7 +458,7 @@ class Samples(Sampling):
                 ),
                 jac=True,
                 method="hybr",
-                options={"xtol": 1.0e-9, "col_deriv": True},
+                options={"col_deriv": True},
             )
             x = result.x[0] + result.x[1] * 1j
             v = self.v(x, w, e2)
