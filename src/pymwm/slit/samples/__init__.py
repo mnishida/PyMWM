@@ -98,7 +98,10 @@ class Samples(Sampling):
         return h2
 
     def u(
-        self, h2: complex | np.ndarray, w: complex, e1: complex
+        self,
+        h2: complex | np.ndarray,
+        w: complex | np.ndarray,
+        e1: complex | np.ndarray,
     ) -> complex | np.ndarray:
         # return cmath.sqrt(e1 * w ** 2 - h2) * self.r / 2
         val: complex | np.ndarray = (
@@ -107,7 +110,10 @@ class Samples(Sampling):
         return val
 
     def v(
-        self, h2: complex | np.ndarray, w: complex, e2: complex
+        self,
+        h2: complex | np.ndarray,
+        w: complex | np.ndarray,
+        e2: complex | np.ndarray,
     ) -> complex | np.ndarray:
         # This definition is very important!!
         # Other definitions can not give good results in some cases

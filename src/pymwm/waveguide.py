@@ -97,13 +97,19 @@ class Sampling(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def u(
-        self, h2: complex | np.ndarray, w: complex, e1: complex
+        self,
+        h2: complex | np.ndarray,
+        w: complex | np.ndarray,
+        e1: complex | np.ndarray,
     ) -> complex | np.ndarray:
         pass
 
     @abc.abstractmethod
     def v(
-        self, h2: complex | np.ndarray, w: complex, e2: complex
+        self,
+        h2: complex | np.ndarray,
+        w: complex | np.ndarray,
+        e2: complex | np.ndarray,
     ) -> complex | np.ndarray:
         pass
 
@@ -216,10 +222,9 @@ class Waveguide(metaclass=abc.ABCMeta):
         wr_grid, wi_grid = np.meshgrid(self.samples.ws, self.samples.wis, indexing="ij")
         w_grid = wr_grid + 1j * wi_grid
         e2s = np.vectorize(self.clad)(w_grid)
-        v_grid_func = np.vectorize(self.samples.v)
         vs = {}
         for key in betas.keys():
-            vs[key] = v_grid_func(betas[key] ** 2, w_grid, e2s)
+            vs[key] = self.samples.v(betas[key] ** 2, w_grid, e2s)
         self.beta_funcs = self.samples.database.interpolation(
             betas, convs, vs, self.bounds
         )

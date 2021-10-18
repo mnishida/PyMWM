@@ -121,7 +121,10 @@ class Samples(Sampling):
         return val
 
     def u(
-        self, h2: complex | np.ndarray, w: complex, e1: complex
+        self,
+        h2: complex | np.ndarray,
+        w: complex | np.ndarray,
+        e1: complex | np.ndarray,
     ) -> complex | np.ndarray:
         val: complex | np.ndarray = (
             (1 + 1j) * np.sqrt(-0.5j * (e1 * w ** 2 - h2)) * self.r
@@ -130,7 +133,10 @@ class Samples(Sampling):
         return val
 
     def v(
-        self, h2: complex | np.ndarray, w: complex, e2: complex
+        self,
+        h2: complex | np.ndarray,
+        w: complex | np.ndarray,
+        e2: complex | np.ndarray,
     ) -> complex | np.ndarray:
         val: complex | np.ndarray = (
             (1 - 1j) * np.sqrt(0.5j * (h2 - e2 * w ** 2)) * self.r
