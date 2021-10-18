@@ -236,21 +236,21 @@ class Samples(Sampling):
             if parity == "even" and pol == "E":
                 success[0] = False
             return xs, success
-        w_0 = 0.1
+        w_0 = 2 * np.pi / 10
         e1 = self.fill(w_0)
-        e2_0 = -5.0e5 + self.clad(w_0).imag * 1j
-        de2 = (self.clad(w_0) - e2_0) / 1000
+        e2_0 = self.clad(w_0) * 1000
+        de2 = (self.clad(w_0) - e2_0) / 5000
         xis = xs = self.beta2_pec(w_0, parity, num_n)
         success = np.ones_like(xs, dtype=bool)
-        for i in range(1001):
+        for i in range(5001):
             e2 = e2_0 + de2 * i
             xs, success = self.beta2(w_0, pol, parity, num_n, e1, e2, xis)
             for _, ok in enumerate(success):
                 if not ok:
                     xs[_] = xis[_]
             xis = xs
-        dw = (self.ws[0] - w_0) / 1000
-        for i in range(1001):
+        dw = (self.ws[0] - w_0) / 100
+        for i in range(101):
             w = w_0 + dw * i
             e1 = self.fill(w)
             e2 = self.clad(w)

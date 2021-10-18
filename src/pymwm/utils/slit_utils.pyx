@@ -309,8 +309,6 @@ def func_cython(
             f = u / ctan(u) + (e1 * v) / e2
     denom = 1.0
     for i in range(num):
-        tanhs[i] = ctanh(h2 - roots[i])
-    for i in range(num):
-        denom *= tanhs[i]
+        denom *= (h2 - roots[i]) / roots[i]
     f /= denom
     return f.real, f.imag

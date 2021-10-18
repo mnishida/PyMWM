@@ -6,6 +6,7 @@ import numpy as np
 import numpy.testing as npt
 import ray
 
+import pymwm
 from pymwm.slit.samples import Samples, SamplesForRay
 
 
@@ -22,7 +23,7 @@ class TestSlitSamples(unittest.TestCase):
                     -0.0023972370044439842 + 52.343328327620277j,
                 ],
                 [
-                    0.1,
+                    2 * np.pi / 10,
                     0.16144417878734335 + 9.052520291531513j,
                     0.3382796371471994 + 18.186379931569725j,
                     0.5625919070749846 + 27.18042875785826j,
@@ -40,6 +41,7 @@ class TestSlitSamples(unittest.TestCase):
         self.params = {
             "core": {"shape": "slit", "size": 0.3, "fill": {"RI": 1.0}},
             "clad": {"book": "Au", "page": "Stewart-DLF", "bound_check": False},
+            "bounds": {"wl_max": 5.0, "wl_min": 1.0, "wl_imag": 50.0},
             "modes": {
                 "wl_max": 5.0,
                 "wl_min": 1.0,
@@ -48,6 +50,7 @@ class TestSlitSamples(unittest.TestCase):
                 "num_n": 6,
             },
         }
+        pymwm.create(self.params)
 
     def test_attributes(self):
         params: dict = self.params.copy()
@@ -125,25 +128,7 @@ class TestSlitSamples(unittest.TestCase):
         fill = params["core"]["fill"]
         clad = params["clad"]
         wg = Samples(r, fill, clad, params["modes"])
-        try:
-            betas, convs = wg.database.load()
-        except IndexError:
-            num_n = params["modes"]["num_n"]
-            ray.shutdown()
-            try:
-                ray.init()
-                p_modes_id = ray.put(params["modes"])
-                pool = ray.util.ActorPool(
-                    SamplesForRay.remote(r, fill, clad, p_modes_id) for _ in range(2)
-                )
-                args = [("M", num_n), ("E", num_n)]
-                xs_success_list = list(
-                    pool.map(lambda a, arg: a.task.remote(arg), args)
-                )
-            finally:
-                ray.shutdown()
-            betas, convs = wg.betas_convs(xs_success_list)
-            wg.database.save(betas, convs)
+        betas, convs = wg.database.load()
         for n in range(6):
             npt.assert_allclose(
                 [betas[("M", n, 1)][0, 0], betas[("E", n, 1)][0, 0]],
@@ -160,25 +145,7 @@ class TestSlitSamples(unittest.TestCase):
         fill = params["core"]["fill"]
         clad = params["clad"]
         wg = Samples(r, fill, clad, params["modes"])
-        try:
-            betas, convs = wg.database.load()
-        except IndexError:
-            num_n = params["modes"]["num_n"]
-            ray.shutdown()
-            try:
-                ray.init()
-                p_modes_id = ray.put(params["modes"])
-                pool = ray.util.ActorPool(
-                    SamplesForRay.remote(r, fill, clad, p_modes_id)
-                    for _ in range(num_n)
-                )
-                xs_success_list = list(
-                    pool.map(lambda a, arg: a.task.remote(arg), range(num_n))
-                )
-            finally:
-                ray.shutdown()
-            betas, convs = wg.betas_convs(xs_success_list)
-            wg.database.save(betas, convs)
+        betas, convs = wg.database.load()
         vs = {}
         for key in betas.keys():
             h2s = betas[key] ** 2

@@ -213,17 +213,16 @@ class Waveguide(metaclass=abc.ABCMeta):
         self.bounds = params["bounds"]
         self.ls = params["modes"].get("ls", ["h", "v"])
         betas, convs, self.samples = self.betas_convs_samples(params)
+        wr_grid, wi_grid = np.meshgrid(self.samples.ws, self.samples.wis, indexing="ij")
+        w_grid = wr_grid + 1j * wi_grid
+        e2s = np.vectorize(self.clad)(w_grid)
+        v_grid_func = np.vectorize(self.samples.v)
         vs = {}
         for key in betas.keys():
-            h2s = betas[key] ** 2
-            ws = self.samples.ws
-            vs[key] = np.array(
-                [self.samples.v(h2, w, self.clad(w)) for h2, w in zip(h2s, ws)]
-            )
+            vs[key] = v_grid_func(betas[key] ** 2, w_grid, e2s)
         self.beta_funcs = self.samples.database.interpolation(
             betas, convs, vs, self.bounds
         )
-
         alpha_list = []
         alpha_candidates = params["modes"].get("alphas", None)
         for alpha, comp in self.beta_funcs.keys():
@@ -916,24 +915,24 @@ class Database:
                 for m in range(1, num_m + 1):
                     alpha = (pol, n, m)
                     conv = convs[alpha][:, ::-1]
-                    vr = vs[alpha][i_min : i_max + 1, j_min:].real
+                    vr = vs[alpha][:, ::-1][i_min : i_max + 1, j_min:].real
                     if np.all(conv[i_min : i_max + 1, j_min:]) and np.all(vr > v_lim):
-                        data = betas[alpha][:, ::-1]
+                        data = betas[alpha][:, ::-1][i_min : i_max + 1, j_min:]
                         if beta_imag_max is not None:
-                            imag_max = data[i_min : i_max + 1, j_min:].imag.max()
+                            imag_max = data.imag.max()
                             if imag_max > beta_imag_max:
                                 continue
                         beta_funcs[(alpha, "real")] = RectBivariateSpline(
                             ws[i_min : i_max + 1],
                             wis[j_min:],
-                            data.real[i_min : i_max + 1, j_min:],
+                            data.real,
                             kx=3,
                             ky=3,
                         )
                         beta_funcs[(alpha, "imag")] = RectBivariateSpline(
                             ws[i_min : i_max + 1],
                             wis[j_min:],
-                            data.imag[i_min : i_max + 1, j_min:],
+                            data.imag,
                             kx=3,
                             ky=3,
                         )

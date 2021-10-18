@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
-from . cimport cabs, ccos, cdouble, creal, csin, csqrt, ctan, ctanh, sqrt
+from . cimport cabs, ccos, cdouble, creal, csin, csqrt, ctan, sqrt
 
 
 cdef coefs_pec_C(long *s_all, long *n_all, int num_n_all,

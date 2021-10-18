@@ -388,17 +388,12 @@ class Samples(Sampling):
             fp = eig_mat_utils.deriv_det4_cython(a, b)
         denom = 1.0
         dd = 0.0
-        z = np.where((h2 - roots).real >= 0, h2 - roots, roots - h2)
-        val = np.exp(-2 * z)
-        tanhs = np.where(
-            (h2 - roots).real >= 0, (1 - val) / (1 + val), (val - 1) / (val + 1)
-        )
         for i in range(num):
-            denom *= tanhs[i]
-            ddi = (tanhs[i] ** 2 - 1) / tanhs[i] ** 2
+            denom *= (h2 - roots[i]) / roots[i]
+            ddi = -roots[i] / (h2 - roots[i]) ** 2
             for j in range(num):
                 if j != i:
-                    ddi /= tanhs[j]
+                    ddi /= (h2 - roots[j]) / roots[j]
             dd += ddi
         fp = fp / denom + f * dd
         f /= denom
@@ -445,6 +440,7 @@ class Samples(Sampling):
             # )
             result = root(
                 coax_utils.eig_eq_with_jac,
+                # coax_utils.eig_eq,
                 np.array([xi.real, xi.imag]),
                 args=(
                     w,
@@ -456,6 +452,7 @@ class Samples(Sampling):
                     self.ri,
                     np.array(roots, dtype=complex),
                 ),
+                # method="krylov",
                 jac=True,
                 method="hybr",
                 options={"col_deriv": True},
@@ -489,30 +486,29 @@ class Samples(Sampling):
             xs = self.beta2_pec(self.ws[0], n)
             success = np.ones_like(xs, dtype=bool)
             return xs, success
-        w_0 = 2 * np.pi / 100.0
+        w_0 = 2 * np.pi / 10.0
         e1 = self.fill(w_0)
         e2_0 = self.clad(w_0) * 1000
-        de2 = (self.clad(w_0) - e2_0) / 1000
+        de2 = (self.clad(w_0) - e2_0) / 5000
         xs, success = self.beta2(w_0, n, e1, e2_0, self.beta2_pec(w_0, n))
         xs0 = xs1 = xs
         success = np.ones_like(xs0, dtype=bool)
-        for i in range(1001):
+        for i in range(5001):
             e2 = e2_0 + de2 * i
-            # if i % 100 == 0 and n == 0:
-            #     print(e2)
-            #     print(xs1)
             xis = 2 * xs1 - xs0
             xs, success = self.beta2(w_0, n, e1, e2, xis)
+            xs = np.where(success, xs, xis)
             xs0 = xs1
             xs1 = xs
         xs0 = xs1
-        dw = (self.ws[0] - w_0) / 1000
-        for i in range(1001):
+        dw = (self.ws[0] - w_0) / 100
+        for i in range(101):
             w = w_0 + dw * i
             e1 = self.fill(w)
             e2 = self.clad(w)
             xis = 2 * xs1 - xs0
             xs, success = self.beta2(w, n, e1, e2, xis)
+            xs = np.where(success, xs, xis)
             xs0 = xs1
             xs1 = xs
         return xs, success

@@ -187,7 +187,6 @@ def eig_eq_with_jac(
         cdouble f, fp, dd, ddi, denom
         int i
         int num = len(roots)
-        cdouble[::1] tanhs = np.empty(num, dtype=complex)
 
     eig_mat_with_deriv(h2, w, pol, n, e1, e2, r, ri, a, b)
     if n == 0:
@@ -207,13 +206,11 @@ def eig_eq_with_jac(
     denom = 1.0
     dd = 0.0
     for i in range(num):
-        tanhs[i] = ctanh(h2 - roots[i])
-    for i in range(num):
-        denom *= tanhs[i]
-        ddi = (tanhs[i] ** 2 - 1) / tanhs[i] ** 2
+        denom *= (h2 - roots[i]) / roots[i]
+        ddi = - roots[i] / (h2 - roots[i]) ** 2
         for j in range(num):
             if j != i:
-                ddi /= tanhs[j]
+                ddi /= (h2 - roots[j]) / roots[j]
         dd += ddi
     fp = fp / denom + f * dd
     f /= denom
@@ -247,7 +244,6 @@ def eig_eq_for_min(
         cdouble f, fp, dd, ddi, denom
         int i, j
         int num = len(roots)
-        cdouble[::1] tanhs = np.empty(num, dtype=complex)
 
     eig_mat_with_deriv(h2, w, pol, n, e1, e2, r, ri, a, b)
     if n == 0:
@@ -267,13 +263,11 @@ def eig_eq_for_min(
     denom = 1.0
     dd = 0.0
     for i in range(num):
-        tanhs[i] = ctanh(h2 - roots[i])
-    for i in range(num):
-        denom *= tanhs[i]
-        ddi = (tanhs[i] ** 2 - 1) / tanhs[i] ** 2
+        denom *= (h2 - roots[i]) / roots[i]
+        ddi = - roots[i] / (h2 - roots[i]) ** 2
         for j in range(num):
             if j != i:
-                ddi /= tanhs[j]
+                ddi /= (h2 - roots[j]) / roots[j]
         dd += ddi
     fp = fp / denom + f * dd
     f /= denom
@@ -382,6 +376,6 @@ def eig_eq(
         f = det4(a)
     denom = 1.0
     for i in range(num):
-        denom *= ctanh(h2 - roots[i])
+        denom *= (h2 - roots[i]) / roots[i]
     f /= denom
     return np.array([f.real, f.imag])
