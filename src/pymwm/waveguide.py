@@ -923,7 +923,7 @@ class Database:
                     vr = vs[alpha][:, ::-1][i_min : i_max + 1, j_min:].real
                     if v_lim is None:
                         vi = vs[alpha][:, ::-1][i_min : i_max + 1, j_min:].imag
-                        v_ok = np.all(vr > vi)
+                        v_ok = np.all(np.abs(vr) > np.abs(vi))
                     else:
                         v_ok = np.all(vr > v_lim)
                     if np.all(conv[i_min : i_max + 1, j_min:]) and v_ok:
