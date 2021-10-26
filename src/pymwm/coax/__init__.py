@@ -214,6 +214,8 @@ class Coax(Waveguide):
         Returns:
             h: The phase constant.
         """
+        if self.clad.label == "PEC":
+            return self.beta_pec(w, alpha)
         wr = w.real
         wi = w.imag
         hr: float = self.beta_funcs[(alpha, "real")](wr, wi)[0, 0]
@@ -224,7 +226,7 @@ class Coax(Waveguide):
         #     hi = 1e-16
         return hr + 1j * hi
 
-    def beta_pec(self, w, alpha):
+    def beta_pec(self, w: complex, alpha: tuple[str, int, int]) -> complex:
         """Return phase constant of PEC waveguide
 
         Args:

@@ -218,26 +218,39 @@ class Waveguide(metaclass=abc.ABCMeta):
         self.num_m = params["modes"]["num_m"]
         self.bounds = params["bounds"]
         self.ls = params["modes"].get("ls", ["h", "v"])
-        betas, convs, self.samples = self.betas_convs_samples(params)
-        wr_grid, wi_grid = np.meshgrid(self.samples.ws, self.samples.wis, indexing="ij")
-        w_grid = wr_grid + 1j * wi_grid
-        e2s = np.vectorize(self.clad)(w_grid)
-        vs = {}
-        for key in betas.keys():
-            vs[key] = self.samples.v(betas[key] ** 2, w_grid, e2s)
-        self.beta_funcs = self.samples.database.interpolation(
-            betas, convs, vs, self.bounds
-        )
+        if self.clad.label != "PEC":
+            betas, convs, self.samples = self.betas_convs_samples(params)
+            wr_grid, wi_grid = np.meshgrid(
+                self.samples.ws, self.samples.wis, indexing="ij"
+            )
+            w_grid = wr_grid + 1j * wi_grid
+            e2s = np.vectorize(self.clad)(w_grid)
+            vs = {}
+            for key in betas.keys():
+                vs[key] = self.samples.v(betas[key] ** 2, w_grid, e2s)
+            self.beta_funcs = self.samples.database.interpolation(
+                betas, convs, vs, self.bounds
+            )
         alpha_list = []
         alpha_candidates = params["modes"].get("alphas", None)
-        for alpha, comp in self.beta_funcs.keys():
-            if comp == "real":
-                if alpha_candidates is not None:
-                    if alpha in alpha_candidates:
+        if self.clad.label == "PEC":
+            if alpha_candidates is not None:
+                alpha_list = alpha_candidates
+            else:
+                for pol in ["M", "E"]:
+                    for n in range(self.num_n):
+                        for m in range(1, self.num_m + 1):
+                            alpha_list.append((pol, n, m))
+        else:
+            for alpha, comp in self.beta_funcs.keys():
+                if comp == "real":
+                    if alpha_candidates is not None:
+                        if alpha in alpha_candidates:
+                            alpha_list.append(alpha)
+                    else:
                         alpha_list.append(alpha)
-                else:
-                    alpha_list.append(alpha)
         alpha_list.sort()
+
         self.alphas = self.modes = self.get_alphas(alpha_list)
 
         self.alpha_all = [alpha for dir in self.ls for alpha in self.alphas[dir]]
