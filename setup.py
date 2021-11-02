@@ -39,7 +39,7 @@ setup(
     install_requires=[line.strip() for line in open("requirements.txt").readlines()],
     python_requires=">=3.7",
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",

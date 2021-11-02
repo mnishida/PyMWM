@@ -95,6 +95,22 @@ class Sampling(metaclass=abc.ABCMeta):
         )
         return d
 
+    def x(
+        self,
+        h2: complex | np.ndarray,
+        w: complex | np.ndarray,
+        e1: complex | np.ndarray,
+    ) -> complex | np.ndarray:
+        pass
+
+    def y(
+        self,
+        h2: complex | np.ndarray,
+        w: complex | np.ndarray,
+        e2: complex | np.ndarray,
+    ) -> complex | np.ndarray:
+        pass
+
     @abc.abstractmethod
     def u(
         self,

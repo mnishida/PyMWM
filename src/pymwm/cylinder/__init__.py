@@ -79,7 +79,7 @@ class Cylinder(Waveguide):
                 alphas["v"].append(alpha)
         return alphas
 
-    def betas_convs_samples(self, params: dict) -> tuple[dict, dict, Sampling]:
+    def betas_convs_samples(self, params: dict) -> tuple[dict, dict, Samples]:
         im_factor = self.clad.im_factor
         self.clad.im_factor = 1.0
         self.clad_params["im_factor"] = 1.0
@@ -356,7 +356,14 @@ class Cylinder(Waveguide):
     def vpart_off(n, v, knv):
         return n * (knv / v) ** 2
 
-    def Y(self, w, h, alpha, a, b):
+    def Y(
+        self,
+        w: complex,
+        h: complex,
+        alpha: tuple[str, int, int],
+        a: complex,
+        b: complex,
+    ) -> complex:
         """Return the effective admittance of the waveguide mode
 
         Args:
@@ -444,7 +451,7 @@ class Cylinder(Waveguide):
         else:
             fr = np.sin(n * p)
             fp = np.cos(n * p)
-        y_te = self.y_te(w, h)
+        y_te = Cylinder.y_te(w, h)
         if r <= self.r:
             y_tm = self.y_tm_inner(w, h)
             er_te = (ssp.jv(n - 1, ur) + ssp.jv(n + 1, ur)) / 2 * fr
@@ -559,7 +566,7 @@ class Cylinder(Waveguide):
         else:
             fr = np.sin(n * p)
             fp = np.cos(n * p)
-        y_te = self.y_te(w, h)
+        y_te = Cylinder.y_te(w, h)
         if r <= self.r:
             y_tm = self.y_tm_inner(w, h)
             er_te = (ssp.jv(n - 1, ur) + ssp.jv(n + 1, ur)) / 2 * fr
@@ -597,7 +604,7 @@ class Cylinder(Waveguide):
             jnpus[1, n] = ssp.jvp(n, us[1, n])
         return us, jnus, jnpus
 
-    def coefs_numpy(self, hs, w):
+    def coefs(self, hs, w):
         As = []
         Bs = []
         for h, s, n, m in zip(hs, self.s_all, self.n_all, self.m_all):
@@ -607,9 +614,6 @@ class Cylinder(Waveguide):
             Bs.append(bi)
         return np.ascontiguousarray(As), np.ascontiguousarray(Bs)
 
-    def coefs(self, hs, w):
-        return cylinder_utils.coefs_cython(self, hs, w)
-
     def Ys(self, w, hs, As, Bs):
         vals = []
         for h, s, n, a, b in zip(hs, self.s_all, self.n_all, As, Bs):
@@ -617,52 +621,39 @@ class Cylinder(Waveguide):
             vals.append(self.Y(w, h, (pol, n, 1), a, b))
         return np.array(vals)
 
-    def hAB(self, w):
+    def props_numpy(self, w):
+        e1 = self.fill(w)
+        e2 = self.clad(w)
         hs = np.array([self.beta(w, alpha) for alpha in self.alpha_all])
         As, Bs = self.coefs(hs, w)
-        return hs, As, Bs
+        Ys = self.Ys(w, hs, As, Bs)
+        if e2.real < -1e6:
+            us = np.zeros_like(hs, dtype=complex)
+            jus = np.zeros_like(hs, dtype=complex)
+            jpus = np.zeros_like(hs, dtype=complex)
+            for i, (h, s, n, m) in enumerate(
+                zip(hs, self.s_all, self.n_all, self.m_all)
+            ):
+                us[i] = self.u_pec[s, n, m - 1]
+                jus[i] = self.jnu_pec[s, n, m - 1]
+                jpus[i] = self.jnpu_pec[s, n, m - 1]
+            vs = (1 - 1j) * np.sqrt(0.5j * (-e2 * w ** 2 + hs ** 2)) * self.r
+            kvs = np.zeros_like(vs)
+            kpvs = np.zeros_like(vs)
+        else:
+            us = self.samples.u(hs ** 2, w, e1)
+            vs = self.samples.v(hs ** 2, w, e2)
+            jus = ssp.jv(self.n_all, us)
+            jpus = ssp.jvp(self.n_all, us)
+            kvs = ssp.kv(self.n_all, vs)
+            kpvs = ssp.kvp(self.n_all, vs)
+        return hs, us, vs, jus, jpus, kvs, kpvs, As, Bs, Ys
 
-    def ABY(self, w, hs):
-        e1 = self.fill(w)
-        e2 = self.clad(w)
-        return cylinder_utils.ABY_cython(
-            w,
-            self.r,
-            self.s_all,
-            self.n_all,
-            self.m_all,
-            hs,
-            e1,
-            e2,
-            self.u_pec,
-            self.jnu_pec,
-            self.jnpu_pec,
-        )
-
-    def hABY(self, w):
-        e1 = self.fill(w)
-        e2 = self.clad(w)
-        hs = np.array([self.beta(w, alpha) for alpha in self.alpha_all])
-        As, Bs, Y = cylinder_utils.ABY_cython(
-            w,
-            self.r,
-            self.s_all,
-            self.n_all,
-            self.m_all,
-            hs,
-            e1,
-            e2,
-            self.u_pec,
-            self.jnu_pec,
-            self.jnpu_pec,
-        )
-        return hs, As, Bs, Y
-
-    def huvABY(self, w):
+    def props(self, w):
         e1 = self.fill(w)
         e2 = self.clad(w)
         hs = np.array([self.beta(w, alpha) for alpha in self.alpha_all])
-        us, vs, As, Bs, Y = cylinder_utils.uvABY_cython(
+        us, vs, jus, jpus, kvs, kpvs, As, Bs, Ys = cylinder_utils.props_cython(
             w,
             self.r,
             self.s_all,
@@ -675,4 +666,4 @@ class Cylinder(Waveguide):
             self.jnu_pec,
             self.jnpu_pec,
         )
-        return hs, us, vs, As, Bs, Y
+        return hs, us, vs, jus, jpus, kvs, kpvs, As, Bs, Ys

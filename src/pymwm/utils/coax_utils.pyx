@@ -2,19 +2,17 @@
 # cython: profile=False
 import numpy as np
 
-from pymwm.utils import eig_mat_utils
-
 cimport cython
 cimport numpy as np
 
 
 @cython.cdivision(True)
-cdef cdouble u_func(cdouble h2, cdouble w, cdouble e1, double r):
+cdef cdouble u_func(cdouble h2, cdouble w, cdouble e1, double r) nogil:
     return (1 + 1j) * csqrt(-0.5j * (e1 * w ** 2 - h2)) * r
 
 
 @cython.cdivision(True)
-cdef cdouble v_func(cdouble h2, cdouble w, cdouble e2, double r):
+cdef cdouble v_func(cdouble h2, cdouble w, cdouble e2, double r) nogil:
     return (1 - 1j) * csqrt(0.5j * (-e2 * w ** 2 + h2)) * r
 
 
@@ -379,3 +377,262 @@ def eig_eq(
         denom *= (h2 - roots[i]) / roots[i]
     f /= denom
     return np.array([f.real, f.imag])
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void coefs_C(
+    cdouble *hs, cdouble w, long *s_all, long *n_all,
+    int num_n_all, double r, double ri, cdouble e1, cdouble e2,
+    cdouble *xs, cdouble *ys, cdouble *us, cdouble *vs,
+    cdouble *jxs, cdouble *jpxs, cdouble *yxs, cdouble *ypxs, cdouble *iys, cdouble *ipys,
+    cdouble *jus, cdouble *jpus, cdouble *yus, cdouble *ypus, cdouble *kvs, cdouble *kpvs,
+    cdouble *A1s, cdouble *B1s, cdouble *A2s, cdouble *B2s,
+    cdouble *C2s, cdouble *D2s, cdouble *A3s, cdouble *B3s,
+    cdouble *Ys) nogil:
+    cdef:
+        int i, s, n, en
+        cdouble ee = e1 / e2
+        cdouble val
+        cdouble I1, I2, I3, Y1, Y2, Y3
+        cdouble norm, Y, hew
+        cdouble h, a1, b1, a2, b2, c2, d2, a3, b3
+        cdouble x, y, u, v
+        cdouble ju, jpu, yu, ypu, jx, jpx, yx, ypx
+        cdouble kv, kpv, iy, ipy, nuv, nxy
+        cdouble y_te, y_tm1, y_tm2
+        cdouble A[3][3]
+        cdouble B[3]
+        cdouble C[3]
+        cdouble vals[2]
+    for i in range(num_n_all):
+        n = n_all[i]
+        en = 1 if n == 0 else 2
+        h = hs[i]
+        y_te = h / w
+        y_tm1 = e1 * w / h
+        y_tm2 = e2 * w / h
+        s = s_all[i]
+        u = u_func(h * h, w, e1, r)
+        jv_jvp(n, u, vals)
+        ju = vals[0]
+        jpu = vals[1]
+        yv_yvp(n, u, vals)
+        yu = vals[0]
+        ypu = vals[1]
+        x = u_func(h * h, w, e1, ri)
+        jv_jvp(n, x, vals)
+        jx = vals[0]
+        jpx = vals[1]
+        yv_yvp(n, x, vals)
+        yx = vals[0]
+        ypx = vals[1]
+
+        if creal(e2) < -1e6:
+            a1 = b1 = a3 = b3 = 0.0j
+            if s == 0:
+                a2 = 1.0 + 0.0j
+                c2 = - jpu / ypu
+                b2 = d2 = 0.0j
+            else:
+                b2 = 1.0 + 0.0j
+                d2 = - ju / yu
+                a2 = c2 = 0.0j
+            iys[i] = INFINITY
+            ipys[i] = INFINITY
+            kvs[i] = 0.0
+            kpvs[i] = 0.0
+        else:
+            hew = h ** 2 / e2 / w ** 2
+            y = v_func(h * h, w, e2, ri)
+            v = v_func(h * h, w, e2, r)
+            kv_kvp(n, v, vals)
+            kv = vals[0]
+            kpv = vals[1]
+            iv_ivp(n, y, vals)
+            iy = vals[0]
+            ipy = vals[1]
+            nuv = n * (v / u + u / v)
+            nxy = n * (y / x + x / y)
+            if s == 0:
+                A[0][0] = ypx / yx * y + ipy / iy * x
+                A[0][1] = nxy * jx / yx
+                A[0][2] = nxy
+                A[1][0] = hew * nuv * yu * kv
+                A[1][1] = ee * jpu * kv * v + kpv * ju * u
+                A[1][2] = ee * ypu * kv * v + kpv * yu * u
+                A[2][0] = hew * nxy
+                A[2][1] = ee * jpx / yx * y + ipy / iy * jx / yx * x
+                A[2][2] = ee * ypx / yx * y + ipy / iy * x
+                B[0] = - (jpx / yx * y + ipy / iy * jx / yx * x)
+                B[1] = - (hew * nuv * ju * kv)
+                B[2] = - (hew * nxy * jx / yx)
+                a2 = 1.0 + 0j
+                solve(A, B, C)
+                c2 = C[0]
+                b2 = C[1]
+                d2 = C[2]
+            else:
+                A[0][0] = ee * ypx / yx * y + ipy / iy * x
+                A[0][1] = hew * nxy * jx / yx
+                A[0][2] = hew * nxy
+                A[1][0] = nuv * yu * kv
+                A[1][1] = jpu * kv * v + kpv * ju * u
+                A[1][2] = ypu * kv * v + kpv * yu * u
+                A[2][0] = nxy
+                A[2][1] = jpx / yx * y + ipy / iy * jx / yx * x
+                A[2][2] = ypx / yx * y + ipy / iy * x
+                B[0] = - (ee * jpx / yx * y + ipy / iy * jx / yx * x)
+                B[1] = - (nuv * ju * kv)
+                B[2] = - (nxy * jx / yx)
+                b2 = 1.0 + 0j
+                solve(A, B, C)
+                d2 = C[0]
+                a2 = C[1]
+                c2 = C[2]
+            a1 = - x / (y * iy) * (jx * a2 + yx * c2)
+            b1 = - x / (y * iy) * (jx * b2 + yx * d2)
+            a3 = - u / (v * kv) * (ju * a2 + yu * c2)
+            b3 = - u / (v * kv) * (ju * b2 + yu * d2)
+
+        val = M_PI / en * (
+            r ** 2 * (jpu ** 2 + (1 - n ** 2 / u ** 2) * ju ** 2 + 2 * jpu * ju / u)
+            - ri ** 2 * (jpx ** 2 + (1 - n ** 2 / x ** 2) * jx ** 2 + 2 * jpx * jx / x)
+        )
+        I2 = val * (a2 ** 2 + b2 ** 2)
+        Y2 = val * (y_te * a2 ** 2 + y_tm1 * b2 ** 2)
+        val = M_PI / en * (
+            r ** 2 * (ypu ** 2 + (1 - n ** 2 / u ** 2) * yu ** 2 + 2 * ypu * yu / u)
+            - ri ** 2 * (ypx ** 2 + (1 - n ** 2 / x ** 2) * yx ** 2 + 2 * ypx * yx / x)
+        )
+        I2 += val * (c2 ** 2 + d2 ** 2)
+        Y2 += val * (y_te * c2 ** 2 + y_tm1 * d2 ** 2)
+        val = M_PI / en * 2 * (
+            r ** 2 * (jpu * ypu + (1 - n ** 2 / u ** 2) * ju * yu + 2 * jpu * yu / u)
+            - ri ** 2 * (jpx * ypx + (1 - n ** 2 / x ** 2) * jx * yx + 2 * jpx * yx / x)
+        )
+        I2 += val * (a2 * c2 + b2 * d2)
+        Y2 += val * (y_te * a2 * c2 + y_tm1 * b2 * d2)
+        val = M_PI * n * (r ** 2 / u ** 2 * ju ** 2 - ri ** 2 / x ** 2 * jx ** 2)
+        I2 += val * 2 * a2 * b2
+        Y2 += val * (y_te + y_tm1) * a2 * b2
+        val = M_PI * n * (r ** 2 / u ** 2 * yu ** 2 - ri ** 2 / x ** 2 * yx ** 2)
+        I2 += 2 * val * c2 * d2
+        Y2 += val * (y_te + y_tm1) * c2 * d2
+        val = M_PI * n *  (r ** 2 / u ** 2 * ju * yu - ri ** 2 / x ** 2 * jx * yx)
+        I2 += 2 * val * (a2 * d2 + b2 * c2)
+        Y2 +=  val * (y_te + y_tm1) * (a2 * d2 + b2 * c2)
+
+        if creal(e2) < -1e6:
+            norm = csqrt(I2)
+            Y = Y2 / I2
+        else:
+            val = M_PI * ri ** 2 / en * (ipy ** 2 - (1 + n ** 2 / y ** 2) * iy ** 2 + 2 * ipy * iy / y)
+            I1 = val * (a1 ** 2 + b1 ** 2)
+            Y1 = val * (y_te * a1 ** 2 + y_tm2 * b1 ** 2)
+            val = M_PI * ri ** 2 * n * iy ** 2 / y ** 2
+            I1 += val * 2 * a1 * b1
+            Y1 += val * (y_te + y_tm2) * a1 * b1
+            val = - M_PI * r ** 2 / en * (kpv ** 2 - (1 + n ** 2 / v ** 2) * kv ** 2 + 2 * kpv * kv / v)
+            I3 = val * (a3 ** 2 + b3 ** 2)
+            Y3 = val * (y_te * a3 ** 2 + y_tm2 * b3 ** 2)
+            val = - M_PI * r ** 2 * n * kv ** 2 / v ** 2
+            I3 += val * 2 * a3 * b3
+            Y3 += val * (y_te + y_tm2) * a3 * b3
+            norm = csqrt(I1 + I2 + I3)
+            Y = (Y1 + Y2 + Y3) / (I1 + I2 + I3)
+
+        xs[i] = x
+        ys[i] = y
+        us[i] = u
+        vs[i] = v
+        jxs[i] = jx
+        jpxs[i] = jpx
+        yxs[i] = yx
+        ypxs[i] = ypx
+        iys [i] = iy
+        ipys[i] = ipy
+        jus[i] = ju
+        jpus[i] = jpu
+        yus[i] = yu
+        ypus[i] = ypu
+        kvs [i] = kv
+        kpvs[i] = kpv
+        A1s[i] = a1 / norm
+        B1s[i] = b1 / norm
+        A2s[i] = a2 / norm
+        B2s[i] = b2 / norm
+        C2s[i] = c2 / norm
+        D2s[i] = d2 / norm
+        A3s[i] = a3 / norm
+        B3s[i] = b3 / norm
+        Ys[i] = Y
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def props_cython(cdouble w, double r, double ri, long[::1] s_all, long[::1] n_all,
+                 cdouble[::1] hs, cdouble e1, cdouble e2):
+    cdef:
+        int num_n_all = n_all.shape[0]
+    xs_array = np.empty(num_n_all, dtype=complex)
+    ys_array = np.empty(num_n_all, dtype=complex)
+    us_array = np.empty(num_n_all, dtype=complex)
+    vs_array = np.empty(num_n_all, dtype=complex)
+    jxs_array = np.empty(num_n_all, dtype=complex)
+    jpxs_array = np.empty(num_n_all, dtype=complex)
+    yxs_array = np.empty(num_n_all, dtype=complex)
+    ypxs_array = np.empty(num_n_all, dtype=complex)
+    iys_array = np.empty(num_n_all, dtype=complex)
+    ipys_array = np.empty(num_n_all, dtype=complex)
+    jus_array = np.empty(num_n_all, dtype=complex)
+    jpus_array = np.empty(num_n_all, dtype=complex)
+    yus_array = np.empty(num_n_all, dtype=complex)
+    ypus_array = np.empty(num_n_all, dtype=complex)
+    kvs_array = np.empty(num_n_all, dtype=complex)
+    kpvs_array = np.empty(num_n_all, dtype=complex)
+    A1s_array = np.empty(num_n_all, dtype=complex)
+    B1s_array = np.empty(num_n_all, dtype=complex)
+    A2s_array = np.empty(num_n_all, dtype=complex)
+    B2s_array = np.empty(num_n_all, dtype=complex)
+    C2s_array = np.empty(num_n_all, dtype=complex)
+    D2s_array = np.empty(num_n_all, dtype=complex)
+    A3s_array = np.empty(num_n_all, dtype=complex)
+    B3s_array = np.empty(num_n_all, dtype=complex)
+    Ys_array = np.empty(num_n_all, dtype=complex)
+    cdef:
+        cdouble[:] xs = xs_array
+        cdouble[:] ys = ys_array
+        cdouble[:] us = us_array
+        cdouble[:] vs = vs_array
+        cdouble[:] jxs = jxs_array
+        cdouble[:] jpxs = jpxs_array
+        cdouble[:] yxs = yxs_array
+        cdouble[:] ypxs = ypxs_array
+        cdouble[:] iys = iys_array
+        cdouble[:] ipys = ipys_array
+        cdouble[:] jus = jus_array
+        cdouble[:] jpus = jpus_array
+        cdouble[:] yus = yus_array
+        cdouble[:] ypus = ypus_array
+        cdouble[:] kvs = kvs_array
+        cdouble[:] kpvs = kpvs_array
+        cdouble[:] A1s = A1s_array
+        cdouble[:] B1s = B1s_array
+        cdouble[:] A2s = A2s_array
+        cdouble[:] B2s = B2s_array
+        cdouble[:] C2s = C2s_array
+        cdouble[:] D2s = D2s_array
+        cdouble[:] A3s = A3s_array
+        cdouble[:] B3s = B3s_array
+        cdouble[:] Ys = Ys_array
+    coefs_C(&hs[0], w, &s_all[0], &n_all[0], num_n_all, r, ri, e1, e2,
+        &xs[0], &ys[0], &us[0], &vs[0], &jxs[0], &jpxs[0], &yxs[0], &ypxs[0],
+        &iys[0], &ipys[0], &jus[0], &jpus[0], &yus[0], &ypus[0], &kvs[0], &kpvs[0],
+        &A1s[0], &B1s[0], &A2s[0], &B2s[0], &C2s[0], &D2s[0], &A3s[0], &B3s[0], &Ys[0])
+    return (xs_array, ys_array, us_array, vs_array,
+            jxs_array, jpxs_array, yxs_array, ypxs_array, iys_array, ipys_array,
+            jus_array, jpus_array, yus_array, ypus_array, kvs_array, kpvs_array,
+            A1s_array, B1s_array, A2s_array, B2s_array, C2s_array, D2s_array, A3s_array, B3s_array, Ys_array)

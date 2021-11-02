@@ -18,7 +18,9 @@ cdef void yn_ynp_ynpp(int n, double z, double vals[3]) nogil
 cdef void yn_ynp_ynpp_ynppp(int n, double z, double vals[4]) nogil
 
 cdef void jv_jvp(int n, cdouble z, cdouble vals[2]) nogil
+cdef void yv_yvp(int n, cdouble z, cdouble vals[2]) nogil
 cdef void kv_kvp(int n, cdouble z, cdouble vals[2]) nogil
+cdef void iv_ivp(int n, cdouble z, cdouble vals[2]) nogil
 
 cdef void jve_jvpe_jvppe(int n, cdouble z, cdouble vals[3]) nogil
 cdef void yve_yvpe_yvppe(int n, cdouble z, cdouble vals[3]) nogil

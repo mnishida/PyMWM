@@ -18,6 +18,8 @@ cdef void coefs_pec_C(long *s_all, long *n_all, long  *m_all, int num_n_all,
 cdef void coefs_C(
     cdouble *hs, cdouble w, long *s_all, long *n_all, long  *m_all,
     int num_n_all, double r, cdouble e1, cdouble e2,
+    cdouble *us, cdouble *vs,
+    cdouble *jus, cdouble *jpus, cdouble *kvs, cdouble *kpvs,
     cdouble *As, cdouble *Bs) nogil
 
 cdef cdouble upart_diag(int n, cdouble uc, cdouble jnuc, cdouble jnpuc,

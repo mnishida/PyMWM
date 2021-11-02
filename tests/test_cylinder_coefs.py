@@ -1,6 +1,7 @@
 import unittest
 
 import numpy as np
+import numpy.testing as npt
 
 import pymwm
 
@@ -22,79 +23,42 @@ class TestCylinderCoefs(unittest.TestCase):
         }
         self.pec = {"PEC": True}
 
-    def test_coefs(self):
+    def test_props(self):
         params = self.params.copy()
         wg = pymwm.create(params)
         wr = 2.0 * np.pi
         wi = -0.002
         w = wr + wi * 1j
-        alpha_all = wg.alpha_all
-        hs = np.array([wg.beta(w, alpha) for alpha in alpha_all])
-        As1, Bs1 = wg.coefs_numpy(hs, w)
-        As2, Bs2 = wg.coefs(hs, w)
+        hs1, us1, vs1, jus1, jpus1, kvs1, kpvs1, As1, Bs1, Ys1 = wg.props_numpy(w)
+        hs2, us2, vs2, jus2, jpus2, kvs2, kpvs2, As2, Bs2, Ys2 = wg.props(w)
         print(As1, As2)
-        self.assertTrue(np.allclose(As1, As2))
-        self.assertTrue(np.allclose(Bs1, Bs2))
+        npt.assert_allclose(hs1, hs2)
+        npt.assert_allclose(us1, us2)
+        npt.assert_allclose(vs1, vs2)
+        npt.assert_allclose(jus1, jus2)
+        npt.assert_allclose(jpus1, jpus2)
+        npt.assert_allclose(kvs1, kvs2)
+        npt.assert_allclose(kpvs1, kpvs2)
+        npt.assert_allclose(As1, As2)
+        npt.assert_allclose(Bs1, Bs2)
+        npt.assert_allclose(Ys1, Ys2)
 
         params["clad"] = self.pec
         wg = pymwm.create(params)
         # print(type(wg.clad))
-        alpha_all = wg.alpha_all
-        hs = np.array([wg.beta(w, alpha) for alpha in alpha_all])
-        As1, Bs1 = wg.coefs_numpy(hs, w)
-        As2, Bs2 = wg.coefs(hs, w)
+        hs1, us1, vs1, jus1, jpus1, kvs1, kpvs1, As1, Bs1, Ys1 = wg.props_numpy(w)
+        hs2, us2, vs2, jus2, jpus2, kvs2, kpvs2, As2, Bs2, Ys2 = wg.props(w)
         print(As1, As2)
-        self.assertTrue(np.allclose(As1, As2))
-        self.assertTrue(np.allclose(Bs1, Bs2))
-
-    def test_ABY(self):
-        params = self.params.copy()
-        wg = pymwm.create(params)
-        wr = 2.0 * np.pi
-        wi = -0.002
-        w = wr + wi * 1j
-        hs = np.array([wg.beta(w, alpha) for alpha in wg.alpha_all])
-        As1, Bs1 = wg.coefs_numpy(hs, w)
-        Y1 = wg.Ys(w, hs, As1, Bs1)
-        As2, Bs2, Y2 = wg.ABY(w, hs)
-        print(As1, As2)
-        self.assertTrue(np.allclose(As1, As2))
-        self.assertTrue(np.allclose(Bs1, Bs2))
-        self.assertTrue(np.allclose(Y1, Y2))
-
-        params["clad"] = self.pec
-        wg = pymwm.create(params)
-        hs = np.array([wg.beta(w, alpha) for alpha in wg.alpha_all])
-        As1, Bs1 = wg.coefs_numpy(hs, w)
-        Y1 = wg.Ys(w, hs, As1, Bs1)
-        As2, Bs2, Y2 = wg.ABY(w, hs)
-        self.assertTrue(np.allclose(As1, As2))
-        self.assertTrue(np.allclose(Bs1, Bs2))
-        self.assertTrue(np.allclose(Y1, Y2))
-
-    def test_hABY(self):
-        params = self.params.copy()
-        wg = pymwm.create(params)
-        wr = 2.0 * np.pi
-        wi = -0.002
-        w = wr + wi * 1j
-        hs1 = np.array([wg.beta(w, alpha) for alpha in wg.alpha_all])
-        As1, Bs1 = wg.coefs_numpy(hs1, w)
-        Y1 = wg.Ys(w, hs1, As1, Bs1)
-        hs2, As2, Bs2, Y2 = wg.hABY(w)
-        self.assertTrue(np.allclose(As1, As2))
-        self.assertTrue(np.allclose(Bs1, Bs2))
-        self.assertTrue(np.allclose(Y1, Y2))
-
-        params["clad"] = self.pec
-        wg = pymwm.create(params)
-        hs1 = np.array([wg.beta(w, alpha) for alpha in wg.alpha_all])
-        As1, Bs1 = wg.coefs_numpy(hs1, w)
-        Y1 = wg.Ys(w, hs1, As1, Bs1)
-        hs2, As2, Bs2, Y2 = wg.hABY(w)
-        self.assertTrue(np.allclose(As1, As2))
-        self.assertTrue(np.allclose(Bs1, Bs2))
-        self.assertTrue(np.allclose(Y1, Y2))
+        npt.assert_allclose(hs1, hs2)
+        npt.assert_allclose(us1, us2)
+        npt.assert_allclose(vs1, vs2)
+        npt.assert_allclose(jus1, jus2)
+        npt.assert_allclose(jpus1, jpus2)
+        npt.assert_allclose(kvs1, kvs2)
+        npt.assert_allclose(kpvs1, kpvs2)
+        npt.assert_allclose(As1, As2)
+        npt.assert_allclose(Bs1, Bs2)
+        npt.assert_allclose(Ys1, Ys2)
 
     def test_norm(self):
         params = self.params.copy()
@@ -103,7 +67,7 @@ class TestCylinderCoefs(unittest.TestCase):
         wi = -0.002
         w = complex(wr, wi)
         hs = np.array([wg.beta(w, alpha) for alpha in wg.alpha_all])
-        As, Bs = wg.coefs_numpy(hs, w)
+        As, Bs = wg.coefs(hs, w)
         for h, a, b, s, n, m in zip(hs, As, Bs, wg.s_all, wg.n_all, wg.m_all):
             pol = "E" if s == 0 else "M"
             norm = wg.norm(w, h, (pol, n, m), a, b)
@@ -112,7 +76,7 @@ class TestCylinderCoefs(unittest.TestCase):
         params["clad"] = self.pec
         wg = pymwm.create(params)
         hs = np.array([wg.beta(w, alpha) for alpha in wg.alpha_all])
-        As, Bs = wg.coefs_numpy(hs, w)
+        As, Bs = wg.coefs(hs, w)
         for h, a, b, s, n, m in zip(hs, As, Bs, wg.s_all, wg.n_all, wg.m_all):
             pol = "E" if s == 0 else "M"
             norm = wg.norm(w, h, (pol, n, m), a, b)

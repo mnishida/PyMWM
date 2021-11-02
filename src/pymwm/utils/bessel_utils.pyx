@@ -108,11 +108,40 @@ cdef void jv_jvp(int n, cdouble z, cdouble vals[2]) nogil:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
+cdef void yv_yvp(int n, cdouble z, cdouble vals[2]) nogil:
+    cdef:
+         cdouble y = yv(n, z)
+    vals[0] = y
+    vals[1] = -yv(n + 1, z) + n * y / z
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def yv_yvp_cython(int n, cdouble z):
+    cdef cdouble vals[2]
+    yv_yvp(n, z, vals)
+    return vals[0], vals[1]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 cdef void kv_kvp(int n, cdouble z, cdouble vals[2]) nogil:
     cdef:
         cdouble k = kv(n, z)
     vals[0] = k
     vals[1] = -kv(n + 1, z) + n * k / z
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void iv_ivp(int n, cdouble z, cdouble vals[2]) nogil:
+    cdef:
+        cdouble i = iv(n, z)
+    vals[0] = i
+    vals[1] = iv(n + 1, z) + n * i / z
 
 
 @cython.boundscheck(False)

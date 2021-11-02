@@ -219,19 +219,33 @@ cdef inline cdouble det_cython(cdouble[:, ::1] a):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def solve_cython(cdouble[:, ::1] a, cdouble[::1] b):
-    cdef cdouble A00, A01, A10, A11, B0, B1, inv_det, x, y
-    A00 = a[0, 0] * a[1, 2] - a[1, 0] * a[0, 2]
-    A01 = a[0, 1] * a[1, 2] - a[1, 1] * a[0, 2]
-    A10 = a[1, 0] * a[2, 2] - a[2, 0] * a[1, 2]
-    A11 = a[1, 1] * a[2, 2] - a[2, 1] * a[1, 2]
-    B0 = b[0] * a[1, 2] - b[1] * a[0, 2]
-    B1 = b[1] * a[2, 2] - b[2] * a[1, 2]
+cdef void solve(cdouble a[3][3], cdouble b[3], cdouble x[3]) nogil:
+    cdef cdouble A00, A01, A10, A11, B0, B1, inv_det
+    A00 = a[0][0] * a[1][2] - a[1][0] * a[0][2]
+    A01 = a[0][1] * a[1][2] - a[1][1] * a[0][2]
+    A10 = a[1][0] * a[2][2] - a[2][0] * a[1][2]
+    A11 = a[1][1] * a[2][2] - a[2][1] * a[1][2]
+    B0 = b[0] * a[1][2] - b[1] * a[0][2]
+    B1 = b[1] * a[2][2] - b[2] * a[1][2]
     inv_det = 1 / (A00 * A11 - A01 * A10)
-    x = (B0 * A11 - B1 * A01) * inv_det
-    y = (B1 * A00 - B0 * A10) * inv_det
-    return  (
-        x,
-        y,
-        (b[2] - a[2, 0] * x - a[2, 1] * y) / a[2, 2]
-    )
+    x[0] = (B0 * A11 - B1 * A01) * inv_det
+    x[1] = (B1 * A00 - B0 * A10) * inv_det
+    x[2] = (b[2] - a[2][0] * x[0] - a[2][1] * x[1]) / a[2][2]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def solve_cython(cdouble[:, ::1] a, cdouble[::1] b):
+    cdef:
+        int i, j
+        cdouble A[3][3]
+        cdouble B[3]
+        cdouble x[3]
+
+    for i in range(3):
+        B[i] = b[i]
+        for j in range(3):
+            A[i][j] = a[i, j]
+    solve(A, B, x)
+    return  x[0], x[1], x[2]

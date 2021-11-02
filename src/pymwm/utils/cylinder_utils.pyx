@@ -138,32 +138,6 @@ cdef inline cdouble vpart_off(int n, cdouble vc, cdouble knvc,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def coefs_cython(object hole, cdouble[::1] hs, cdouble w):
-    cdef:
-        long[::1] s_all = hole.s_all
-        long[::1] n_all = hole.n_all
-        long[::1] m_all = hole.m_all
-    As_array = np.empty(hole.num_n_all, dtype=complex)
-    Bs_array = np.empty(hole.num_n_all, dtype=complex)
-    cdef:
-        cdouble[::1] As = As_array
-        cdouble[::1] Bs = Bs_array
-        cdouble e1 = hole.fill(w)
-        cdouble e2 = hole.clad(w)
-    if creal(e2) < -1e6:
-        coefs_pec_C(
-            &s_all[0], &n_all[0], &m_all[0], hole.num_n_all,
-            hole.r, &As[0], &Bs[0])
-    else:
-        coefs_C(
-            &hs[0], w, &s_all[0], &n_all[0], &m_all[0], hole.num_n_all,
-            hole.r, e1, e2, &As[0], &Bs[0])
-    return As_array, Bs_array
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef void coefs_pec_C(long *s_all, long *n_all, long  *m_all, int num_n_all,
               double r, cdouble *As, cdouble *Bs):
     cdef:
@@ -195,6 +169,8 @@ cdef void coefs_pec_C(long *s_all, long *n_all, long  *m_all, int num_n_all,
 cdef void coefs_C(
     cdouble *hs, cdouble w, long *s_all, long *n_all, long  *m_all,
     int num_n_all, double r, cdouble e1, cdouble e2,
+    cdouble *us, cdouble *vs,
+    cdouble *jus, cdouble *jpus, cdouble *kvs, cdouble *kpvs,
     cdouble *As, cdouble *Bs) nogil:
     cdef:
         int i, s, n, m, en
@@ -229,6 +205,12 @@ cdef void coefs_C(
         norm = csqrt(val_u * (
             a * (a * ud + b * uod) + b * (b * ud + a * uod)) - val_v * (
             a * (a * vd + b * vod) + b * (b * vd + a * vod)))
+        us[i] = u
+        vs[i] = v
+        jus[i] = jnu
+        jpus[i] = jnpu
+        kvs[i] = knv
+        kpvs[i] = knpv
         As[i] = a / norm
         Bs[i] = b / norm
 
@@ -236,82 +218,7 @@ cdef void coefs_C(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def ABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
-               long[::1] m_all, cdouble[::1] hs, cdouble e1, cdouble e2,
-               double[:, :, ::1] u_pec, double[:, :, ::1] jnu_pec,
-               double[:, :, ::1] jnpu_pec):
-    cdef:
-        int i, s, n, m, en
-        int num_n_all = n_all.shape[0]
-        double up, norm, jnup, jnpup
-        cdouble h, u, v, jnu, jnpu, knv, knpv, a, b
-        cdouble uc, vc, jnuc, jnpuc, knvc, knpvc, ac, bc
-        cdouble ab[2]
-        cdouble vals[2]
-        cdouble val_u, val_v, ud, uod, vd, vod
-    As_array = np.empty(num_n_all, dtype=complex)
-    Bs_array = np.empty(num_n_all, dtype=complex)
-    Ys_array = np.empty(num_n_all, dtype=complex)
-    cdef:
-        cdouble[:] As = As_array
-        cdouble[:] Bs = Bs_array
-        cdouble[:] Ys = Ys_array
-    if creal(e2) < -1e6:
-        for i in range(num_n_all):
-            s = s_all[i]
-            n = n_all[i]
-            m = m_all[i]
-            en = 1 if n == 0 else 2
-            up = u_pec[s, n, m - 1]
-            jnup = jnu_pec[s, n, m - 1]
-            jnpup = jnpu_pec[s, n, m - 1]
-            if s_all[i] == 0:
-                norm = sqrt(M_PI * r * r / en  *
-                             (1 - n * n / (up * up)) * jnup * jnup)
-                As[i] = 1.0 / norm
-                Bs[i] = 0.0
-                Ys[i] = hs[i] / w
-            else:
-                norm = sqrt(M_PI * r * r / en * jnpup * jnpup)
-                As[i] = 0.0
-                Bs[i] = 1.0 / norm
-                Ys[i] = e1 * w / hs[i]
-        return As_array, Bs_array, Ys_array
-    coefs_C(
-        &hs[0], w, &s_all[0], &n_all[0], &m_all[0], num_n_all,
-        r, e1, e2, &As[0], &Bs[0])
-    for i in range(num_n_all):
-        s = s_all[i]
-        n = n_all[i]
-        en = 1 if n == 0 else 2
-        h = hs[i]
-        u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r
-        jv_jvp(n, u, vals)
-        jnu = vals[0]
-        jnpu = vals[1]
-        v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r
-        kv_kvp(n, v, vals)
-        knv = vals[0]
-        knpv = vals[1]
-        val_u = 2 * M_PI * r * r / en
-        val_v = val_u * ((u * jnu) / (v * knv)) ** 2
-        ud = upart_diag(n, u, jnu, jnpu, u, jnu, jnpu)
-        vd = vpart_diag(n, v, knv, knpv, v, knv, knpv)
-        uod = upart_off(n, u, jnu, u, jnu)
-        vod = vpart_off(n, v, knv, v, knv)
-        a = As[i]
-        b = Bs[i]
-        Ys[i] = (val_u * (h / w * a * (a * ud + b * uod) +
-                          e1 * w / h * b * (b * ud + a * uod)) -
-                 val_v * (h / w * a * (a * vd + b * vod) +
-                          e2 * w / h * b * (b * vd + a * vod)))
-    return As_array, Bs_array, Ys_array
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-def uvABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
+def props_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
                  long[::1] m_all, cdouble[::1] hs, cdouble e1, cdouble e2,
                  double[:, :, ::1] u_pec, double[:, :, ::1] jnu_pec,
                  double[:, :, ::1] jnpu_pec):
@@ -326,12 +233,20 @@ def uvABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
         cdouble val_u, val_v, ud, uod, vd, vod
     us_array = np.empty(num_n_all, dtype=complex)
     vs_array = np.empty(num_n_all, dtype=complex)
+    jus_array = np.empty(num_n_all, dtype=complex)
+    jpus_array = np.empty(num_n_all, dtype=complex)
+    kvs_array = np.empty(num_n_all, dtype=complex)
+    kpvs_array = np.empty(num_n_all, dtype=complex)
     As_array = np.empty(num_n_all, dtype=complex)
     Bs_array = np.empty(num_n_all, dtype=complex)
     Ys_array = np.empty(num_n_all, dtype=complex)
     cdef:
         cdouble[:] us = us_array
         cdouble[:] vs = vs_array
+        cdouble[:] jus = jus_array
+        cdouble[:] jpus = jpus_array
+        cdouble[:] kvs = kvs_array
+        cdouble[:] kpvs = kpvs_array
         cdouble[:] As = As_array
         cdouble[:] Bs = Bs_array
         cdouble[:] Ys = Ys_array
@@ -357,23 +272,25 @@ def uvABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
                 Ys[i] = e1 * w / hs[i]
             us[i] = up
             vs[i] = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + hs[i] * hs[i])) * r
-        return us_array, vs_array, As_array, Bs_array, Ys_array
+            jus[i] = jnup
+            jpus[i] = jnpup
+            kvs[i] = 0.0
+            kpvs[i] = 0.0
+        return us_array, vs_array, jus_array, jpus_array, kvs_array, kpvs_array, As_array, Bs_array, Ys_array
     coefs_C(
         &hs[0], w, &s_all[0], &n_all[0], &m_all[0], num_n_all,
-        r, e1, e2, &As[0], &Bs[0])
+        r, e1, e2, &us[0], &vs[0], &jus[0], &jpus[0], &kvs[0], &kpvs[0], &As[0], &Bs[0])
     for i in range(num_n_all):
         s = s_all[i]
         n = n_all[i]
         en = 1 if n == 0 else 2
         h = hs[i]
-        u = (1 + 1j) * csqrt(-0.5j * (e1 * w * w - h * h)) * r
-        jv_jvp(n, u, vals)
-        jnu = vals[0]
-        jnpu = vals[1]
-        v = (1 - 1j) * csqrt(0.5j * (- e2 * w * w + h * h)) * r
-        kv_kvp(n, v, vals)
-        knv = vals[0]
-        knpv = vals[1]
+        u = us[i]
+        jnu = jus[i]
+        jnpu = jpus[i]
+        v = vs[i]
+        knv = kvs[i]
+        knpv = kpvs[i]
         val_u = 2 * M_PI * r * r / en
         val_v = val_u * ((u * jnu) / (v * knv)) ** 2
         ud = upart_diag(n, u, jnu, jnpu, u, jnu, jnpu)
@@ -388,7 +305,11 @@ def uvABY_cython(cdouble w, double r, long[::1] s_all, long[::1] n_all,
                           e2 * w / h * b * (b * vd + a * vod)))
         us[i] = u
         vs[i] = v
-    return us_array, vs_array, As_array, Bs_array, Ys_array
+        jus[i] = jnu
+        jpus[i] = jnpu
+        kvs[i] = knv
+        kpvs[i] = knpv
+    return us_array, vs_array, jus_array, jpus_array, kvs_array, kpvs_array, As_array, Bs_array, Ys_array
 
 
 @cython.cdivision(True)
