@@ -16,7 +16,7 @@ PyMWM is a metallic waveguide mode solver written in Python.
 It provides the dispersion relation, i.e. the relation between propagation constant &beta; = &alpha; + i&gamma; (with phase constant &alpha; and attenuation constant &gamma;) and angular frequency &omega;, for cylindrical waveguide, coaxial waveguide, and planer waveguide (slits). It also provides the distribution of mode fields.
 
 ## Version
-0.4.0
+0.4.1
 
 ## Install
 #### Install and update using pip
