@@ -439,6 +439,8 @@ cdef void coefs_C(
                 b2 = 1.0 + 0.0j
                 d2 = - ju / yu
                 a2 = c2 = 0.0j
+            y = INFINITY
+            v = INFINITY
             iys[i] = INFINITY
             ipys[i] = INFINITY
             kvs[i] = 0.0
