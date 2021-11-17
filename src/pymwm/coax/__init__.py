@@ -57,6 +57,18 @@ class Coax(Waveguide):
         params["core"]["size"] = params["core"]["r"]
         params["core"]["size2"] = self.ri
         super().__init__(params)
+        if self.clad.label == "PEC":
+            from pymwm.cutoff import Cutoff
+
+            co = Cutoff(self.num_n, self.num_m)
+            self.co_list = []
+            for n in range(self.num_n):
+                co_per_n = []
+                for pol, m_end in [("M", self.num_m + 2), ("E", self.num_m + 1)]:
+                    for m in range(1, m_end):
+                        alpha = (pol, n, m)
+                        co_per_n.append(co(alpha, self.ri / self.r))
+                self.co_list.append(np.array(co_per_n))
 
     def get_alphas(self, alpha_list: list[tuple[str, int, int]]) -> dict:
         alphas: dict = {"h": [], "v": []}
@@ -242,9 +254,9 @@ class Coax(Waveguide):
         w_comp = w.real + 1j * w.imag
         pol, n, m = alpha
         if pol == "M":
-            chi = self.samples.co_list[n][m]
+            chi = self.co_list[n][m - 1]
         else:
-            chi = self.samples.co_list[n][self.num_m + m + 1]
+            chi = self.co_list[n][self.num_m + m]
         val = cmath.sqrt(self.fill(w_comp) * w_comp ** 2 - chi ** 2 / self.r ** 2)
         if abs(val.real) > abs(val.imag):
             if val.real < 0:
