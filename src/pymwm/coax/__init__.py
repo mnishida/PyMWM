@@ -69,6 +69,8 @@ class Coax(Waveguide):
                         alpha = (pol, n, m)
                         co_per_n.append(co(alpha, self.ri / self.r))
                 self.co_list.append(np.array(co_per_n))
+        else:
+            self.co_list = self.samples.co_list
 
     def get_alphas(self, alpha_list: list[tuple[str, int, int]]) -> dict:
         alphas: dict = {"h": [], "v": []}

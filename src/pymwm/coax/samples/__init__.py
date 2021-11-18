@@ -438,15 +438,8 @@ class Samples(Sampling):
                 pol = "E"
                 if n == 0 and i == num_m + 1:
                     roots = []
-            # result = minimize(
-            #     coax_utils.eig_eq_for_min,
-            #     np.array([xi.real, xi.imag]),
-            #     args=(w, pol, n, e1, e2, self.r, self.ri, np.array(roots, dtype=complex)),
-            #     jac=True,
-            # )
-            result = root(
-                coax_utils.eig_eq_with_jac,
-                # coax_utils.eig_eq,
+            result = minimize(
+                coax_utils.eig_eq_for_min,
                 np.array([xi.real, xi.imag]),
                 args=(
                     w,
@@ -458,11 +451,29 @@ class Samples(Sampling):
                     self.ri,
                     np.array(roots, dtype=complex),
                 ),
-                # method="krylov",
                 jac=True,
-                method="hybr",
-                options={"col_deriv": True},
             )
+            # result = root(
+            #     coax_utils.eig_eq_with_jac,
+            #     # coax_utils.eig_eq,
+            #     np.array([xi.real, xi.imag]),
+            #     # result.x,
+            #     args=(
+            #         w,
+            #         pol,
+            #         n,
+            #         e1,
+            #         e2,
+            #         self.r,
+            #         self.ri,
+            #         np.array(roots, dtype=complex),
+            #     ),
+            #     # method="krylov",
+            #     jac=True,
+            #     # jac=False,
+            #     method="hybr",
+            #     options={"col_deriv": True},
+            # )
             x = result.x[0] + result.x[1] * 1j
             v = self.v(x, w, e2)
             if result.success:
