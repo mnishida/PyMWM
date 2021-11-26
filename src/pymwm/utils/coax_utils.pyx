@@ -218,7 +218,7 @@ def eig_eq_with_jac(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def eig_eq_for_min(
+def eig_eq_for_min_with_jac(
     double[::1] h2vec, cdouble w, str pol, int n, cdouble e1, cdouble e2, double r, double ri, cdouble[::1] roots
 ) -> tuple[float, np.ndarray]:
     """Return the value of the characteristic equation
@@ -239,7 +239,7 @@ def eig_eq_for_min(
         cdouble[:, ::1] a = np.empty((4, 4), dtype=complex)
         cdouble[:, ::1] b = np.empty((4, 4), dtype=complex)
         double norm
-        cdouble f, fp, dd, ddi, denom
+        cdouble f, val, fp, dd, ddi, denom
         int i, j
         int num = len(roots)
 
@@ -377,6 +377,48 @@ def eig_eq(
         denom *= (h2 - roots[i]) / roots[i]
     f /= denom
     return np.array([f.real, f.imag])
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def eig_eq_for_min(
+    double[::1] h2vec, cdouble w, str pol, int n, cdouble e1, cdouble e2, double r, double ri, cdouble[::1] roots
+) -> tuple[float, np.ndarray]:
+    """Return the value of the characteristic equation
+
+    Args:
+        h2vec: The real and imaginary parts of the square of propagation constant.
+        w: The angular frequency
+        pol: The polarization
+        n: The order of the modes
+        e1: The permittivity of the core
+        e2: The permittivity of the clad.
+    Returns:
+        val: A complex indicating the left-hand value of the characteristic
+            equation.
+    """
+    cdef:
+        cdouble h2 = h2vec[0] + h2vec[1] * 1j
+        cdouble[:, ::1] a = np.empty((4, 4), dtype=complex)
+        double norm
+        cdouble f, val, dd, ddi, denom
+        int i, j
+        int num = len(roots)
+
+    eig_mat(h2, w, pol, n, e1, e2, r, ri, a)
+    if n == 0:
+        if pol == "E":
+            f = a[0, 0] * a[1, 1] - a[0, 1] * a[1, 0]
+        else:
+            f = a[2, 2] * a[3, 3] - a[2, 3] * a[3, 2]
+    else:
+        f = det4(a)
+    denom = 1.0
+    for i in range(num):
+        denom *= (h2 - roots[i]) / roots[i]
+    f /= denom
+    return log10(f.real ** 2 + f.imag ** 2)
 
 
 @cython.boundscheck(False)

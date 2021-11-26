@@ -172,17 +172,19 @@ def test_eiq_eq_for_min():
     h2vec = np.array([h2.real, h2.imag])
     e1 = sm.fill(w)
     e2 = sm.clad(w)
-    f, fp = coax_utils.eig_eq_for_min(h2vec, w, pol, n, e1, e2, size, size2, roots)
-    f1, _ = coax_utils.eig_eq_for_min(
+    f, fp = coax_utils.eig_eq_for_min_with_jac(
+        h2vec, w, pol, n, e1, e2, size, size2, roots
+    )
+    f1, _ = coax_utils.eig_eq_for_min_with_jac(
         h2vec + np.array([1e-4, 0]), w, pol, n, e1, e2, size, size2, roots
     )
-    f2, _ = coax_utils.eig_eq_for_min(
+    f2, _ = coax_utils.eig_eq_for_min_with_jac(
         h2vec - np.array([1e-4, 0]), w, pol, n, e1, e2, size, size2, roots
     )
-    f3, _ = coax_utils.eig_eq_for_min(
+    f3, _ = coax_utils.eig_eq_for_min_with_jac(
         h2vec + np.array([0, 1e-4]), w, pol, n, e1, e2, size, size2, roots
     )
-    f4, _ = coax_utils.eig_eq_for_min(
+    f4, _ = coax_utils.eig_eq_for_min_with_jac(
         h2vec - np.array([0, 1e-4]), w, pol, n, e1, e2, size, size2, roots
     )
     fpr = (f1 - f2) / 2e-4

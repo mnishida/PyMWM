@@ -925,7 +925,7 @@ class Database:
         wl_min = bounds["wl_min"]
         wl_imag = bounds["wl_imag"]
         v_lim = bounds.get("v_lim", None)
-        beta_imag_max = bounds.get("beta_imag_max", None)
+        beta_imag_max = bounds.get("beta_imag_max", 1e7)
         wr_min = 2 * np.pi / wl_max
         wr_max = 2 * np.pi / wl_min
         wi_min = -2 * np.pi / wl_imag
@@ -952,15 +952,15 @@ class Database:
                     vr = vs[alpha][:, ::-1][i_min : i_max + 1, j_min:].real
                     if v_lim is None:
                         vi = vs[alpha][:, ::-1][i_min : i_max + 1, j_min:].imag
-                        v_ok = np.all(np.abs(vr) > np.abs(vi))
+                        v_ok = np.all(np.abs(vr) > np.abs(vi)) & np.all(vr > 0.0)
                     else:
                         v_ok = np.all(vr > v_lim)
                     if np.all(conv[i_min : i_max + 1, j_min:]) and v_ok:
                         data = betas[alpha][:, ::-1][i_min : i_max + 1, j_min:]
-                        if beta_imag_max is not None:
-                            imag_max = data.imag.max()
-                            if imag_max > beta_imag_max:
-                                continue
+                        imag_max = data.imag.max()
+                        data_max = np.abs(data).max()
+                        if imag_max > beta_imag_max or data_max > 1e7:
+                            continue
                         beta_funcs[(alpha, "real")] = RectBivariateSpline(
                             ws[i_min : i_max + 1],
                             wis[j_min:],

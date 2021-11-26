@@ -23,6 +23,17 @@ def eig_eq_for_min(
     r: float,
     ri: float,
     roots: np.ndarray,
+) -> float: ...
+def eig_eq_for_min_with_jac(
+    h2: np.ndarray,
+    w: complex,
+    pol: str,
+    n: int,
+    e1: complex,
+    e2: complex,
+    r: float,
+    ri: float,
+    roots: np.ndarray,
 ) -> tuple[float, np.ndarray]: ...
 def eig_eq(
     h2: np.ndarray,

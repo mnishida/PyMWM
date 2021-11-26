@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
-from . cimport INFINITY, M_PI, cabs, cdouble, cimag, creal, csqrt, printf
+from . cimport INFINITY, M_PI, cabs, cdouble, cimag, creal, csqrt, log10, printf, sqrt
 from .bessel_utils cimport (
     iv_ivp,
     ive,

@@ -154,9 +154,9 @@ class Coax(Waveguide):
             num_wr = xs_success_wr_list[0][0].shape[0]
             args = []
             for n in range(num_n_0):
-                xs_array, _ = xs_success_wr_list[n]
+                xs_array, success_array = xs_success_wr_list[n]
                 for iwr in range(num_wr):
-                    args.append((n, iwr, xs_array[iwr]))
+                    args.append((n, iwr, xs_array[iwr], success_array[iwr]))
             xs_success_wi_list: list[tuple[np.ndarray, np.ndarray]] = list(
                 pool.map(lambda a, arg: a.wi_sampling.remote(arg), args)
             )

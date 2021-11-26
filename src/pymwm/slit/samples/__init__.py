@@ -210,11 +210,11 @@ class Samples(Sampling):
             if result.success:
                 roots.append(x)
 
-            v = self.v(x, w, e2)
-            if v.real > 0.0:
-                success.append(result.success)
-            else:
-                success.append(False)
+            # v = self.v(x, w, e2)
+            # if v.real > 0.0:
+            success.append(result.success)
+            # else:
+            #     success.append(False)
             vals.append(x)
         return np.array(vals), np.array(success)
 

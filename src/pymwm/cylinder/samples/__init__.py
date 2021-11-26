@@ -282,13 +282,13 @@ class Samples(Sampling):
                 options={"xtol": 1.0e-9, "col_deriv": True},
             )
             x = result.x[0] + result.x[1] * 1j
-            v = self.v(x, w, e2)
+            # v = self.v(x, w, e2)
             if result.success:
                 roots.append(x)
-            if v.real > 0.0:
-                success.append(result.success)
-            else:
-                success.append(False)
+            # if v.real > 0.0:
+            success.append(result.success)
+            # else:
+            #     success.append(False)
             vals.append(x)
         return np.array(vals), np.array(success)
 

@@ -5,7 +5,7 @@ cimport numpy as np
 
 ctypedef np.complex128_t cdouble
 
-from libc.math cimport INFINITY, M_PI, atan2, cos, fabs, sin, sqrt
+from libc.math cimport INFINITY, M_PI, atan2, cos, fabs, log10, sin, sqrt
 from libc.stdio cimport printf
 from libc.stdlib cimport free, malloc
 

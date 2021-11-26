@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from logging import addLevelName
+
 import numpy as np
 import ray
 import riip
@@ -438,26 +440,9 @@ class Samples(Sampling):
                 pol = "E"
                 if n == 0 and i == num_m + 1:
                     roots = []
-            result = minimize(
-                coax_utils.eig_eq_for_min,
-                np.array([xi.real, xi.imag]),
-                args=(
-                    w,
-                    pol,
-                    n,
-                    e1,
-                    e2,
-                    self.r,
-                    self.ri,
-                    np.array(roots, dtype=complex),
-                ),
-                jac=True,
-            )
-            # result = root(
-            #     coax_utils.eig_eq_with_jac,
-            #     # coax_utils.eig_eq,
+            # result = minimize(
+            #     coax_utils.eig_eq_for_min,
             #     np.array([xi.real, xi.imag]),
-            #     # result.x,
             #     args=(
             #         w,
             #         pol,
@@ -468,20 +453,53 @@ class Samples(Sampling):
             #         self.ri,
             #         np.array(roots, dtype=complex),
             #     ),
-            #     # method="krylov",
-            #     jac=True,
-            #     # jac=False,
-            #     method="hybr",
-            #     options={"col_deriv": True},
+            #     method="Powell"
             # )
+            # result = minimize(
+            #     coax_utils.eig_eq_for_min_with_jac,
+            #     np.array([xi.real, xi.imag]),
+            #     args=(
+            #         w,
+            #         pol,
+            #         n,
+            #         e1,
+            #         e2,
+            #         self.r,
+            #         self.ri,
+            #         np.array(roots, dtype=complex),
+            #     ),
+            #     jac=True
+            # )
+            result = root(
+                coax_utils.eig_eq_with_jac,
+                # coax_utils.eig_eq,
+                np.array([xi.real, xi.imag]),
+                # result.x,
+                args=(
+                    w,
+                    pol,
+                    n,
+                    e1,
+                    e2,
+                    self.r,
+                    self.ri,
+                    np.array(roots, dtype=complex),
+                ),
+                # method="krylov",
+                jac=True,
+                # jac=False,
+                method="hybr",
+                options={"col_deriv": True},
+            )
             x = result.x[0] + result.x[1] * 1j
-            v = self.v(x, w, e2)
+            # v = self.v(x, w, e2)
             if result.success:
                 roots.append(x)
-            if v.real > 0.0:
-                success.append(result.success)
-            else:
-                success.append(False)
+            success.append(result.success)
+            # if v.real > 0.0:
+            #    success.append(result.success)
+            # else:
+            #     success.append(False)
             vals.append(x)
         return np.array(vals), np.array(success)
 
@@ -514,18 +532,18 @@ class Samples(Sampling):
             e2 = e2_0 + de2 * i
             xis = 2 * xs1 - xs0
             xs, success = self.beta2(w_0, n, e1, e2, xis)
-            xs = np.where(success, xs, xis)
+            xs = np.where(success, xs, xs1)
             xs0 = xs1
             xs1 = xs
         xs0 = xs1
-        dw = (self.ws[0] - w_0) / 100
-        for i in range(101):
+        dw = (self.ws[0] - w_0) / 500
+        for i in range(501):
             w = w_0 + dw * i
             e1 = self.fill(w)
             e2 = self.clad(w)
             xis = 2 * xs1 - xs0
             xs, success = self.beta2(w, n, e1, e2, xis)
-            xs = np.where(success, xs, xis)
+            xs = np.where(success, xs, xs1)
             xs0 = xs1
             xs1 = xs
         return xs, success
@@ -560,6 +578,182 @@ class Samples(Sampling):
                             i + num_m + 1
                         ]
         return betas, convs
+
+    def adaptive_step_real(self, n, pol, w, w0, x0, roots, dx0=0.01, dw_min=2 ** (-20)):
+        def func(_w, _x0):
+            result = root(
+                coax_utils.eig_eq_with_jac,
+                np.array([_x0.real, _x0.imag]),
+                args=(
+                    _w,
+                    pol,
+                    n,
+                    self.fill(_w),
+                    self.clad(_w),
+                    self.r,
+                    self.ri,
+                    np.array(roots, dtype=complex),
+                ),
+                jac=True,
+                method="hybr",
+                options={"col_deriv": True},
+            )
+            return result.x[0] + 1j * result.x[1], result.success
+
+        _w0, _x0 = w0, x0
+        _w1 = w
+        _x1, success = func(_w1, x0)
+        while True:
+            if not success:
+                factor = 0
+            else:
+                if _x1 == _x0:
+                    factor = 2
+                else:
+                    factor = min(dx0 / abs(_x1 - _x0), 2)
+            dw = max((_w1 - _w0) * factor, dw_min)
+            _w = _w0 + dw
+            _xi = _x0 + (_x1 - _x0) * factor
+            x, success = func(_w, _xi)
+            _w0, _x0 = _w1, _x1
+            _w1, _x1 = _w, x
+            if _w1 > w:
+                break
+        return func(w, _x1)
+
+    def adaptive_step_imag(
+        self, n, pol, wr, wi, wi0, x0, roots, dx0=0.01, dwi_min=2 ** (-20)
+    ):
+        def func(_wi, _x0):
+            _w = wr + _wi * 1j
+            result = root(
+                coax_utils.eig_eq_with_jac,
+                np.array([_x0.real, _x0.imag]),
+                args=(
+                    _w,
+                    pol,
+                    n,
+                    self.fill(_w),
+                    self.clad(_w),
+                    self.r,
+                    self.ri,
+                    np.array(roots, dtype=complex),
+                ),
+                jac=True,
+                method="hybr",
+                options={"col_deriv": True},
+            )
+            return result.x[0] + 1j * result.x[1], result.success
+
+        _wi0, _x0 = wi0, x0
+        _wi1 = wi
+        _x1, success = func(_wi1, x0)
+        while True:
+            if not success:
+                factor = 0
+            else:
+                if _x1 == _x0:
+                    factor = 2
+                else:
+                    factor = min(dx0 / abs(_x1 - _x0), 2)
+            dwi = max(abs(_wi1 - _wi0) * factor, dwi_min)
+            _wi = _wi0 - dwi
+            _xi = _x0 + (_x1 - _x0) * factor
+            x, success = func(_wi, _xi)
+            _wi0, _x0 = _wi1, _x1
+            _wi1, _x1 = _wi, x
+            if _wi1 < wi:
+                break
+        return func(wi, _x1)
+
+    def beta2_adaptive(
+        self,
+        real_or_imag: str,
+        w: complex,
+        n: int,
+        w0: complex,
+        x0s: np.ndarray,
+        dx0=0.01,
+        dw_min=2 ** (-24),
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Return roots and convergences of the characteristic equation
+
+        Args:
+            real_or_imag (str): "real" or "imag".
+            w0 (complex): Angular frequency of previous step.
+            w (complex): Angular frequency.
+            n (int): Order of the mode
+            x0s (np.ndarray): Initial approximations for the roots
+                whose number of elements is 2*num_m+1.
+        Returns:
+            xs: A 1D array indicating the roots, whose length is 2*num_m+1.
+            success: A 1D array indicating the convergence information for xs.
+        """
+        if self.clad.label == "PEC":
+            xs = self.beta2_pec(w, n)
+            return xs, np.ones_like(xs, dtype=bool)
+
+        def func(_w, _x0s):
+            num_m = self.params["num_m"]
+            roots: list[complex] = []
+            vals = []
+            successes: list[bool] = []
+            for i, _x0 in enumerate(_x0s):
+                if i < num_m + 1:
+                    pol = "M"
+                else:
+                    pol = "E"
+                    if n == 0 and i == num_m + 1:
+                        roots = []
+                result = root(
+                    coax_utils.eig_eq_with_jac,
+                    np.array([_x0.real, _x0.imag]),
+                    args=(
+                        _w,
+                        pol,
+                        n,
+                        self.fill(_w),
+                        self.clad(_w),
+                        self.r,
+                        self.ri,
+                        np.array(roots, dtype=complex),
+                    ),
+                    jac=True,
+                    method="hybr",
+                    options={"col_deriv": True},
+                )
+                x = result.x[0] + 1j * result.x[1]
+                success = result.success
+                if success:
+                    roots.append(x)
+                vals.append(x)
+                successes.append(success)
+            return np.array(vals), np.array(successes)
+
+        _w0, _x0s = w0, x0s
+        _w1 = w
+        _x1s, successes = func(_w1, x0s)
+        while True:
+            if not np.all(successes):
+                factor = 0
+            else:
+                factor = min(dx0 / np.abs(_x1s - _x0s).max(), 2)
+            dw = max(abs(_w1 - _w0) * factor, dw_min)
+            if real_or_imag == "real":
+                _w = _w0 + dw
+            else:
+                _w = _w0 - 1j * dw
+            _xis = _x0s + (_x1s - _x0s) * factor
+            xs, successes = func(_w, _xis)
+            _w0, _x0s = _w1, _x1s
+            _w1, _x1s = _w, xs
+            if real_or_imag == "real":
+                if _w1.real > w.real:
+                    break
+            else:
+                if _w1.imag < w.imag:
+                    break
+        return func(w, _x1s)
 
     def __call__(self, n: int):
         """Return a dict of the roots of the characteristic equation
@@ -616,49 +810,59 @@ class Samples(Sampling):
                 xs1 = xs
         return xs_array, success_array
 
+    # def adaptive_step(self, n, w0, xs0, w1, xs1, dx0=1.0, dw_min=1 / 2 ** 20):
+    #     if np.all(xs1 == xs0):
+    #         factor = 1
+    #     else:
+    #         factor = min(dx0 / np.abs(xs1 - xs0).max(), 1)
+    #     dw0 = w1 - w0
+    #     dw = max(dw0 * factor, dw_min)
+    #     w = w1 + dw
+    #     e1 = self.fill(w)
+    #     e2 = self.clad(w)
+    #     xis = xs1 + (xs1 - xs0) * factor
+    #     xs, success = self.beta2(w, n, e1, e2, xis)
+    #     return w, xs, success
+
     def wr_sampling(self, n: int) -> tuple[np.ndarray, np.ndarray]:
         num_m = self.params["num_m"]
         xs_array = np.zeros((len(self.ws), 2 * num_m + 1), dtype=complex)
         success_array = np.zeros((len(self.ws), 2 * num_m + 1), dtype=bool)
         iwr = 0
-        xis, success = self.beta2_w_min(n)
-        xs_array[iwr] = xis
+        x0s, success = self.beta2_w_min(n)
+        xs_array[iwr] = x0s
         success_array[iwr] = success
-        xs0 = xs1 = xis
         for iwr in range(1, len(self.ws)):
             w = self.ws[iwr]
-            e1 = self.fill(w)
-            e2 = self.clad(w)
-            xis = 2 * xs1 - xs0
-            xs, success = self.beta2(w, n, e1, e2, xis)
-            xs = np.where(success, xs, xis)
+            # print(iwr, w)
+            w0 = self.ws[iwr - 1]
+            xs, success = self.beta2_adaptive("real", w, n, w0, x0s)
             xs_array[iwr] = xs
             success_array[iwr] = success
-            xs0 = xs1
-            xs1 = xs
+            x0s = xs
         return xs_array, success_array
 
     def wi_sampling(
-        self, args: tuple[int, int, np.ndarray]
+        self, args: tuple[int, int, np.ndarray, np.ndarray]
     ) -> tuple[np.ndarray, np.ndarray]:
-        n, iwr, xis0 = args
+        n, iwr, x0s, success = args
         num_m = self.params["num_m"]
         xs_array = np.zeros((len(self.wis), 2 * num_m + 1), dtype=complex)
         success_array = np.zeros((len(self.wis), 2 * num_m + 1), dtype=bool)
         wr = self.ws[iwr]
-        xs0 = xs1 = xis0
-        for iwi in range(len(self.wis)):
+        iwi = 0
+        xs_array[iwi] = x0s
+        success_array[iwi] = success
+        for iwi in range(1, len(self.wis)):
             wi = self.wis[iwi]
-            w = wr + 1j * wi
-            e1 = self.fill(w)
-            e2 = self.clad(w)
-            xis = 2 * xs1 - xs0
-            xs, success = self.beta2(w, n, e1, e2, xis)
-            xs = np.where(success, xs, xis)
-            xs0 = xs1
-            xs1 = xs
+            # print(iwi, wi)
+            wi0 = self.wis[iwi - 1]
+            xs, success = self.beta2_adaptive(
+                "imag", wr + 1j * wi, n, wr + 1j * wi0, x0s
+            )
             xs_array[iwi] = xs
             success_array[iwi] = success
+            x0s = xs
         return xs_array, success_array
 
 
