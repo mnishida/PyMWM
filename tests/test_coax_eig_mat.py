@@ -155,7 +155,7 @@ def test_eig_eq():
             fp2 = (np.linalg.det(a1) - np.linalg.det(a2)) / (2 * eps)
             npt.assert_array_almost_equal(f1, [f2.real, f2.imag])
             npt.assert_array_almost_equal(fp1, np.array(
-                    [[fp2.real, fp2.imag], [-fp2.imag, fp2.real]]))
+                [[fp2.real, fp2.imag], [-fp2.imag, fp2.real]]))
 
 
 def test_eig_eq_cython():
