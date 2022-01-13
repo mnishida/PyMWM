@@ -5,15 +5,19 @@ from .bessel_utils cimport (
     iv_ivp,
     ive,
     ive_ivpe_ivppe,
+    ive_ivpe,
     jv_jvp,
     jve,
     jve_jvpe_jvppe,
+    jve_jvpe,
     kv_kvp,
     kve,
     kve_kvpe_kvppe,
+    kve_kvpe,
     yv_yvp,
     yve,
     yve_yvpe_yvppe,
+    yve_yvpe,
 )
 from .eig_mat_utils cimport deriv_det2, deriv_det4, det4, solve
 

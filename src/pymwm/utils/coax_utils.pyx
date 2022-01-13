@@ -181,7 +181,6 @@ def eig_eq_with_jac(
         cdouble h2 = h2vec[0] + h2vec[1] * 1j
         cdouble[:, ::1] a = np.empty((4, 4), dtype=complex)
         cdouble[:, ::1] b = np.empty((4, 4), dtype=complex)
-        double norm
         cdouble f, fp, dd, ddi, denom
         int i
         int num = len(roots)
@@ -238,7 +237,6 @@ def eig_eq_for_min_with_jac(
         cdouble h2 = h2vec[0] + h2vec[1] * 1j
         cdouble[:, ::1] a = np.empty((4, 4), dtype=complex)
         cdouble[:, ::1] b = np.empty((4, 4), dtype=complex)
-        double norm
         cdouble f, val, fp, dd, ddi, denom
         int i, j
         int num = len(roots)
@@ -282,7 +280,7 @@ cdef void eig_mat(
     cdouble h2, cdouble w, str pol, int n, cdouble e1, cdouble e2, double r, double ri, cdouble[:, ::1] a
 ):
     cdef:
-        cdouble vals[3]
+        cdouble vals[2]
         cdouble w2 = w ** 2
         cdouble hew = h2 / e2 / w2
         cdouble ee = e1 / e2
@@ -290,35 +288,29 @@ cdef void eig_mat(
         cdouble y = v_func(h2, w, e2, ri)
         cdouble u = u_func(h2, w, e1, r)
         cdouble v = v_func(h2, w, e2, r)
-        cdouble ju, jpu, jppu, yu, ypu, yppu, jx, jpx, jppx, yx, ypx, yppx
-        cdouble kv, kpv, kppv, iy, ipy, ippy
+        cdouble ju, jpu, yu, ypu, jx, jpx, yx, ypx
+        cdouble kv, kpv, iy, ipy
         cdouble nuv = n * (v / u + u / v)
         cdouble nxy = n * (y / x + x / y)
 
-    jve_jvpe_jvppe(n, u, vals)
+    jve_jvpe(n, u, vals)
     ju = vals[0]
     jpu = vals[1]
-    jppu = vals[2]
-    yve_yvpe_yvppe(n, u, vals)
+    yve_yvpe(n, u, vals)
     yu = vals[0]
     ypu = vals[1]
-    yppu = vals[2]
-    kve_kvpe_kvppe(n, v, vals)
+    kve_kvpe(n, v, vals)
     kv = vals[0]
     kpv = vals[1]
-    kppv = vals[2]
-    jve_jvpe_jvppe(n, x, vals)
+    jve_jvpe(n, x, vals)
     jx = vals[0]
     jpx = vals[1]
-    jppx = vals[2]
-    yve_yvpe_yvppe(n, x, vals)
+    yve_yvpe(n, x, vals)
     yx = vals[0]
     ypx = vals[1]
-    yppx = vals[2]
-    ive_ivpe_ivppe(n, y, vals)
+    ive_ivpe(n, y, vals)
     iy = vals[0]
     ipy = vals[1]
-    ippy = vals[2]
 
     a[0, 0] = jpu * kv * v + kpv * ju * u
     a[0, 1] = ypu * kv * v + kpv * yu * u
@@ -359,7 +351,6 @@ def eig_eq(
     cdef:
         cdouble h2 = h2vec[0] + h2vec[1] * 1j
         cdouble[:, ::1] a = np.empty((4, 4), dtype=complex)
-        double norm
         cdouble f, fp, denom
         int i
         int num = len(roots)
@@ -401,7 +392,6 @@ def eig_eq_for_min(
     cdef:
         cdouble h2 = h2vec[0] + h2vec[1] * 1j
         cdouble[:, ::1] a = np.empty((4, 4), dtype=complex)
-        double norm
         cdouble f, val, dd, ddi, denom
         int i, j
         int num = len(roots)

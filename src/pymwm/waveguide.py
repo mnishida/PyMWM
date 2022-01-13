@@ -924,7 +924,7 @@ class Database:
         wl_max = bounds["wl_max"]
         wl_min = bounds["wl_min"]
         wl_imag = bounds["wl_imag"]
-        v_lim = bounds.get("v_lim", None)
+        v_lim = bounds.get("v_lim", True)
         beta_imag_max = bounds.get("beta_imag_max", 1e7)
         wr_min = 2 * np.pi / wl_max
         wr_max = 2 * np.pi / wl_min
@@ -950,9 +950,11 @@ class Database:
                     alpha = (pol, n, m)
                     conv = convs[alpha][:, ::-1]
                     vr = vs[alpha][:, ::-1][i_min : i_max + 1, j_min:].real
-                    if v_lim is None:
+                    if v_lim is True:
                         vi = vs[alpha][:, ::-1][i_min : i_max + 1, j_min:].imag
                         v_ok = np.all(np.abs(vr) > np.abs(vi)) & np.all(vr > 0.0)
+                    elif v_lim is False:
+                        v_ok = np.all(True)
                     else:
                         v_ok = np.all(vr > v_lim)
                     if np.all(conv[i_min : i_max + 1, j_min:]) and v_ok:

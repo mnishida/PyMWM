@@ -177,6 +177,12 @@ class Samples(Sampling):
         else:
             sign_u = -1
 
+        if v.real > 0:
+            sign_v = 1
+        elif v.real == 0:
+            sign_v = 0
+        else:
+            sign_v = -1
         ph_u = np.exp(1j * sign_u * u.real)
 
         ju = ssp.jve(n, u) * ph_u
@@ -191,16 +197,18 @@ class Samples(Sampling):
         kpv = -ssp.kve(n + 1, v) + n / v * kv
         kppv = -kpv / v + (1 + n ** 2 / v ** 2) * kv
 
-        jx = ssp.jve(n, x)
-        jpx = -ssp.jve(n + 1, x) + n / x * jx
+        ph_x = np.exp(1j * sign_u * x.real)
+        jx = ssp.jve(n, x) * ph_x
+        jpx = -ssp.jve(n + 1, x) * ph_x + n / x * jx
         jppx = -jpx / x - (1 - n ** 2 / x ** 2) * jx
 
-        yx = ssp.yve(n, x)
-        ypx = -ssp.yve(n + 1, x) + n / x * yx
+        yx = ssp.yve(n, x) * ph_x
+        ypx = -ssp.yve(n + 1, x) * ph_x + n / x * yx
         yppx = -ypx / x - (1 - n ** 2 / x ** 2) * yx
 
-        iy = ssp.ive(n, y)
-        ipy = ssp.ive(n + 1, y) + n / y * iy
+        ph_y = np.exp(-1j * sign_v * y.imag)
+        iy = ssp.ive(n, y) * ph_y
+        ipy = ssp.ive(n + 1, y) * ph_y + n / y * iy
         ippy = -ipy / y + (1 + n ** 2 / y ** 2) * iy
 
         du_dh2 = -self.r ** 2 / (2 * u)
@@ -440,36 +448,6 @@ class Samples(Sampling):
                 pol = "E"
                 if n == 0 and i == num_m + 1:
                     roots = []
-            # result = minimize(
-            #     coax_utils.eig_eq_for_min,
-            #     np.array([xi.real, xi.imag]),
-            #     args=(
-            #         w,
-            #         pol,
-            #         n,
-            #         e1,
-            #         e2,
-            #         self.r,
-            #         self.ri,
-            #         np.array(roots, dtype=complex),
-            #     ),
-            #     method="Powell"
-            # )
-            # result = minimize(
-            #     coax_utils.eig_eq_for_min_with_jac,
-            #     np.array([xi.real, xi.imag]),
-            #     args=(
-            #         w,
-            #         pol,
-            #         n,
-            #         e1,
-            #         e2,
-            #         self.r,
-            #         self.ri,
-            #         np.array(roots, dtype=complex),
-            #     ),
-            #     jac=True
-            # )
             result = root(
                 coax_utils.eig_eq_with_jac,
                 # coax_utils.eig_eq,
@@ -505,7 +483,9 @@ class Samples(Sampling):
 
     @staticmethod
     def beta_from_beta2(x):
-        return (1 + 1j) * np.sqrt(-0.5j * x)
+        # return (1 + 1j) * np.sqrt(-0.5j * x)
+        # return np.sqrt(x)
+        return 1j * np.sqrt(-x)
 
     def beta2_w_min(self, n):
         """Return roots and convergences of the characteristic equation at
@@ -578,93 +558,6 @@ class Samples(Sampling):
                             i + num_m + 1
                         ]
         return betas, convs
-
-    def adaptive_step_real(self, n, pol, w, w0, x0, roots, dx0=0.01, dw_min=2 ** (-20)):
-        def func(_w, _x0):
-            result = root(
-                coax_utils.eig_eq_with_jac,
-                np.array([_x0.real, _x0.imag]),
-                args=(
-                    _w,
-                    pol,
-                    n,
-                    self.fill(_w),
-                    self.clad(_w),
-                    self.r,
-                    self.ri,
-                    np.array(roots, dtype=complex),
-                ),
-                jac=True,
-                method="hybr",
-                options={"col_deriv": True},
-            )
-            return result.x[0] + 1j * result.x[1], result.success
-
-        _w0, _x0 = w0, x0
-        _w1 = w
-        _x1, success = func(_w1, x0)
-        while True:
-            if not success:
-                factor = 0
-            else:
-                if _x1 == _x0:
-                    factor = 2
-                else:
-                    factor = min(dx0 / abs(_x1 - _x0), 2)
-            dw = max((_w1 - _w0) * factor, dw_min)
-            _w = _w0 + dw
-            _xi = _x0 + (_x1 - _x0) * factor
-            x, success = func(_w, _xi)
-            _w0, _x0 = _w1, _x1
-            _w1, _x1 = _w, x
-            if _w1 > w:
-                break
-        return func(w, _x1)
-
-    def adaptive_step_imag(
-        self, n, pol, wr, wi, wi0, x0, roots, dx0=0.01, dwi_min=2 ** (-20)
-    ):
-        def func(_wi, _x0):
-            _w = wr + _wi * 1j
-            result = root(
-                coax_utils.eig_eq_with_jac,
-                np.array([_x0.real, _x0.imag]),
-                args=(
-                    _w,
-                    pol,
-                    n,
-                    self.fill(_w),
-                    self.clad(_w),
-                    self.r,
-                    self.ri,
-                    np.array(roots, dtype=complex),
-                ),
-                jac=True,
-                method="hybr",
-                options={"col_deriv": True},
-            )
-            return result.x[0] + 1j * result.x[1], result.success
-
-        _wi0, _x0 = wi0, x0
-        _wi1 = wi
-        _x1, success = func(_wi1, x0)
-        while True:
-            if not success:
-                factor = 0
-            else:
-                if _x1 == _x0:
-                    factor = 2
-                else:
-                    factor = min(dx0 / abs(_x1 - _x0), 2)
-            dwi = max(abs(_wi1 - _wi0) * factor, dwi_min)
-            _wi = _wi0 - dwi
-            _xi = _x0 + (_x1 - _x0) * factor
-            x, success = func(_wi, _xi)
-            _wi0, _x0 = _wi1, _x1
-            _wi1, _x1 = _wi, x
-            if _wi1 < wi:
-                break
-        return func(wi, _x1)
 
     def beta2_adaptive(
         self,
@@ -809,20 +702,6 @@ class Samples(Sampling):
                 xs0 = xs1
                 xs1 = xs
         return xs_array, success_array
-
-    # def adaptive_step(self, n, w0, xs0, w1, xs1, dx0=1.0, dw_min=1 / 2 ** 20):
-    #     if np.all(xs1 == xs0):
-    #         factor = 1
-    #     else:
-    #         factor = min(dx0 / np.abs(xs1 - xs0).max(), 1)
-    #     dw0 = w1 - w0
-    #     dw = max(dw0 * factor, dw_min)
-    #     w = w1 + dw
-    #     e1 = self.fill(w)
-    #     e2 = self.clad(w)
-    #     xis = xs1 + (xs1 - xs0) * factor
-    #     xs, success = self.beta2(w, n, e1, e2, xis)
-    #     return w, xs, success
 
     def wr_sampling(self, n: int) -> tuple[np.ndarray, np.ndarray]:
         num_m = self.params["num_m"]

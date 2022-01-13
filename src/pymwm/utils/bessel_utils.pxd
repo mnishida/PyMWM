@@ -26,3 +26,8 @@ cdef void jve_jvpe_jvppe(int n, cdouble z, cdouble vals[3]) nogil
 cdef void yve_yvpe_yvppe(int n, cdouble z, cdouble vals[3]) nogil
 cdef void ive_ivpe_ivppe(int n, cdouble z, cdouble vals[3]) nogil
 cdef void kve_kvpe_kvppe(int n, cdouble z, cdouble vals[3]) nogil
+
+cdef void jve_jvpe(int n, cdouble z, cdouble vals[2]) nogil
+cdef void yve_yvpe(int n, cdouble z, cdouble vals[2]) nogil
+cdef void ive_ivpe(int n, cdouble z, cdouble vals[2]) nogil
+cdef void kve_kvpe(int n, cdouble z, cdouble vals[2]) nogil

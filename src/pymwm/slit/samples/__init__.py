@@ -66,6 +66,9 @@ class Samples(Sampling):
                 "num_m must be 1 if shape is slit." + "The set value is ignored."
             )
             params["num_m"] = 1
+        num_n = params.get("num_n", None)
+        if num_n is None or num_n % 2 == 1:
+            raise ValueError("Even number must be specified for 'num_n'")
         super().__init__(size, fill, clad, params)
         self.r = size
 
@@ -219,8 +222,10 @@ class Samples(Sampling):
         return np.array(vals), np.array(success)
 
     @staticmethod
-    def beta_from_beta2(x: np.ndarray):
-        return (1 + 1j) * np.sqrt(-0.5j * x)
+    def beta_from_beta2(x):
+        # return (1 + 1j) * np.sqrt(-0.5j * x)
+        # return np.sqrt(x)
+        return 1j * np.sqrt(-x)
 
     def beta2_w_min(
         self, pol: str, parity: str, num_n: int

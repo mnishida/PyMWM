@@ -159,10 +159,9 @@ cdef void jve_jvpe_jvppe(int n, cdouble z, cdouble vals[3]) nogil:
     cdef:
         cdouble ph = cexp(1j * sign * creal(z))
         cdouble j = jve(n, z) * ph
-        cdouble jp = -jve(n + 1, z) * ph + n * j / z
     vals[0] = j
-    vals[1] = jp
-    vals[2] = -jp / z - (1 - n ** 2 / z ** 2) * j
+    vals[1] = (jve(n - 1, z) - jve(n + 1, z)) * ph / 2
+    vals[2] = (jve(n - 2, z) + jve(n + 2, z)) * ph / 4 - j / 2
 
 
 @cython.boundscheck(False)
@@ -180,10 +179,9 @@ cdef void yve_yvpe_yvppe(int n, cdouble z, cdouble vals[3]) nogil:
     cdef:
         cdouble ph = cexp(1j * sign * creal(z))
         cdouble y = yve(n, z) * ph
-        cdouble yp = -yve(n + 1, z) * ph + n * y / z
     vals[0] = y
-    vals[1] = yp
-    vals[2] = -yp / z - (1 - n ** 2 / z ** 2) * y
+    vals[1] = (yve(n - 1, z) - yve(n + 1, z)) * ph / 2
+    vals[2] = (yve(n - 2, z) + yve(n + 2, z)) * ph / 4 - y / 2
 
 
 @cython.boundscheck(False)
@@ -201,10 +199,9 @@ cdef void ive_ivpe_ivppe(int n, cdouble z, cdouble vals[3]) nogil:
     cdef:
         cdouble ph = cexp(-1j * sign * cimag(z))
         cdouble i = ive(n, z) * ph
-        cdouble ip = ive(n + 1, z) * ph + n * i / z
     vals[0] = i
-    vals[1] = ip
-    vals[2] = -ip / z + (1 + n ** 2 / z ** 2) * i
+    vals[1] = (ive(n - 1, z) + ive(n + 1, z)) * ph / 2
+    vals[2] = (ive(n - 2, z) + ive(n + 2, z)) * ph / 4 + i / 2
 
 
 @cython.boundscheck(False)
@@ -214,7 +211,69 @@ cdef void kve_kvpe_kvppe(int n, cdouble z, cdouble vals[3]) nogil:
     """ kv * exp(z), kvp * exp(z), kvpp * exp(z) """
     cdef:
         cdouble k = kve(n, z)
-        cdouble kp = -kve(n + 1, z) + n * k / z
     vals[0] = k
-    vals[1] = kp
-    vals[2] = -kp / z + (1 + n ** 2 / z ** 2) * k
+    vals[1] = - (kve(n - 1, z) + kve(n + 1, z)) / 2
+    vals[2] = (kve(n - 2, z) + kve(n + 2, z)) / 4 + k / 2
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void jve_jvpe(int n, cdouble z, cdouble vals[2]) nogil:
+    """ jv * exp(1j * z), jvp * exp(1j * z) """
+    cdef int sign
+    if cimag(z) > 0:
+        sign = 1
+    elif cimag(z) == 0 :
+        sign = 0
+    else:
+        sign = -1
+    cdef:
+        cdouble ph = cexp(1j * sign * creal(z))
+    vals[0] = jve(n, z) * ph
+    vals[1] = (jve(n - 1, z) - jve(n + 1, z)) * ph / 2
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void yve_yvpe(int n, cdouble z, cdouble vals[2]) nogil:
+    """ yv * exp(1j * z), yvp * exp(1j * z) """
+    cdef int sign
+    if cimag(z) > 0:
+        sign = 1
+    elif cimag(z) == 0 :
+        sign = 0
+    else:
+        sign = -1
+    cdef:
+        cdouble ph = cexp(1j * sign * creal(z))
+    vals[0] = yve(n, z) * ph
+    vals[1] = (yve(n - 1, z) - yve(n + 1, z)) * ph / 2
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void ive_ivpe(int n, cdouble z, cdouble vals[2]) nogil:
+    """ iv * exp(-z), ivp * exp(-z) """
+    cdef int sign
+    if creal(z) > 0:
+        sign = 1
+    elif creal(z) == 0 :
+        sign = 0
+    else:
+        sign = -1
+    cdef:
+        cdouble ph = cexp(-1j * sign * cimag(z))
+    vals[0] = ive(n, z) * ph
+    vals[1] = (ive(n - 1, z) + ive(n + 1, z)) * ph / 2
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void kve_kvpe(int n, cdouble z, cdouble vals[2]) nogil:
+    """ kv * exp(z), kvp * exp(z) """
+    vals[0] = kve(n, z)
+    vals[1] = - (kve(n - 1, z) + kve(n + 1, z)) / 2
