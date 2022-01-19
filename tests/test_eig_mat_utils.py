@@ -63,6 +63,7 @@ def test_deriv_det4():
 
 
 def test_deriv_det2():
+    from scipy.linalg import det
     a0 = np.random.random((2, 2)) + np.random.random((2, 2)) * 1j
     z = np.random.random() + np.random.random() * 1j
     a = a0 + np.array([[z, 0], [0, z]])
@@ -73,4 +74,6 @@ def test_deriv_det2():
     val1 = eig_mat_utils.deriv_det2_cython(a, b)
     val2 = (np.linalg.det(a1) - np.linalg.det(a2)) / 2e-4
     print(a1, a2)
+    print(np.linalg.det(a1))
+    print(det(a1))
     npt.assert_allclose(val1, val2)
