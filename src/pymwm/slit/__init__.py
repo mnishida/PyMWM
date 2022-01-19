@@ -101,7 +101,7 @@ class Slit(Waveguide):
         catalog = Database().load_catalog()
         num_n_max = catalog["num_n"].max()
         if not np.isnan(num_n_max):
-            for num_n in [n for n in range(num_n_0, num_n_max + 1)]:
+            for num_n in [n for n in range(num_n_0, num_n_max + 1, 2)]:
                 p_modes["num_n"] = num_n
                 smp = Samples(self.r, self.fill_params, self.clad_params, p_modes)
                 try:
