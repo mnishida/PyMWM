@@ -63,8 +63,6 @@ def test_deriv_det4():
 
 
 def test_deriv_det2():
-    from scipy.sparse.linalg import eigs
-
     a0 = np.random.random((2, 2)) + np.random.random((2, 2)) * 1j
     z = np.random.random() + np.random.random() * 1j
     a = a0 + np.array([[z, 0], [0, z]])
@@ -74,4 +72,5 @@ def test_deriv_det2():
     a2 = a0 + np.array([[z - 1e-4, 0], [0, z - 1e-4]])
     val1 = eig_mat_utils.deriv_det2_cython(a, b)
     val2 = (np.linalg.det(a1) - np.linalg.det(a2)) / 2e-4
+    print(a1, a2)
     npt.assert_allclose(val1, val2)
