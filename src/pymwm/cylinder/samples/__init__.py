@@ -294,9 +294,9 @@ class Samples(Sampling):
 
     @staticmethod
     def beta_from_beta2(x):
-        # return (1 + 1j) * np.sqrt(-0.5j * x)
+        return (1 + 1j) * np.sqrt(-0.5j * x)
         # return np.sqrt(x)
-        return 1j * np.sqrt(-x)
+        # return 1j * np.sqrt(-x)
 
     def beta2_w_min(self, n):
         """Return roots and convergences of the characteristic equation at
