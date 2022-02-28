@@ -9,9 +9,10 @@ install:
 conda:
 	conda install -c mnishida -c defaults -c conda-forge --file conda_pkg/conda_requirements.txt
 	conda install -c mnishida -c defaults -c conda-forge --file conda_pkg/conda_requirements_dev.txt
-	conda build -c mnishida -c defaults -c conda-forge --numpy 1.20 conda_pkg
+	conda build -c mnishida -c defaults -c conda-forge --numpy 1.21 conda_pkg
 	conda install -c mnishida  -c defaults -c conda-forge --use-local --force-reinstall pymwm
 	pip install "ray[default]"
+	pip install pre-commit
 	pre-commit install
 
 test:

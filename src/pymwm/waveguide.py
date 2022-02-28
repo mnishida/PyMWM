@@ -831,27 +831,29 @@ class Database:
         dfs = {}
         sn = self.sn
         for EM, n, m in sorted(convs.keys()):
-            se = pd.Series(
+            se = pd.DataFrame(
                 [
-                    sn,
-                    self.shape,
-                    self.size,
-                    self.size2,
-                    self.core,
-                    self.clad,
-                    self.wl_max,
-                    self.wl_min,
-                    self.wl_imag,
-                    self.dw,
-                    self.num_n,
-                    self.num_m,
-                    EM,
-                    n,
-                    m,
+                    [
+                        sn,
+                        self.shape,
+                        self.size,
+                        self.size2,
+                        self.core,
+                        self.clad,
+                        self.wl_max,
+                        self.wl_min,
+                        self.wl_imag,
+                        self.dw,
+                        self.num_n,
+                        self.num_m,
+                        EM,
+                        n,
+                        m,
+                    ]
                 ],
-                index=self.catalog_columns.keys(),
+                columns=self.catalog_columns.keys(),
             )
-            catalog = catalog.append(se, ignore_index=True)
+            catalog = pd.concat([catalog, se], axis=0, ignore_index=True)
             conv = convs[(EM, n, m)].ravel()
             beta = betas[(EM, n, m)].ravel()
             df = pd.DataFrame(

@@ -5,9 +5,7 @@ pre-commit
 flake8
 black
 isort
-bumpversion
-tox
-tox-gh-actions
+bump2version
 doc8
 pydocstyle
 mypy
