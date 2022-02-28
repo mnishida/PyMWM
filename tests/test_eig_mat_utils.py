@@ -63,16 +63,14 @@ def test_deriv_det4():
 
 
 def test_deriv_det2():
-    from scipy.linalg import det
-
     a0 = np.random.random((2, 2)) + np.random.random((2, 2)) * 1j
     z = np.random.random() + np.random.random() * 1j
-    a = a0 + np.array([[z, 0], [0, z]])
+    a = a0 + np.array([[z, 0], [0, z]], dtype=complex)
     b = np.array([[1, 0], [0, 1]], dtype=complex)
-    a1 = a0 + np.array([[z + 1e-4, 0], [0, z + 1e-4]])
-    a2 = a0 + np.array([[z - 1e-4, 0], [0, z - 1e-4]])
-    det_a1 = det(a1)
-    det_a2 = det(a2)
+    a1 = a0 + np.array([[z + 1e-4, 0], [0, z + 1e-4]], dtype=complex)
+    a2 = a0 + np.array([[z - 1e-4, 0], [0, z - 1e-4]], dtype=complex)
+    det_a1 = a1[0, 0] * a1[1, 1] - a1[1, 0] * a1[0, 1]
+    det_a2 = a2[0, 0] * a2[1, 1] - a2[1, 0] * a2[0, 1]
     print(a1, a2)
     print(det_a1, det_a2)
     val1 = eig_mat_utils.deriv_det2_cython(a, b)
