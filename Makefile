@@ -7,11 +7,14 @@ install:
 	pre-commit install
 
 conda:
-	conda install -c mnishida -c defaults -c conda-forge --file conda_pkg/conda_requirements.txt
-	conda install -c mnishida -c defaults -c conda-forge --file conda_pkg/conda_requirements_dev.txt
-	conda build -c mnishida -c defaults -c conda-forge --numpy 1.21 conda_pkg
-	conda install -c mnishida  -c defaults -c conda-forge --use-local --force-reinstall pymwm
+	conda install -c mnishida -c defaults --file conda_pkg/conda_requirements.txt
+	conda install -c mnishida -c defaults --file conda_pkg/conda_requirements_dev.txt
+	conda build -c mnishida -c defaults --numpy 1.21 conda_pkg
+	conda install -c mnishida  -c defaults --use-local --force-reinstall pymwm
 	pip install "ray[default]"
+	pip install pytest-regressions
+	pip install bump2version
+	pip install pandas-stubs
 	pip install pre-commit
 	pre-commit install
 
