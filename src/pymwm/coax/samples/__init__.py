@@ -346,14 +346,14 @@ class Samples(Sampling):
                     [0, 0, 0, 0],
                     [0, 0, 0, 0],
                     [
-                        ee / w2 * nuv * ju * kv,
-                        ee / w2 * nuv * yu * kv,
+                        1.0 / (e2 * w2) * nuv * ju * kv,
+                        1.0 / (e2 * w2) * nuv * yu * kv,
                         0,
                         0,
                     ],
                     [
-                        ee / w2 * nxy * jx / yx,
-                        ee / w2 * nxy,
+                        1.0 / (e2 * w2) * nxy * jx / yx,
+                        1.0 / (e2 * w2) * nxy,
                         0,
                         0,
                     ],
@@ -448,36 +448,19 @@ class Samples(Sampling):
                 pol = "E"
                 if n == 0 and i == num_m + 1:
                     roots = []
+            args = (w, pol, n, e1, e2, self.r, self.ri, np.array(roots, dtype=complex))
             result = root(
                 coax_utils.eig_eq_with_jac,
-                # coax_utils.eig_eq,
                 np.array([xi.real, xi.imag]),
-                # result.x,
-                args=(
-                    w,
-                    pol,
-                    n,
-                    e1,
-                    e2,
-                    self.r,
-                    self.ri,
-                    np.array(roots, dtype=complex),
-                ),
-                # method="krylov",
+                args=args,
                 jac=True,
-                # jac=False,
                 method="hybr",
                 options={"col_deriv": True},
             )
             x = result.x[0] + result.x[1] * 1j
-            # v = self.v(x, w, e2)
             if result.success:
                 roots.append(x)
             success.append(result.success)
-            # if v.real > 0.0:
-            #    success.append(result.success)
-            # else:
-            #     success.append(False)
             vals.append(x)
         return np.array(vals), np.array(success)
 
@@ -586,7 +569,7 @@ class Samples(Sampling):
             xs = self.beta2_pec(w, n)
             return xs, np.ones_like(xs, dtype=bool)
 
-        def func(_w, _x0s):
+        def func(_w, _x0s) -> tuple[np.ndarray, np.ndarray]:
             num_m = self.params["num_m"]
             roots: list[complex] = []
             vals = []
@@ -598,25 +581,28 @@ class Samples(Sampling):
                     pol = "E"
                     if n == 0 and i == num_m + 1:
                         roots = []
+                args = (
+                    _w,
+                    pol,
+                    n,
+                    self.fill(_w),
+                    self.clad(_w),
+                    self.r,
+                    self.ri,
+                    np.array(roots, dtype=complex),
+                )
                 result = root(
                     coax_utils.eig_eq_with_jac,
                     np.array([_x0.real, _x0.imag]),
-                    args=(
-                        _w,
-                        pol,
-                        n,
-                        self.fill(_w),
-                        self.clad(_w),
-                        self.r,
-                        self.ri,
-                        np.array(roots, dtype=complex),
-                    ),
+                    args=args,
                     jac=True,
                     method="hybr",
                     options={"col_deriv": True},
                 )
                 x = result.x[0] + 1j * result.x[1]
                 success = result.success
+                if not success and np.hypot(*result.fun) < 1e-8:
+                    success = True
                 if success:
                     roots.append(x)
                 vals.append(x)

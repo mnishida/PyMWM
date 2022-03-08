@@ -24,3 +24,4 @@ cdef extern from "<complex>" namespace "std"  nogil:
     double creal "real" (cdouble z)
     double cimag "imag" (cdouble z)
     cdouble cpow "pow"(cdouble x, cdouble n)
+    double carg "arg"(cdouble z)

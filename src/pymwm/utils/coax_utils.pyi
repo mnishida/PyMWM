@@ -46,6 +46,39 @@ def eig_eq(
     ri: float,
     roots: np.ndarray,
 ) -> np.ndarray: ...
+def eig_eq_u_with_jac(
+    u: np.ndarray,
+    w: complex,
+    pol: str,
+    n: int,
+    e1: complex,
+    e2: complex,
+    r: float,
+    ri: float,
+    roots: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]: ...
+def eig_eq_u(
+    u: np.ndarray,
+    w: complex,
+    pol: str,
+    n: int,
+    e1: complex,
+    e2: complex,
+    r: float,
+    ri: float,
+    roots: np.ndarray,
+) -> np.ndarray: ...
+def eig_eq_u_for_min(
+    u: np.ndarray,
+    w: complex,
+    pol: str,
+    n: int,
+    e1: complex,
+    e2: complex,
+    r: float,
+    ri: float,
+    roots: np.ndarray,
+) -> float: ...
 
 # def func_cython(
 #     h2vec: np.ndarray,
