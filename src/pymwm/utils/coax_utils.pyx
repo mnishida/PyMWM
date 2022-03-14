@@ -90,19 +90,18 @@ cdef void eig_mat_with_deriv(
     a[0, 1] = ypu * kv * v + kpv * yu * u
     a[0, 2] = nuv * ju * kv
     a[0, 3] = nuv * yu * kv
-    a[1, 0] = jpx / yx * y + ipy / iy * jx / yx * x
-    a[1, 1] = ypx / yx * y + ipy / iy * x
-    a[1, 2] = nxy * jx / yx
-    a[1, 3] = nxy
+    a[1, 0] = jpx * y + ipy / iy * jx * x
+    a[1, 1] = ypx * y + ipy / iy * yx * x
+    a[1, 2] = nxy * jx
+    a[1, 3] = nxy * yx
     a[2, 0] = hew * nuv * ju * kv
     a[2, 1] = hew * nuv * yu * kv
     a[2, 2] = ee * jpu * kv * v + kpv * ju * u
     a[2, 3] = ee * ypu * kv * v + kpv * yu * u
-    a[3, 0] = hew * nxy * jx / yx
-    a[3, 1] = hew * nxy
-    a[3, 2] = ee * jpx / yx * y + ipy / iy * jx / yx * x
-    a[3, 3] = ee * ypx / yx * y + ipy / iy * x
-
+    a[3, 0] = hew * nxy * jx
+    a[3, 1] = hew * nxy * yx
+    a[3, 2] = ee * jpx * y + ipy / iy * jx * x
+    a[3, 3] = ee * ypx * y + ipy / iy * yx * x
 
     da_du[0][0] = jppu * kv * v + kpv * (jpu * u + ju) + 1j * sign * a[0, 0]
     da_du[0][1] = yppu * kv * v + kpv * (ypu * u + yu) + 1j * sign * a[0, 1]
@@ -128,27 +127,25 @@ cdef void eig_mat_with_deriv(
 
     for i in range(4):
         da_dx[0][i] = da_dx[2][i] = 0.0
-    da_dx[1][0] = ((jppx / yx - jpx * ypx / yx ** 2) * y
-        + ipy / iy * ((jpx / yx - jx * ypx / yx ** 2) * x + jx / yx))
-    da_dx[1][1] = (yppx / yx - ypx ** 2 / yx ** 2) * y + ipy / iy
-    da_dx[1][2] = dnxy_dx * jx / yx + nxy * jpx / yx - nxy * jx * ypx / yx ** 2
-    da_dx[1][3] = dnxy_dx
-    da_dx[3][0] = hew * (dnxy_dx * jx / yx + nxy * jpx / yx - nxy * jx * ypx / yx ** 2)
-    da_dx[3][1] = hew * dnxy_dx
-    da_dx[3][2] = (ee * (jppx / yx - jpx * ypx / yx ** 2) * y
-        + ipy / iy * ((jpx / yx - jx * ypx / yx ** 2) * x + jx / yx))
-    da_dx[3][3] = ee * (yppx / yx - ypx ** 2 / yx ** 2) * y + ipy / iy
+    da_dx[1][0] = jppx * y + ipy / iy * (jpx * x + jx) + 1j * sign * a[1, 0]
+    da_dx[1][1] = yppx * y + ipy / iy * (ypx * x + yx) + 1j * sign * a[1, 1]
+    da_dx[1][2] = dnxy_dx * jx + nxy * jpx + 1j * sign * a[1, 2]
+    da_dx[1][3] = dnxy_dx * yx + nxy * ypx + 1j * sign * a[1, 3]
+    da_dx[3][0] = hew * (dnxy_dx * jx + nxy * jpx) + 1j * sign * a[3, 0]
+    da_dx[3][1] = hew * (dnxy_dx * yx + nxy * ypx) + 1j * sign * a[3, 1]
+    da_dx[3][2] = ee * jppx * y + ipy / iy * (jpx * x + jx) + 1j * sign * a[3, 2]
+    da_dx[3][3] = ee * yppx * y + ipy / iy * (ypx * x + yx) + 1j * sign * a[3, 3]
 
     for i in range(4):
         da_dy[0][i] = da_dy[2][i] = 0.0
-    da_dy[1][0] = jpx / yx + (ippy / iy - ipy ** 2 / iy ** 2) * jx / yx * x
-    da_dy[1][1] = ypx / yx + (ippy / iy - ipy ** 2 / iy ** 2) * x
-    da_dy[1][2] = dnxy_dy * jx / yx
-    da_dy[1][3] = dnxy_dy
-    da_dy[3][0] = hew * dnxy_dy * jx / yx
-    da_dy[3][1] = hew * dnxy_dy
-    da_dy[3][2] = ee * jpx / yx + (ippy / iy - ipy ** 2 / iy ** 2) * jx / yx * x
-    da_dy[3][3] = ee * ypx / yx + (ippy / iy - ipy ** 2 / iy ** 2) * x
+    da_dy[1][0] = jpx + (ippy / iy - ipy ** 2 / iy ** 2) * jx * x
+    da_dy[1][1] = ypx + (ippy / iy - ipy ** 2 / iy ** 2) * yx * x
+    da_dy[1][2] = dnxy_dy * jx
+    da_dy[1][3] = dnxy_dy * yx
+    da_dy[3][0] = hew * dnxy_dy * jx
+    da_dy[3][1] = hew * dnxy_dy * yx
+    da_dy[3][2] = ee * jpx + (ippy / iy - ipy ** 2 / iy ** 2) * jx * x
+    da_dy[3][3] = ee * ypx + (ippy / iy - ipy ** 2 / iy ** 2) * yx * x
 
     for i in range(4):
         for j in range(4):
@@ -156,8 +153,8 @@ cdef void eig_mat_with_deriv(
                         + da_dx[i][j] * dx_dh2 + da_dy[i][j] * dy_dh2)
     b[2, 0] += 1.0 / (e2 * w2) * nuv * ju * kv
     b[2, 1] += 1.0 / (e2 * w2) * nuv * yu * kv
-    b[3, 0] += 1.0 / (e2 * w2) * nxy * jx / yx
-    b[3, 1] += 1.0 / (e2 * w2) * nxy
+    b[3, 0] += 1.0 / (e2 * w2) * nxy * jx
+    b[3, 1] += 1.0 / (e2 * w2) * nxy * yx
 
 
 @cython.boundscheck(False)

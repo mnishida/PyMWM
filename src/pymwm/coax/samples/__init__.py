@@ -233,10 +233,10 @@ class Samples(Sampling):
                     nuv * yu * kv,
                 ],
                 [
-                    jpx / yx * y + ipy / iy * jx / yx * x,
-                    ypx / yx * y + ipy / iy * x,
-                    nxy * jx / yx,
-                    nxy,
+                    jpx * y + ipy / iy * jx * x,
+                    ypx * y + ipy / iy * yx * x,
+                    nxy * jx,
+                    nxy * yx,
                 ],
                 [
                     hew * nuv * ju * kv,
@@ -245,10 +245,10 @@ class Samples(Sampling):
                     ee * ypu * kv * v + kpv * yu * u,
                 ],
                 [
-                    hew * nxy * jx / yx,
-                    hew * nxy,
-                    ee * jpx / yx * y + ipy / iy * jx / yx * x,
-                    ee * ypx / yx * y + ipy / iy * x,
+                    hew * nxy * jx,
+                    hew * nxy * yx,
+                    ee * jpx * y + ipy / iy * jx * x,
+                    ee * ypx * y + ipy / iy * yx * x,
                 ],
             ]
         )
@@ -295,24 +295,17 @@ class Samples(Sampling):
             [
                 [0, 0, 0, 0],
                 [
-                    (
-                        (jppx / yx - jpx * ypx / yx ** 2) * y
-                        + ipy / iy * ((jpx / yx - jx * ypx / yx ** 2) * x + jx / yx)
-                    ),
-                    (yppx / yx - ypx ** 2 / yx ** 2) * y + ipy / iy,
-                    dnxy_dx * jx / yx + nxy * jpx / yx - nxy * jx * ypx / yx ** 2,
-                    dnxy_dx,
+                    jppx * y + ipy / iy * (jpx * x + jx) + 1j * sign_u * a[1, 0],
+                    yppx * y + ipy / iy * (ypx * x + yx) + 1j * sign_u * a[1, 1],
+                    dnxy_dx * jx + nxy * jpx + 1j * sign_u * a[1, 2],
+                    dnxy_dx * yx + nxy * ypx + 1j * sign_u * a[1, 3],
                 ],
                 [0, 0, 0, 0],
                 [
-                    hew
-                    * (dnxy_dx * jx / yx + nxy * jpx / yx - nxy * jx * ypx / yx ** 2),
-                    hew * dnxy_dx,
-                    (
-                        ee * (jppx / yx - jpx * ypx / yx ** 2) * y
-                        + ipy / iy * ((jpx / yx - jx * ypx / yx ** 2) * x + jx / yx)
-                    ),
-                    ee * (yppx / yx - ypx ** 2 / yx ** 2) * y + ipy / iy,
+                    hew * (dnxy_dx * jx + nxy * jpx) + 1j * sign_u * a[3, 0],
+                    hew * (dnxy_dx * yx + nxy * ypx) + 1j * sign_u * a[3, 1],
+                    ee * jppx * y + ipy / iy * (jpx * x + jx) + 1j * sign_u * a[3, 2],
+                    ee * yppx * y + ipy / iy * (ypx * x + yx) + 1j * sign_u * a[3, 3],
                 ],
             ]
         )
@@ -321,17 +314,17 @@ class Samples(Sampling):
             [
                 [0, 0, 0, 0],
                 [
-                    jpx / yx + (ippy / iy - ipy ** 2 / iy ** 2) * jx / yx * x,
-                    ypx / yx + (ippy / iy - ipy ** 2 / iy ** 2) * x,
-                    dnxy_dy * jx / yx,
-                    dnxy_dy,
+                    jpx + (ippy / iy - ipy ** 2 / iy ** 2) * jx * x,
+                    ypx + (ippy / iy - ipy ** 2 / iy ** 2) * yx * x,
+                    dnxy_dy * jx,
+                    dnxy_dy * yx,
                 ],
                 [0, 0, 0, 0],
                 [
-                    hew * dnxy_dy * jx / yx,
-                    hew * dnxy_dy,
-                    ee * jpx / yx + (ippy / iy - ipy ** 2 / iy ** 2) * jx / yx * x,
-                    ee * ypx / yx + (ippy / iy - ipy ** 2 / iy ** 2) * x,
+                    hew * dnxy_dy * jx,
+                    hew * dnxy_dy * yx,
+                    ee * jpx + (ippy / iy - ipy ** 2 / iy ** 2) * jx * x,
+                    ee * ypx + (ippy / iy - ipy ** 2 / iy ** 2) * yx * x,
                 ],
             ]
         )
@@ -352,8 +345,8 @@ class Samples(Sampling):
                         0,
                     ],
                     [
-                        1.0 / (e2 * w2) * nxy * jx / yx,
-                        1.0 / (e2 * w2) * nxy,
+                        1.0 / (e2 * w2) * nxy * jx,
+                        1.0 / (e2 * w2) * nxy * yx,
                         0,
                         0,
                     ],
