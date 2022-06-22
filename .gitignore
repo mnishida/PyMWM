@@ -154,3 +154,4 @@ src/pymwm/utils/eig_mat_utils.cpp
 src/pymwm/utils/basic_utils.cpp
 pymwm/cylinder/utils/cylinder_utils.cpp
 pymwm/slit/utils/slit_utils.cpp
+.vscode/settings.json

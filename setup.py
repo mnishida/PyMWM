@@ -49,6 +49,9 @@ setup(
     ext_modules=ext_modules,
     cmdclass={"build_ext": build_ext},
     entry_points={
-        "console_scripts": ["update_pymwm_h5 = pymwm.bin.update_pymwm_h5:main"]
+        "console_scripts": [
+            "update_pymwm_h5 = pymwm.bin.update_pymwm_h5:main",
+            "split_pymwm_h5 = pymwm.bin.split_pymwm_h5:main",
+        ]
     },
 )

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 import os
+import shutil
 from collections import OrderedDict
 from typing import Optional
 
@@ -433,7 +434,7 @@ class Waveguide(metaclass=abc.ABCMeta):
             hs = []
             for wr in ws:
                 w = wr + 1j * wi
-                hs.append((self.beta(w, alpha).real - self.clad(w) * w ** 2).real)
+                hs.append((self.beta(w, alpha).real - self.clad(w) * w**2).real)
         else:
             raise ValueError("comp must be 'real', 'imag' or 'gamma2'.")
         (line,) = plt.plot(wls, hs, fmt, label=label, **kwargs)
@@ -447,7 +448,7 @@ class Waveguide(metaclass=abc.ABCMeta):
             for wr in ws:
                 w = wr + 1j * wi
                 hs_pec.append(
-                    (self.beta_pec(w, alpha).real - self.clad(w) * w ** 2).real
+                    (self.beta_pec(w, alpha).real - self.clad(w) * w**2).real
                 )
         else:
             raise ValueError("comp must be 'real', 'imag' or 'gamma2'.")
@@ -710,7 +711,7 @@ class Database:
     """The interface with the database of propagation constants."""
 
     dirname = os.path.join(os.path.expanduser("~"), ".pymwm")
-    filename = os.path.join(dirname, "pymwm_data.h5")
+    fn_catalog = os.path.join(dirname, "catalog.h5")
     catalog_columns = OrderedDict(
         (
             ("sn", int),
@@ -760,17 +761,21 @@ class Database:
             self.ws = np.arange(ind_w_min, ind_w_max + 1) * self.dw
             self.wis = -np.arange(ind_w_imag + 1) * self.dw
         self.sn = self.get_sn()
+        self.filename = os.path.join(self.dirname, "data", f"{self.sn:06}.h5")
 
     def load_catalog(self) -> DataFrame:
-        df: DataFrame = pd.read_hdf(self.filename, "catalog")
+        df: DataFrame = pd.read_hdf(self.fn_catalog)
         return df
 
+    def save_catalog(self, catalog: DataFrame) -> None:
+        catalog.to_hdf(self.fn_catalog, "catalog", complevel=9, complib="blosc")
+
     def get_sn(self) -> int:
-        if not os.path.exists(self.filename):
+        if not os.path.exists(self.fn_catalog):
             if not os.path.exists(self.dirname):
                 os.mkdir(self.dirname)
             catalog = pd.DataFrame(columns=self.catalog_columns.keys())
-            catalog.to_hdf(self.filename, "catalog", complevel=9, complib="blosc")
+            self.save_catalog(catalog)
             return 0
         catalog = self.load_catalog()
         if len(catalog.index) == 0:
@@ -782,7 +787,7 @@ class Database:
                 print(catalog.query(self.cond))
                 print(len(sns), self.num_all)
                 raise Exception("Database is broken.")
-            sn: int = min(sns)
+            sn: int = sns.iloc[0]
         else:
             sn = max(catalog["sn"]) + 1
         return sn
@@ -798,16 +803,15 @@ class Database:
         num_wi = len(self.wis)
         betas = dict()
         convs = dict()
-        sns = range(self.sn, self.sn + self.num_all)
-        catalog = pd.read_hdf(self.filename, "catalog")
-        indices = [catalog[catalog["sn"] == sn].index[0] for sn in sns]
-        #  If there is no data for sn, IndexError should be raised
-        #  in the following expression.
-        for i, sn in zip(indices, sns):
+        catalog = self.load_catalog()
+        indices = catalog[catalog["sn"] == self.sn].index
+        if len(indices) == 0:
+            raise IndexError
+        for i in indices:
             em = catalog.loc[i, "EM"]
             n = catalog.loc[i, "n"]
             m = catalog.loc[i, "m"]
-            data = pd.read_hdf(self.filename, f"sn_{sn}")
+            data = pd.read_hdf(self.filename, f"{em}_{n}_{m}")
             conv = data["conv"]
             beta_real = data["beta_real"]
             beta_imag = data["beta_imag"]
@@ -821,20 +825,16 @@ class Database:
     def save(self, betas: dict, convs: dict) -> None:
         if len(betas) == 0 or len(convs) == 0:
             raise ValueError("No mode could be obtained.")
-        catalog = pd.read_hdf(self.filename, "catalog")
-        indices = catalog.query(self.cond).index
-        sns = catalog.query(self.cond)["sn"]
-        with pd.HDFStore(self.filename) as store:
-            for i, sn in zip(indices, sns):
-                catalog = catalog.drop(i)
-                del store[f"sn_{sn}"]
+        catalog = self.load_catalog()
+        indices = catalog[catalog["sn"] == self.sn].index
+        for i in indices:
+            catalog.drop(i, inplace=True)
         dfs = {}
-        sn = self.sn
         for EM, n, m in sorted(convs.keys()):
             se = pd.DataFrame(
                 [
                     [
-                        sn,
+                        self.sn,
                         self.shape,
                         self.size,
                         self.size2,
@@ -861,64 +861,46 @@ class Database:
                 columns=self.data_columns.keys(),
             )
             self.set_columns_dtype(df, self.data_columns)
-            dfs[sn] = df
-            sn += 1
+            dfs[f"{EM}_{n}_{m}"] = df
         self.set_columns_dtype(catalog, self.catalog_columns)
         with pd.HDFStore(self.filename, complevel=9, complib="blosc") as store:
-            for sn, df in dfs.items():
-                store[f"sn_{sn}"] = df
-            store["catalog"] = catalog
-
-    def compress(self):
-        os.system(
-            "ptrepack --chunkshape=auto --propindexes --complevel=9 "
-            + "--complib=blosc {0}: {0}.new:".format(self.filename)
-        )
-        os.system("mv {0}.new {0}".format(self.filename))
+            for key, df in dfs.items():
+                store[key] = df
+        catalog.to_hdf(self.fn_catalog, "catalog", complevel=9, complib="blosc")
 
     @classmethod
-    def import_data(cls, data_file: str):
-        with pd.HDFStore(data_file, "r") as data:
-            catalog_from = data["catalog"]
-            sns = catalog_from["sn"]
-            data_dict = {sn: data["sn_{}".format(sn)] for sn in sns}
-        with pd.HDFStore(cls.filename, complevel=9, complib="blosc") as store:
-            catalog = store["catalog"]
-            sn_new = max(catalog["sn"]) + 1
-            for sn in sns:
-                se = catalog_from[catalog_from["sn"] == sn].iloc[0].copy()
-                cond = catalog["shape"] == se["shape"]
-                for col in list(cls.catalog_columns.keys())[2:]:
-                    cond &= catalog[col] == se[col]
-                if len(catalog[cond].index) == 0:
-                    se["sn"] = sn_new
-                    catalog = catalog.append(se, ignore_index=True)
-                    print(catalog[catalog["sn"] == sn_new])
-                    store.append("sn_{}".format(sn_new), data_dict[sn])
-                    sn_new += 1
-            cls.set_columns_dtype(catalog, cls.catalog_columns)
-            store["catalog"] = catalog
+    def import_data(cls, catalog_file: str, data_file: str):
+        catalog_from = pd.read_hdf(catalog_file)
+        sn = int(os.path.basename(data_file).split(".")[0])
+        catalog = pd.read_hdf(cls.fn_catalog)
+        sn_new = max(catalog["sn"]) + 1
+        se = catalog_from[catalog_from["sn"] == sn].copy()
+        cond = catalog["shape"] == se.loc[0, "shape"]
+        for col in list(cls.catalog_columns.keys())[2:]:
+            cond &= catalog[col] == se.loc[0, col]
+        if len(catalog[cond].index) == 0:
+            se["sn"] = sn_new
+            catalog = pd.concat([catalog, se], ignore_index=True)
+            print(catalog[catalog["sn"] == sn_new])
+            pd.read_hdf(data_file)
+            shutil.copy2(
+                data_file, os.path.join(cls.dirname, "data", f"{sn_new:06}.h5")
+            )
+        cls.set_columns_dtype(catalog, cls.catalog_columns)
+        catalog.to_hdf(cls.fn_catalog, "catalog", complevel=9, complib="blosc")
 
     def delete(self, sns: list):
-        with pd.HDFStore(self.filename, complevel=9, complib="blosc") as store:
-            catalog = store["catalog"]
-            indices = [catalog[catalog["sn"] == sn].index[0] for sn in sns]
-            for i, sn in zip(indices, sns):
+        catalog = self.load_catalog()
+        for sn in sns:
+            indices = catalog[catalog["sn"] == sn].index
+            for i in indices:
                 catalog.drop(i, inplace=True)
-                del store[f"sn_{sn}"]
-            store["catalog"] = catalog
+            os.remove(os.path.join(self.dirname, "data", f"{sn:06}.h5"))
+        self.save_catalog(catalog)
         self.sn = self.get_sn()
 
     def delete_current(self):
-        with pd.HDFStore(self.filename, complevel=9, complib="blosc") as store:
-            catalog = store["catalog"]
-            sns = range(self.sn, self.sn + self.num_all)
-            indices = [catalog[catalog["sn"] == sn].index[0] for sn in sns]
-            for i, sn in zip(indices, sns):
-                catalog.drop(i, inplace=True)
-                del store[f"sn_{sn}"]
-            store["catalog"] = catalog
-        self.sn = self.get_sn()
+        self.delete([self.sn])
 
     def interpolation(self, betas: dict, convs: dict, vs: dict, bounds: dict) -> dict:
         from scipy.interpolate import RectBivariateSpline
