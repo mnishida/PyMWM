@@ -16,8 +16,8 @@ def main():
         os.mkdir(dir_data)
 
     db = Database()
-    catalog = db.load_catalog()
-    catalog_new = db.load_catalog()
+    catalog = pd.read_hdf(filename, "catalog")
+    catalog_new = pd.read_hdf(filename, "catalog")
 
     sn_new = 0
     while len(catalog):
