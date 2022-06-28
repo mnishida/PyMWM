@@ -89,9 +89,9 @@ class Samples(Sampling):
         # makes it easier to find new roots.
         num_m = self.params["num_m"]
         chi = ssp.jn_zeros(n, num_m + 1)
-        h2s_mag = self.fill(w_comp) * w_comp ** 2 - chi ** 2 / self.r ** 2
+        h2s_mag = self.fill(w_comp) * w_comp**2 - chi**2 / self.r**2
         chi = ssp.jnp_zeros(n, num_m)
-        h2s_elec = self.fill(w_comp) * w_comp ** 2 - chi ** 2 / self.r ** 2
+        h2s_elec = self.fill(w_comp) * w_comp**2 - chi**2 / self.r**2
         h2s = np.hstack((h2s_mag, h2s_elec))
         return h2s
 
@@ -103,7 +103,7 @@ class Samples(Sampling):
     ) -> complex | np.ndarray:
         # val: complex | np.ndarray = 1j * np.sqrt(-e1 * w ** 2 + h2) * self.r
         val: complex | np.ndarray = (
-            (1 + 1j) * np.sqrt(-0.5j * (e1 * w ** 2 - h2)) * self.r
+            (1 + 1j) * np.sqrt(-0.5j * (e1 * w**2 - h2)) * self.r
         )
         # val: complex | np.ndarray = np.sqrt(e1 * w ** 2 - h2) * self.r
         return val
@@ -115,7 +115,7 @@ class Samples(Sampling):
         e2: complex | np.ndarray,
     ) -> complex | np.ndarray:
         val: complex | np.ndarray = (
-            (1 - 1j) * np.sqrt(0.5j * (-e2 * w ** 2 + h2)) * self.r
+            (1 - 1j) * np.sqrt(0.5j * (-e2 * w**2 + h2)) * self.r
         )
         # val: complex | np.ndarray = np.sqrt(-e2 * w ** 2 + h2) * self.r
         return val
@@ -136,7 +136,7 @@ class Samples(Sampling):
             (a, b) (tuple[np.ndarray, np.ndarray]): a: matrix of characteristic equation and b: its defivative.
         """
         h2comp = h2.real + 1j * h2.imag
-        w2 = w ** 2
+        w2 = w**2
         hew = h2comp / e2 / w2
         ee = e1 / e2
         u = self.u(h2comp, w, e1)
@@ -150,10 +150,10 @@ class Samples(Sampling):
         ph = np.exp(1j * sign * u.real)
         ju = ssp.jve(n, u) * ph
         jpu = -ssp.jve(n + 1, u) * ph + n * ju / u
-        jppu = -jpu / u - (1 - n ** 2 / u ** 2) * ju
+        jppu = -jpu / u - (1 - n**2 / u**2) * ju
         kv = ssp.kve(n, v)
         kpv = -ssp.kve(n + 1, v) + n * kv / v
-        kppv = -kpv / v + (1 + n ** 2 / v ** 2) * kv
+        kppv = -kpv / v + (1 + n**2 / v**2) * kv
         te = jpu * kv * v + kpv * ju * u
         tm = ee * jpu * kv * v + kpv * ju * u
 
@@ -164,8 +164,8 @@ class Samples(Sampling):
         # print(f"{kv=}")
         # print(f"{kpv=}")
 
-        du_dh2 = -self.r ** 2 / (2 * u)
-        dv_dh2 = self.r ** 2 / (2 * v)
+        du_dh2 = -self.r**2 / (2 * u)
+        dv_dh2 = self.r**2 / (2 * v)
 
         dte_du = jppu * kv * v + kpv * (jpu * u + ju) + 1j * sign * te
         dte_dv = jpu * (kpv * v + kv) + kppv * ju * u + te
@@ -183,10 +183,10 @@ class Samples(Sampling):
 
         nuv = n * (v / u + u / v) * ju * kv
         dnuv_du = (
-            n * (-v / u ** 2 + 1 / v) * ju * kv
+            n * (-v / u**2 + 1 / v) * ju * kv
             + n * (v / u + u / v) * (jpu + 1j * sign * ju) * kv
         )
-        dnuv_dv = n * (-u / v ** 2 + 1 / u) * ju * kv + n * (v / u + u / v) * ju * (
+        dnuv_dv = n * (-u / v**2 + 1 / u) * ju * kv + n * (v / u + u / v) * ju * (
             kpv + kv
         )
         dnuv_dh2 = dnuv_du * du_dh2 + dnuv_dv * dv_dh2
@@ -539,27 +539,17 @@ class SamplesLowLoss(Samples):
         for iwr in range(num_iwr):
             for iwi in range(num_iwi):
                 j = iwr * num_iwi + iwi
-                w = self.ws[iwr] + 1j * self.wis[iwi]
-                e2 = self.clad(w)
                 for n in range(num_n):
                     for i in range(num_m + 1):
                         x = xs_success_list[j][0][n][i]
-                        v = self.v(x, w, e2)
                         betas[("M", n, i + 1)][iwr, iwi] = self.beta_from_beta2(x)
-                        convs[("M", n, i + 1)][iwr, iwi] = (
-                            xs_success_list[j][1][n][i]
-                            if v.real > abs(v.imag)
-                            else False
-                        )
+                        convs[("M", n, i + 1)][iwr, iwi] = xs_success_list[j][1][n][i]
                     for i in range(num_m):
                         x = xs_success_list[j][0][n][i + num_m + 1]
-                        v = self.v(x, w, e2)
                         betas[("E", n, i + 1)][iwr, iwi] = self.beta_from_beta2(x)
-                        convs[("E", n, i + 1)][iwr, iwi] = (
-                            xs_success_list[j][1][n][i + num_m + 1]
-                            if v.real > abs(v.imag)
-                            else False
-                        )
+                        convs[("E", n, i + 1)][iwr, iwi] = xs_success_list[j][1][n][
+                            i + num_m + 1
+                        ]
         return betas, convs
 
 
@@ -605,7 +595,7 @@ class SamplesLowLossForRay(SamplesLowLoss):
             xis = xs = x0s
             success = np.ones_like(xs, dtype=bool)
             for i in range(1, 8):
-                self.clad.im_factor = 0.5 ** i
+                self.clad.im_factor = 0.5**i
                 if i == 7 or self.clad.im_factor < im_factor:
                     self.clad.im_factor = im_factor
                 e2 = self.clad(w)

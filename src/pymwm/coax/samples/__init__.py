@@ -102,13 +102,13 @@ class Samples(Sampling):
                 TE-like modes.
         """
         w_comp = w.real + 1j * w.imag
-        return self.fill(w_comp) * w_comp ** 2 - self.co_list[n] ** 2 / self.r ** 2
+        return self.fill(w_comp) * w_comp**2 - self.co_list[n] ** 2 / self.r**2
 
     def x(
         self, h2: complex | np.ndarray, w: complex, e1: complex
     ) -> complex | np.ndarray:
         val: complex | np.ndarray = (
-            (1 + 1j) * np.sqrt(-0.5j * (e1 * w ** 2 - h2)) * self.ri
+            (1 + 1j) * np.sqrt(-0.5j * (e1 * w**2 - h2)) * self.ri
         )
         # val: complex | np.ndarray = np.sqrt(e1 * w ** 2 - h2 + 0j) * self.ri
         return val
@@ -117,7 +117,7 @@ class Samples(Sampling):
         self, h2: complex | np.ndarray, w: complex, e2: complex
     ) -> complex | np.ndarray:
         val: complex | np.ndarray = (
-            (1 - 1j) * np.sqrt(0.5j * (h2 - e2 * w ** 2)) * self.ri
+            (1 - 1j) * np.sqrt(0.5j * (h2 - e2 * w**2)) * self.ri
         )
         # val: complex | np.ndarray = np.sqrt(h2 - e2 * w ** 2 + 0j) * self.ri
         return val
@@ -129,7 +129,7 @@ class Samples(Sampling):
         e1: complex | np.ndarray,
     ) -> complex | np.ndarray:
         val: complex | np.ndarray = (
-            (1 + 1j) * np.sqrt(-0.5j * (e1 * w ** 2 - h2)) * self.r
+            (1 + 1j) * np.sqrt(-0.5j * (e1 * w**2 - h2)) * self.r
         )
         # val: complex | np.ndarray = np.sqrt(e1 * w ** 2 - h2 + 0j) * self.r
         return val
@@ -141,7 +141,7 @@ class Samples(Sampling):
         e2: complex | np.ndarray,
     ) -> complex | np.ndarray:
         val: complex | np.ndarray = (
-            (1 - 1j) * np.sqrt(0.5j * (h2 - e2 * w ** 2)) * self.r
+            (1 - 1j) * np.sqrt(0.5j * (h2 - e2 * w**2)) * self.r
         )
         # val: complex | np.ndarray = np.sqrt(h2 - e2 * w ** 2 + 0j) * self.r
         return val
@@ -162,7 +162,7 @@ class Samples(Sampling):
             (a, b) (tuple[np.ndarray, np.ndarray]): a: matrix of characteristic equation and b: its defivative.
         """
         h2comp = h2.real + 1j * h2.imag
-        w2 = w ** 2
+        w2 = w**2
         hew = h2comp / e2 / w2
         ee = e1 / e2
         x = self.x(h2comp, w, e1)
@@ -187,42 +187,42 @@ class Samples(Sampling):
 
         ju = ssp.jve(n, u) * ph_u
         jpu = -ssp.jve(n + 1, u) * ph_u + n / u * ju
-        jppu = -jpu / u - (1 - n ** 2 / u ** 2) * ju
+        jppu = -jpu / u - (1 - n**2 / u**2) * ju
 
         yu = ssp.yve(n, u) * ph_u
         ypu = -ssp.yve(n + 1, u) * ph_u + n / u * yu
-        yppu = -ypu / u - (1 - n ** 2 / u ** 2) * yu
+        yppu = -ypu / u - (1 - n**2 / u**2) * yu
 
         kv = ssp.kve(n, v)
         kpv = -ssp.kve(n + 1, v) + n / v * kv
-        kppv = -kpv / v + (1 + n ** 2 / v ** 2) * kv
+        kppv = -kpv / v + (1 + n**2 / v**2) * kv
 
         ph_x = np.exp(1j * sign_u * x.real)
         jx = ssp.jve(n, x) * ph_x
         jpx = -ssp.jve(n + 1, x) * ph_x + n / x * jx
-        jppx = -jpx / x - (1 - n ** 2 / x ** 2) * jx
+        jppx = -jpx / x - (1 - n**2 / x**2) * jx
 
         yx = ssp.yve(n, x) * ph_x
         ypx = -ssp.yve(n + 1, x) * ph_x + n / x * yx
-        yppx = -ypx / x - (1 - n ** 2 / x ** 2) * yx
+        yppx = -ypx / x - (1 - n**2 / x**2) * yx
 
         ph_y = np.exp(-1j * sign_v * y.imag)
         iy = ssp.ive(n, y) * ph_y
         ipy = ssp.ive(n + 1, y) * ph_y + n / y * iy
-        ippy = -ipy / y + (1 + n ** 2 / y ** 2) * iy
+        ippy = -ipy / y + (1 + n**2 / y**2) * iy
 
-        du_dh2 = -self.r ** 2 / (2 * u)
-        dv_dh2 = self.r ** 2 / (2 * v)
-        dx_dh2 = -self.ri ** 2 / (2 * x)
-        dy_dh2 = self.ri ** 2 / (2 * y)
+        du_dh2 = -self.r**2 / (2 * u)
+        dv_dh2 = self.r**2 / (2 * v)
+        dx_dh2 = -self.ri**2 / (2 * x)
+        dy_dh2 = self.ri**2 / (2 * y)
 
         nuv = n * (v / u + u / v)
-        dnuv_du = n * (-v / u ** 2 + 1 / v)
-        dnuv_dv = n * (-u / v ** 2 + 1 / u)
+        dnuv_du = n * (-v / u**2 + 1 / v)
+        dnuv_dv = n * (-u / v**2 + 1 / u)
 
         nxy = n * (y / x + x / y)
-        dnxy_dx = n * (-y / x ** 2 + 1 / y)
-        dnxy_dy = n * (-x / y ** 2 + 1 / x)
+        dnxy_dx = n * (-y / x**2 + 1 / y)
+        dnxy_dy = n * (-x / y**2 + 1 / x)
 
         a = np.array(
             [
@@ -314,8 +314,8 @@ class Samples(Sampling):
             [
                 [0, 0, 0, 0],
                 [
-                    jpx + (ippy / iy - ipy ** 2 / iy ** 2) * jx * x,
-                    ypx + (ippy / iy - ipy ** 2 / iy ** 2) * yx * x,
+                    jpx + (ippy / iy - ipy**2 / iy**2) * jx * x,
+                    ypx + (ippy / iy - ipy**2 / iy**2) * yx * x,
                     dnxy_dy * jx,
                     dnxy_dy * yx,
                 ],
@@ -323,8 +323,8 @@ class Samples(Sampling):
                 [
                     hew * dnxy_dy * jx,
                     hew * dnxy_dy * yx,
-                    ee * jpx + (ippy / iy - ipy ** 2 / iy ** 2) * jx * x,
-                    ee * ypx + (ippy / iy - ipy ** 2 / iy ** 2) * yx * x,
+                    ee * jpx + (ippy / iy - ipy**2 / iy**2) * jx * x,
+                    ee * ypx + (ippy / iy - ipy**2 / iy**2) * yx * x,
                 ],
             ]
         )
@@ -432,7 +432,7 @@ class Samples(Sampling):
         num_m = self.params["num_m"]
         roots: list[complex] = []
         vals = []
-        success: list[bool] = []
+        successes: list[bool] = []
 
         for i, xi in enumerate(xis):
             if i < num_m + 1:
@@ -451,10 +451,64 @@ class Samples(Sampling):
                 options={"col_deriv": True},
             )
             x = result.x[0] + result.x[1] * 1j
-            if result.success:
+            success = result.success
+            if not success and np.hypot(*result.fun) < 1e-8:
+                success = True
+            if success:
                 roots.append(x)
-            success.append(result.success)
+            successes.append(success)
             vals.append(x)
+        return np.array(vals), np.array(successes)
+
+    def beta2_with_u(
+        self, w: complex, n: int, e1: complex, e2: complex, xis: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Return roots and convergences of the characteristic equation
+
+        Args:
+            w (complex): Angular frequency.
+            n (int): Order of the mode
+            e1 (complex): Permittivity of tha core.
+            e2 (complex): Permittivity of tha clad.
+            xis (np.ndarray): Initial approximations for the roots
+                whose number of elements is 2*num_m+1.
+        Returns:
+            xs: A 1D array indicating the roots, whose length is 2*num_m+1.
+            success: A 1D array indicating the convergence information for xs.
+        """
+        if self.clad.label == "PEC":
+            xs = self.beta2_pec(w, n)
+            return xs, np.ones_like(xs, dtype=bool)
+        num_m = self.params["num_m"]
+        roots: list[complex] = []
+        vals = []
+        success: list[bool] = []
+
+        for i, xi in enumerate(xis):
+            u0 = self.u(xi, w, e1)
+            if i < num_m + 1:
+                pol = "M"
+            else:
+                pol = "E"
+                if n == 0 and i == num_m + 1:
+                    roots = []
+            args = (w, pol, n, e1, e2, self.r, self.ri, np.array(roots, dtype=complex))
+            result = root(
+                coax_utils.eig_eq_u_with_jac,
+                np.array([u0.real, u0.imag]),
+                args=args,
+                jac=True,
+                method="hybr",
+                options={"col_deriv": True},
+            )
+            u = result.x[0] + 1j * result.x[1]
+            if np.hypot(*result.fun) < 1e-8:
+                roots.append(u)
+                success.append(True)
+            else:
+                # print(_w, result.success, result.fun)
+                success.append(False)
+            vals.append(e1 * w**2 - u**2 / self.r**2)
         return np.array(vals), np.array(success)
 
     @staticmethod
@@ -795,27 +849,17 @@ class SamplesLowLoss(Samples):
         for iwr in range(num_iwr):
             for iwi in range(num_iwi):
                 j = iwr * num_iwi + iwi
-                w = self.ws[iwr] + 1j * self.wis[iwi]
-                e2 = self.clad(w)
                 for n in range(num_n):
                     for i in range(num_m + 1):
                         x = xs_success_list[j][0][n][i]
-                        v = self.v(x, w, e2)
                         betas[("M", n, i + 1)][iwr, iwi] = self.beta_from_beta2(x)
-                        convs[("M", n, i + 1)][iwr, iwi] = (
-                            xs_success_list[j][1][n][i]
-                            if v.real > abs(v.imag)
-                            else False
-                        )
+                        convs[("M", n, i + 1)][iwr, iwi] = xs_success_list[j][1][n][i]
                     for i in range(num_m):
                         x = xs_success_list[j][0][n][i + num_m + 1]
-                        v = self.v(x, w, e2)
                         betas[("E", n, i + 1)][iwr, iwi] = self.beta_from_beta2(x)
-                        convs[("E", n, i + 1)][iwr, iwi] = (
-                            xs_success_list[j][1][n][i + num_m + 1]
-                            if v.real > abs(v.imag)
-                            else False
-                        )
+                        convs[("E", n, i + 1)][iwr, iwi] = xs_success_list[j][1][n][
+                            i + num_m + 1
+                        ]
         return betas, convs
 
 
@@ -850,7 +894,6 @@ class SamplesLowLossForRay(SamplesLowLoss):
         """
         iwr, iwi, xis_list = arg
         im_factor = self.clad.im_factor
-        self.clad.im_factor = 1.0
         wr = self.ws[iwr]
         wi = self.wis[iwi]
         w = wr + 1j * wi
@@ -861,7 +904,7 @@ class SamplesLowLossForRay(SamplesLowLoss):
             xis = xs = x0s
             success = np.ones_like(xs, dtype=bool)
             for i in range(1, 8):
-                self.clad.im_factor = 0.5 ** i
+                self.clad.im_factor = 0.5**i
                 if i == 7 or self.clad.im_factor < im_factor:
                     self.clad.im_factor = im_factor
                 e2 = self.clad(w)
@@ -870,6 +913,8 @@ class SamplesLowLossForRay(SamplesLowLoss):
                     if not ok:
                         xs[_] = xis[_]
                 xis = xs
+                if self.clad.im_factor == im_factor:
+                    break
             xs_list.append(xs)
             success_list.append(success)
         return xs_list, success_list

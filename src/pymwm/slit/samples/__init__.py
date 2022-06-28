@@ -97,7 +97,7 @@ class Samples(Sampling):
             ns = np.array(ns_all[::2])
         else:
             ns = np.array(ns_all[1::2])
-        h2: np.ndarray = self.fill(w_comp) * w_comp ** 2 - (ns * np.pi / self.r) ** 2
+        h2: np.ndarray = self.fill(w_comp) * w_comp**2 - (ns * np.pi / self.r) ** 2
         return h2
 
     def u(
@@ -108,7 +108,7 @@ class Samples(Sampling):
     ) -> complex | np.ndarray:
         # return cmath.sqrt(e1 * w ** 2 - h2) * self.r / 2
         val: complex | np.ndarray = (
-            (1 + 1j) * np.sqrt(-0.5j * (e1 * w ** 2 - h2)) * self.r / 2
+            (1 + 1j) * np.sqrt(-0.5j * (e1 * w**2 - h2)) * self.r / 2
         )
         return val
 
@@ -121,7 +121,7 @@ class Samples(Sampling):
         # This definition is very important!!
         # Other definitions can not give good results in some cases
         val: complex | np.ndarray = (
-            (1 - 1j) * np.sqrt(0.5j * (-e2 * w ** 2 + h2)) * self.r / 2
+            (1 - 1j) * np.sqrt(0.5j * (-e2 * w**2 + h2)) * self.r / 2
         )
         return val
 
@@ -476,34 +476,20 @@ class SamplesLowLoss(Samples):
         for iwr in range(num_iwr):
             for iwi in range(num_iwi):
                 j = iwr * num_iwi + iwi
-                w = self.ws[iwr] + 1j * self.wis[iwi]
-                e2 = self.clad(w)
                 for i_n, n in enumerate(ns_e):
                     x = xs_success_list[j][0][0][i_n]
-                    v = self.v(x, w, e2)
                     betas[("M", n, 1)][iwr, iwi] = self.beta_from_beta2(x)
-                    convs[("M", n, 1)][iwr, iwi] = (
-                        xs_success_list[j][1][0][i_n] if v.real > abs(v.imag) else False
-                    )
+                    convs[("M", n, 1)][iwr, iwi] = xs_success_list[j][1][0][i_n]
                     x = xs_success_list[j][0][2][i_n]
-                    v = self.v(x, w, e2)
                     betas[("E", n, 1)][iwr, iwi] = self.beta_from_beta2(x)
-                    convs[("E", n, 1)][iwr, iwi] = (
-                        xs_success_list[j][1][2][i_n] if v.real > abs(v.imag) else False
-                    )
+                    convs[("E", n, 1)][iwr, iwi] = xs_success_list[j][1][2][i_n]
                 for i_n, n in enumerate(ns_o):
                     x = xs_success_list[j][0][1][i_n]
-                    v = self.v(x, w, e2)
                     betas[("M", n, 1)][iwr, iwi] = self.beta_from_beta2(x)
-                    convs[("M", n, 1)][iwr, iwi] = (
-                        xs_success_list[j][1][1][i_n] if v.real > abs(v.imag) else False
-                    )
+                    convs[("M", n, 1)][iwr, iwi] = xs_success_list[j][1][1][i_n]
                     x = xs_success_list[j][0][3][i_n]
-                    v = self.v(x, w, e2)
                     betas[("E", n, 1)][iwr, iwi] = self.beta_from_beta2(x)
-                    convs[("E", n, 1)][iwr, iwi] = (
-                        xs_success_list[j][1][3][i_n] if v.real > abs(v.imag) else False
-                    )
+                    convs[("E", n, 1)][iwr, iwi] = xs_success_list[j][1][3][i_n]
         return betas, convs
 
 
@@ -562,7 +548,7 @@ class SamplesLowLossForRay(SamplesLowLoss):
             xis = xs = x0s
             success = np.ones_like(xs, dtype=bool)
             for i in range(1, 8):
-                self.clad.im_factor = 0.5 ** i
+                self.clad.im_factor = 0.5**i
                 if i == 7 or self.clad.im_factor < im_factor:
                     self.clad.im_factor = im_factor
                 e2 = self.clad(w)

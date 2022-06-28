@@ -711,6 +711,7 @@ class Database:
     """The interface with the database of propagation constants."""
 
     dirname = os.path.join(os.path.expanduser("~"), ".pymwm")
+    dn_data = os.path.join(dirname, "data")
     fn_catalog = os.path.join(dirname, "catalog.h5")
     catalog_columns = OrderedDict(
         (
@@ -774,6 +775,8 @@ class Database:
         if not os.path.exists(self.fn_catalog):
             if not os.path.exists(self.dirname):
                 os.mkdir(self.dirname)
+            if not os.path.exists(self.dn_data):
+                os.mkdir(self.dn_data)
             catalog = pd.DataFrame(columns=self.catalog_columns.keys())
             self.save_catalog(catalog)
             return 0

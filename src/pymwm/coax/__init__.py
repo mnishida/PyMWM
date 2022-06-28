@@ -178,7 +178,7 @@ class Coax(Waveguide):
         return betas, convs, smp
 
     def do_sampling_for_im_factor(
-        self, betas: dict, convs: dict, p_modes: dict
+        self, betas0: dict, convs: dict, p_modes: dict
     ) -> tuple[dict, dict, SamplesLowLoss]:
         smp = SamplesLowLoss(
             self.r, self.fill_params, self.clad_params, p_modes, self.ri
@@ -195,9 +195,9 @@ class Coax(Waveguide):
                     for n in range(num_n):
                         xis = []
                         for i in range(num_m + 1):
-                            xis.append(betas[("M", n, i + 1)][iwr, iwi] ** 2)
+                            xis.append(betas0[("M", n, i + 1)][iwr, iwi] ** 2)
                         for i in range(num_m):
-                            xis.append(betas[("E", n, i + 1)][iwr, iwi] ** 2)
+                            xis.append(betas0[("E", n, i + 1)][iwr, iwi] ** 2)
                         xis_list.append(xis)
                     args.append((iwr, iwi, xis_list))
             try:
@@ -259,7 +259,7 @@ class Coax(Waveguide):
             chi = self.co_list[n][m - 1]
         else:
             chi = self.co_list[n][self.num_m + m]
-        val = cmath.sqrt(self.fill(w_comp) * w_comp ** 2 - chi ** 2 / self.r ** 2)
+        val = cmath.sqrt(self.fill(w_comp) * w_comp**2 - chi**2 / self.r**2)
         if abs(val.real) > abs(val.imag):
             if val.real < 0:
                 val *= -1
@@ -295,7 +295,7 @@ class Coax(Waveguide):
         e1 = self.fill(w)
         e2 = self.clad(w)
         ee = e1 / e2
-        u = self.samples.u(h ** 2, w, e1)
+        u = self.samples.u(h**2, w, e1)
         ju = ssp.jv(n, u)
         jpu = -ssp.jv(n + 1, u) + n / u * ju
 
@@ -312,10 +312,10 @@ class Coax(Waveguide):
                 d2 = -ju / yu
                 a2 = c2 = 0.0j
         else:
-            hew = h ** 2 / e2 / w ** 2
-            x = self.samples.x(h ** 2, w, e1)
-            y = self.samples.y(h ** 2, w, e2)
-            v = self.samples.v(h ** 2, w, e2)
+            hew = h**2 / e2 / w**2
+            x = self.samples.x(h**2, w, e1)
+            y = self.samples.y(h**2, w, e2)
+            v = self.samples.v(h**2, w, e2)
 
             kv = ssp.kv(n, v)
             kpv = -ssp.kv(n + 1, v) + n / v * kv
@@ -390,8 +390,8 @@ class Coax(Waveguide):
         e1 = self.fill(w)
         e2 = self.clad(w)
         en = 1 if n == 0 else 2
-        u = self.samples.u(h ** 2, w, e1)
-        x = self.samples.x(h ** 2, w, e1)
+        u = self.samples.u(h**2, w, e1)
+        x = self.samples.x(h**2, w, e1)
         ju = ssp.jv(n, u)
         jpu = -ssp.jv(n + 1, u) + n / u * ju
         yu = ssp.yv(n, u)
@@ -405,66 +405,66 @@ class Coax(Waveguide):
             / en
             * (
                 (
-                    r ** 2
-                    * (jpu ** 2 + (1 - n ** 2 / u ** 2) * ju ** 2 + 2 * jpu * ju / u)
-                    - ri ** 2
-                    * (jpx ** 2 + (1 - n ** 2 / x ** 2) * jx ** 2 + 2 * jpx * jx / x)
+                    r**2
+                    * (jpu**2 + (1 - n**2 / u**2) * ju**2 + 2 * jpu * ju / u)
+                    - ri**2
+                    * (jpx**2 + (1 - n**2 / x**2) * jx**2 + 2 * jpx * jx / x)
                 )
-                * (a2 ** 2 + b2 ** 2)
+                * (a2**2 + b2**2)
                 + (
-                    r ** 2
-                    * (ypu ** 2 + (1 - n ** 2 / u ** 2) * yu ** 2 + 2 * ypu * yu / u)
-                    - ri ** 2
-                    * (ypx ** 2 + (1 - n ** 2 / x ** 2) * yx ** 2 + 2 * ypx * yx / x)
+                    r**2
+                    * (ypu**2 + (1 - n**2 / u**2) * yu**2 + 2 * ypu * yu / u)
+                    - ri**2
+                    * (ypx**2 + (1 - n**2 / x**2) * yx**2 + 2 * ypx * yx / x)
                 )
-                * (c2 ** 2 + d2 ** 2)
+                * (c2**2 + d2**2)
                 + 2
                 * (
-                    r ** 2
-                    * (jpu * ypu + (1 - n ** 2 / u ** 2) * ju * yu + 2 * jpu * yu / u)
-                    - ri ** 2
-                    * (jpx * ypx + (1 - n ** 2 / x ** 2) * jx * yx + 2 * jpx * yx / x)
+                    r**2
+                    * (jpu * ypu + (1 - n**2 / u**2) * ju * yu + 2 * jpu * yu / u)
+                    - ri**2
+                    * (jpx * ypx + (1 - n**2 / x**2) * jx * yx + 2 * jpx * yx / x)
                 )
                 * (a2 * c2 + b2 * d2)
             )
             + 2
             * n
             * (
-                (r ** 2 / u ** 2 * ju ** 2 - ri ** 2 / x ** 2 * jx ** 2) * a2 * b2
-                + (r ** 2 / u ** 2 * yu ** 2 - ri ** 2 / x ** 2 * yx ** 2) * c2 * d2
-                + (r ** 2 / u ** 2 * ju * yu - ri ** 2 / x ** 2 * jx * yx)
+                (r**2 / u**2 * ju**2 - ri**2 / x**2 * jx**2) * a2 * b2
+                + (r**2 / u**2 * yu**2 - ri**2 / x**2 * yx**2) * c2 * d2
+                + (r**2 / u**2 * ju * yu - ri**2 / x**2 * jx * yx)
                 * (a2 * d2 + b2 * c2)
             )
         )
         if e2.real < -1e6:
             return cmath.sqrt(I2)
         else:
-            v = self.samples.v(h ** 2, w, e2)
-            y = self.samples.y(h ** 2, w, e2)
+            v = self.samples.v(h**2, w, e2)
+            y = self.samples.y(h**2, w, e2)
             kv = ssp.kv(n, v)
             kpv = -ssp.kv(n + 1, v) + n / v * kv
             iy = ssp.iv(n, y)
             ipy = ssp.iv(n + 1, y) + n / y * iy
             I1 = (
                 cmath.pi
-                * ri ** 2
+                * ri**2
                 * (
                     1
                     / en
-                    * (ipy ** 2 - (1 + n ** 2 / y ** 2) * iy ** 2 + 2 * ipy * iy / y)
-                    * (a1 ** 2 + b1 ** 2)
-                    + 2 * n * iy ** 2 / y ** 2 * a1 * b1
+                    * (ipy**2 - (1 + n**2 / y**2) * iy**2 + 2 * ipy * iy / y)
+                    * (a1**2 + b1**2)
+                    + 2 * n * iy**2 / y**2 * a1 * b1
                 )
             )
             I3 = (
                 -cmath.pi
-                * r ** 2
+                * r**2
                 * (
                     1
                     / en
-                    * (kpv ** 2 - (1 + n ** 2 / v ** 2) * kv ** 2 + 2 * kpv * kv / v)
-                    * (a3 ** 2 + b3 ** 2)
-                    + 2 * n * kv ** 2 / v ** 2 * a3 * b3
+                    * (kpv**2 - (1 + n**2 / v**2) * kv**2 + 2 * kpv * kv / v)
+                    * (a3**2 + b3**2)
+                    + 2 * n * kv**2 / v**2 * a3 * b3
                 )
             )
             return cmath.sqrt(I1 + I2 + I3)
@@ -515,8 +515,8 @@ class Coax(Waveguide):
         y_te = Coax.y_te(w, h)
         y_tm1 = self.y_tm_core(w, h)
         y_tm2 = self.y_tm_clad(w, h)
-        u = self.samples.u(h ** 2, w, e1)
-        x = self.samples.x(h ** 2, w, e1)
+        u = self.samples.u(h**2, w, e1)
+        x = self.samples.x(h**2, w, e1)
         ju = ssp.jv(n, u)
         jpu = -ssp.jv(n + 1, u) + n / u * ju
         yu = ssp.yv(n, u)
@@ -530,42 +530,42 @@ class Coax(Waveguide):
             / en
             * (
                 (
-                    r ** 2
-                    * (jpu ** 2 + (1 - n ** 2 / u ** 2) * ju ** 2 + 2 * jpu * ju / u)
-                    - ri ** 2
-                    * (jpx ** 2 + (1 - n ** 2 / x ** 2) * jx ** 2 + 2 * jpx * jx / x)
+                    r**2
+                    * (jpu**2 + (1 - n**2 / u**2) * ju**2 + 2 * jpu * ju / u)
+                    - ri**2
+                    * (jpx**2 + (1 - n**2 / x**2) * jx**2 + 2 * jpx * jx / x)
                 )
-                * (y_te * a2 ** 2 + y_tm1 * b2 ** 2)
+                * (y_te * a2**2 + y_tm1 * b2**2)
                 + (
-                    r ** 2
-                    * (ypu ** 2 + (1 - n ** 2 / u ** 2) * yu ** 2 + 2 * ypu * yu / u)
-                    - ri ** 2
-                    * (ypx ** 2 + (1 - n ** 2 / x ** 2) * yx ** 2 + 2 * ypx * yx / x)
+                    r**2
+                    * (ypu**2 + (1 - n**2 / u**2) * yu**2 + 2 * ypu * yu / u)
+                    - ri**2
+                    * (ypx**2 + (1 - n**2 / x**2) * yx**2 + 2 * ypx * yx / x)
                 )
-                * (y_te * c2 ** 2 + y_tm1 * d2 ** 2)
+                * (y_te * c2**2 + y_tm1 * d2**2)
                 + 2
                 * (
-                    r ** 2
-                    * (jpu * ypu + (1 - n ** 2 / u ** 2) * ju * yu + 2 * jpu * yu / u)
-                    - ri ** 2
-                    * (jpx * ypx + (1 - n ** 2 / x ** 2) * jx * yx + 2 * jpx * yx / x)
+                    r**2
+                    * (jpu * ypu + (1 - n**2 / u**2) * ju * yu + 2 * jpu * yu / u)
+                    - ri**2
+                    * (jpx * ypx + (1 - n**2 / x**2) * jx * yx + 2 * jpx * yx / x)
                 )
                 * (y_te * a2 * c2 + y_tm1 * b2 * d2)
             )
             + n
             * (y_te + y_tm1)
             * (
-                (r ** 2 / u ** 2 * ju ** 2 - ri ** 2 / x ** 2 * jx ** 2) * a2 * b2
-                + (r ** 2 / u ** 2 * yu ** 2 - ri ** 2 / x ** 2 * yx ** 2) * c2 * d2
-                + (r ** 2 / u ** 2 * ju * yu - ri ** 2 / x ** 2 * jx * yx)
+                (r**2 / u**2 * ju**2 - ri**2 / x**2 * jx**2) * a2 * b2
+                + (r**2 / u**2 * yu**2 - ri**2 / x**2 * yx**2) * c2 * d2
+                + (r**2 / u**2 * ju * yu - ri**2 / x**2 * jx * yx)
                 * (a2 * d2 + b2 * c2)
             )
         )
         if e2.real < -1e6:
             return I2
         else:
-            v = self.samples.v(h ** 2, w, e2)
-            y = self.samples.y(h ** 2, w, e2)
+            v = self.samples.v(h**2, w, e2)
+            y = self.samples.y(h**2, w, e2)
             kv = ssp.kv(n, v)
             kpv = -ssp.kv(n + 1, v) + n / v * kv
             iy = ssp.iv(n, y)
@@ -573,24 +573,24 @@ class Coax(Waveguide):
 
             I1 = (
                 cmath.pi
-                * ri ** 2
+                * ri**2
                 * (
                     1
                     / en
-                    * (ipy ** 2 - (1 + n ** 2 / y ** 2) * iy ** 2 + 2 * ipy * iy / y)
-                    * (y_te * a1 ** 2 + y_tm2 * b1 ** 2)
-                    + n * iy ** 2 / y ** 2 * (y_te + y_tm2) * a1 * b1
+                    * (ipy**2 - (1 + n**2 / y**2) * iy**2 + 2 * ipy * iy / y)
+                    * (y_te * a1**2 + y_tm2 * b1**2)
+                    + n * iy**2 / y**2 * (y_te + y_tm2) * a1 * b1
                 )
             )
             I3 = (
                 -cmath.pi
-                * r ** 2
+                * r**2
                 * (
                     1
                     / en
-                    * (kpv ** 2 - (1 + n ** 2 / v ** 2) * kv ** 2 + 2 * kpv * kv / v)
-                    * (y_te * a3 ** 2 + y_tm2 * b3 ** 2)
-                    + n * kv ** 2 / v ** 2 * (y_te + y_tm2) * a3 * b3
+                    * (kpv**2 - (1 + n**2 / v**2) * kv**2 + 2 * kpv * kv / v)
+                    * (y_te * a3**2 + y_tm2 * b3**2)
+                    + n * kv**2 / v**2 * (y_te + y_tm2) * a3 * b3
                 )
             )
             return I1 + I2 + I3
@@ -640,10 +640,10 @@ class Coax(Waveguide):
         hs = np.array([self.beta(w, alpha) for alpha in self.alpha_all])
         A1s, B1s, A2s, B2s, C2s, D2s, A3s, B3s = self.coefs(hs, w)
         Ys = self.Ys(w, hs, A1s, B1s, A2s, B2s, C2s, D2s, A3s, B3s)
-        xs = self.samples.x(hs ** 2, w, e1)
-        ys = self.samples.y(hs ** 2, w, e2)
-        us = self.samples.u(hs ** 2, w, e1)
-        vs = self.samples.v(hs ** 2, w, e2)
+        xs = self.samples.x(hs**2, w, e1)
+        ys = self.samples.y(hs**2, w, e2)
+        us = self.samples.u(hs**2, w, e1)
+        vs = self.samples.v(hs**2, w, e2)
         jxs = ssp.jv(self.n_all, xs)
         jpxs = ssp.jvp(self.n_all, xs)
         yxs = ssp.yv(self.n_all, xs)
@@ -782,7 +782,7 @@ class Coax(Waveguide):
         e1 = self.fill(w)
         e2 = self.clad(w)
         if r < self.ri:
-            _y = self.samples.y(h ** 2, w, e2)
+            _y = self.samples.y(h**2, w, e2)
             yr = _y * r / self.ri
             iy = ssp.iv(n, yr)
             iy_plus = ssp.iv(n + 1, yr)
@@ -793,7 +793,7 @@ class Coax(Waveguide):
             ep = ipy * a1 + niy_y * b1
             ez = -_y / (1j * h * self.ri) * iy * b1
         elif self.ri <= r < self.r:
-            u = self.samples.u(h ** 2, w, e1)
+            u = self.samples.u(h**2, w, e1)
             ur = u * r / self.r
             ju = ssp.jv(n, ur)
             ju_plus = ssp.jv(n + 1, ur)
@@ -809,7 +809,7 @@ class Coax(Waveguide):
             ep = jpu * a2 + nju_u * b2 + ypu * c2 + nyu_u * d2
             ez = u / (1j * h * self.r) * (ju * b2 + yu * d2)
         else:
-            v = self.samples.v(h ** 2, w, e2)
+            v = self.samples.v(h**2, w, e2)
             vr = v * r / self.r
             kv = ssp.kv(n, vr)
             kv_plus = ssp.kv(n + 1, vr)
@@ -897,7 +897,7 @@ class Coax(Waveguide):
         y_te = Coax.y_te(w, h)
         if r < self.ri:
             y_tm = self.y_tm_clad(w, h)
-            _y = self.samples.y(h ** 2, w, e2)
+            _y = self.samples.y(h**2, w, e2)
             yr = _y * r / self.ri
             iy = ssp.iv(n, yr)
             iy_plus = ssp.iv(n + 1, yr)
@@ -909,7 +909,7 @@ class Coax(Waveguide):
             hz = -1j * _y / self.ri * iy * a1
         elif self.ri <= r < self.r:
             y_tm = self.y_tm_core(w, h)
-            u = self.samples.u(h ** 2, w, e1)
+            u = self.samples.u(h**2, w, e1)
             ur = u * r / self.r
             ju = ssp.jv(n, ur)
             ju_plus = ssp.jv(n + 1, ur)
@@ -936,7 +936,7 @@ class Coax(Waveguide):
             hz = 1j * u / self.r * (ju * a2 + yu * c2)
         else:
             y_tm = self.y_tm_clad(w, h)
-            v = self.samples.v(h ** 2, w, e2)
+            v = self.samples.v(h**2, w, e2)
             vr = v * r / self.r
             kv = ssp.kv(n, vr)
             kv_plus = ssp.kv(n + 1, vr)
@@ -1015,7 +1015,7 @@ class Coax(Waveguide):
         y_te = Coax.y_te(w, h)
         if r < self.ri:
             y_tm = self.y_tm_clad(w, h)
-            _y = self.samples.y(h ** 2, w, e2)
+            _y = self.samples.y(h**2, w, e2)
             yr = _y * r / self.ri
             iy = ssp.iv(n, yr)
             iy_plus = ssp.iv(n + 1, yr)
@@ -1030,7 +1030,7 @@ class Coax(Waveguide):
             hz = -1j * _y / self.ri * iy * a1
         elif self.ri <= r < self.r:
             y_tm = self.y_tm_core(w, h)
-            u = self.samples.u(h ** 2, w, e1)
+            u = self.samples.u(h**2, w, e1)
             ur = u * r / self.r
             ju = ssp.jv(n, ur)
             ju_plus = ssp.jv(n + 1, ur)
@@ -1060,7 +1060,7 @@ class Coax(Waveguide):
             hz = 1j * u / self.r * (ju * a2 + yu * c2)
         else:
             y_tm = self.y_tm_clad(w, h)
-            v = self.samples.v(h ** 2, w, e2)
+            v = self.samples.v(h**2, w, e2)
             vr = v * r / self.r
             kv = ssp.kv(n, vr)
             kv_plus = ssp.kv(n + 1, vr)
