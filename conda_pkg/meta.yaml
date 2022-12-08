@@ -37,8 +37,8 @@ about:
   license: MIT
   license_family: MIT
   license_file: LICENSE
-  summary: "Python 3 + Pandas wrapper for the refractiveindex.info database"
-  doc_url: https://github.com/mnishida/RII_Pandas/tree/master/tutorial
+  summary: "Metallic waveguide mode solver written in Python"
+  doc_url: https://github.com/mnishida/PyMWM/blob/master/docs/notebooks/00_tutorial.ipynb
 
 extra:
   recipe-maintainers:
