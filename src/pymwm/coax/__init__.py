@@ -906,7 +906,7 @@ class Coax(Waveguide):
             ipy = (iy_minus + iy_plus) / 2
             hr = -(y_te * ipy * a1 + y_tm * niy_y * b1)
             hp = y_te * niy_y * a1 + y_tm * ipy * b1
-            hz = -1j * _y / self.ri * iy * a1
+            hz = -1j * _y / (self.ri * w) * iy * a1
         elif self.ri <= r < self.r:
             y_tm = self.y_tm_core(w, h)
             u = self.samples.u(h**2, w, e1)
@@ -933,7 +933,7 @@ class Coax(Waveguide):
                 + y_te * nyu_u * c2
                 + y_tm * ypu * d2
             )
-            hz = 1j * u / self.r * (ju * a2 + yu * c2)
+            hz = 1j * u / (self.r * w) * (ju * a2 + yu * c2)
         else:
             y_tm = self.y_tm_clad(w, h)
             v = self.samples.v(h**2, w, e2)
@@ -945,7 +945,7 @@ class Coax(Waveguide):
             kpv = -(kv_minus + kv_plus) / 2
             hr = -(y_te * kpv * a3 + y_tm * nkv_v * b3)
             hp = y_te * nkv_v * a3 + y_tm * kpv * b3
-            hz = -1j * v / self.r * kv * a3
+            hz = -1j * v / (self.r * w) * kv * a3
         return np.array([hr, hp, hz])
 
     def h_field(self, x, y, w, dir, alpha, h, coef):
@@ -1027,7 +1027,7 @@ class Coax(Waveguide):
             ez = -_y / (1j * h * self.ri) * iy * b1
             hr = -(y_te * ipy * a1 + y_tm * niy_y * b1)
             hp = y_te * niy_y * a1 + y_tm * ipy * b1
-            hz = -1j * _y / self.ri * iy * a1
+            hz = -1j * _y / (self.ri * w) * iy * a1
         elif self.ri <= r < self.r:
             y_tm = self.y_tm_core(w, h)
             u = self.samples.u(h**2, w, e1)
@@ -1057,7 +1057,7 @@ class Coax(Waveguide):
                 + y_te * nyu_u * c2
                 + y_tm * ypu * d2
             )
-            hz = 1j * u / self.r * (ju * a2 + yu * c2)
+            hz = 1j * u / (self.r * w) * (ju * a2 + yu * c2)
         else:
             y_tm = self.y_tm_clad(w, h)
             v = self.samples.v(h**2, w, e2)
@@ -1072,7 +1072,7 @@ class Coax(Waveguide):
             ez = -v / (1j * h * self.r) * kv * b3
             hr = -(y_te * kpv * a3 + y_tm * nkv_v * b3)
             hp = y_te * nkv_v * a3 + y_tm * kpv * b3
-            hz = -1j * v / self.r * kv * a3
+            hz = -1j * v / (self.r * w) * kv * a3
         return np.array([er, ep, ez, hr, hp, hz])
 
     def fields(self, x, y, w, dir, alpha, h, coef):
