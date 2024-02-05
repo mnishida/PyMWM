@@ -98,7 +98,7 @@ class Slit(Waveguide):
         betas: dict = {}
         convs: dict = {}
         success = False
-        catalog = Database().load_catalog()
+        catalog = Database().load_catalog().query("shape=='slit'")
         num_n_max = catalog["num_n"].max()
         if not np.isnan(num_n_max):
             for num_n in [n for n in range(num_n_0, num_n_max + 1, 2)]:
@@ -254,7 +254,7 @@ class Slit(Waveguide):
         """
         w_comp = w.real + 1j * w.imag
         pol, n, m = alpha
-        val = cmath.sqrt(self.fill(w_comp) * w_comp ** 2 - (n * np.pi / self.r) ** 2)
+        val = cmath.sqrt(self.fill(w_comp) * w_comp**2 - (n * np.pi / self.r) ** 2)
         if abs(val.real) > abs(val.imag):
             if val.real < 0:
                 val *= -1
@@ -295,7 +295,7 @@ class Slit(Waveguide):
         return np.sinc(x1)
 
     def norm(self, w, h, alpha, a, b):
-        a2_b2 = a ** 2 + b ** 2
+        a2_b2 = a**2 + b**2
         e1 = self.fill(w)
         e2 = self.clad(w)
         pol, n, m = alpha
@@ -304,9 +304,9 @@ class Slit(Waveguide):
                 return cmath.sqrt(a2_b2 * self.r)
             else:
                 return cmath.sqrt(a2_b2 * self.r / 2)
-        u = self.samples.u(h ** 2, w, e1)
+        u = self.samples.u(h**2, w, e1)
         # uc = u.conjugate()
-        v = self.samples.v(h ** 2, w, e2)
+        v = self.samples.v(h**2, w, e2)
         # vc = v.conjugate()
         if n % 2 == 0:
             if pol == "E":
@@ -325,7 +325,7 @@ class Slit(Waveguide):
         val = cmath.sqrt(
             a2_b2
             * self.r
-            * (b_a ** 2 / (2 * v) + (1.0 + parity * self.sinc(2 * u)) / 2)
+            * (b_a**2 / (2 * v) + (1.0 + parity * self.sinc(2 * u)) / 2)
         )
         return val
 
@@ -355,8 +355,8 @@ class Slit(Waveguide):
                 return y_te
             else:
                 return y_tm_in
-        u = self.samples.u(h ** 2, w, e1)
-        v = self.samples.v(h ** 2, w, e2)
+        u = self.samples.u(h**2, w, e1)
+        v = self.samples.v(h**2, w, e2)
         if pol == "E":
             y_in = y_out = y_te
         else:
@@ -377,10 +377,10 @@ class Slit(Waveguide):
                 b_a = -u / v * np.cos(u)
                 parity = -1
         val = (
-            (a ** 2 + b ** 2)
+            (a**2 + b**2)
             * self.r
             * (
-                y_out * b_a ** 2 / (2 * v)
+                y_out * b_a**2 / (2 * v)
                 + (1.0 + parity * self.sinc(2 * u)) * y_in / 2
             )
         )
@@ -423,10 +423,10 @@ class Slit(Waveguide):
         a = a2
         bc = b1
         b = b2
-        uc = self.samples.u(h1 ** 2, w, e1)
-        u = self.samples.u(h2 ** 2, w, e1)
-        vc = self.samples.v(h1 ** 2, w, e2)
-        v = self.samples.v(h2 ** 2, w, e2)
+        uc = self.samples.u(h1**2, w, e1)
+        u = self.samples.u(h2**2, w, e1)
+        vc = self.samples.v(h1**2, w, e2)
+        v = self.samples.v(h2**2, w, e2)
         if s1 == 0:
             y_in = y_out = y_te
             val = ac * a * self.r
@@ -491,8 +491,8 @@ class Slit(Waveguide):
         """
         pol, n, m = alpha
         a, b = coef
-        u = self.samples.u(h ** 2, w, self.fill(w))
-        v = self.samples.v(h ** 2, w, self.clad(w))
+        u = self.samples.u(h**2, w, self.fill(w))
+        v = self.samples.v(h**2, w, self.clad(w))
         gd = u / (self.r / 2)
         gm = v / (self.r / 2)
         if pol == "E":
@@ -573,8 +573,8 @@ class Slit(Waveguide):
         """
         pol, n, m = alpha
         a, b = coef
-        u = self.samples.u(h ** 2, w, self.fill(w))
-        v = self.samples.v(h ** 2, w, self.clad(w))
+        u = self.samples.u(h**2, w, self.fill(w))
+        v = self.samples.v(h**2, w, self.clad(w))
         gd = u / (self.r / 2)
         gm = v / (self.r / 2)
         if pol == "E":
@@ -636,8 +636,8 @@ class Slit(Waveguide):
         """
         pol, n, m = alpha
         a, b = coef
-        u = self.samples.u(h ** 2, w, self.fill(w))
-        v = self.samples.v(h ** 2, w, self.clad(w))
+        u = self.samples.u(h**2, w, self.fill(w))
+        v = self.samples.v(h**2, w, self.clad(w))
         gd = u / (self.r / 2)
         gm = v / (self.r / 2)
         if pol == "E":

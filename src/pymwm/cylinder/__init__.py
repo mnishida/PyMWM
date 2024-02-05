@@ -89,7 +89,7 @@ class Cylinder(Waveguide):
         betas: dict = {}
         convs: dict = {}
         success = False
-        catalog = Database().load_catalog()
+        catalog = Database().load_catalog().query("shape=='cylinder'")
         num_n_max = catalog["num_n"].max()
         num_m_max = catalog["num_m"].max()
         if not np.isnan(num_n_max):
@@ -242,7 +242,7 @@ class Cylinder(Waveguide):
             chi = ssp.jn_zeros(n, m)[-1]
         else:
             raise ValueError("pol must be 'E' or 'M")
-        val = cmath.sqrt(self.fill(w_comp) * w_comp ** 2 - chi ** 2 / self.r ** 2)
+        val = cmath.sqrt(self.fill(w_comp) * w_comp**2 - chi**2 / self.r**2)
         if abs(val.real) > abs(val.imag):
             if val.real < 0:
                 val *= -1
@@ -278,13 +278,13 @@ class Cylinder(Waveguide):
                 norm = self.norm(w, h, alpha, 0.0j, 1.0 + 0.0j)
                 ai, bi = 0.0, 1.0 / norm
         else:
-            u = self.samples.u(h ** 2, w, e1)
-            v = self.samples.v(h ** 2, w, e2)
+            u = self.samples.u(h**2, w, e1)
+            v = self.samples.v(h**2, w, e2)
             knv = ssp.kv(n, v)
             knpv = ssp.kvp(n, v)
             jnu = ssp.jv(n, u)
             jnpu = ssp.jvp(n, u)
-            ci = -n * (u ** 2 + v ** 2) * jnu * knv / (u * v)
+            ci = -n * (u**2 + v**2) * jnu * knv / (u * v)
             if pol == "E":
                 ci *= (h / w) ** 2
                 ci /= e1 * jnpu * v * knv + e2 * knpv * u * jnu
@@ -312,16 +312,16 @@ class Cylinder(Waveguide):
                 jnu = 0.0
                 jnpu = ssp.jvp(n, u)
             return cmath.sqrt(
-                a ** 2 * np.pi * radius ** 2 / en * (1 - n ** 2 / u ** 2) * jnu ** 2
-                + b ** 2 * np.pi * radius ** 2 / en * jnpu ** 2
+                a**2 * np.pi * radius**2 / en * (1 - n**2 / u**2) * jnu**2
+                + b**2 * np.pi * radius**2 / en * jnpu**2
             )
-        u = self.samples.u(h ** 2, w, self.fill(w))
+        u = self.samples.u(h**2, w, self.fill(w))
         jnu = ssp.jv(n, u)
         jnpu = ssp.jvp(n, u)
-        v = self.samples.v(h ** 2, w, self.clad(w))
+        v = self.samples.v(h**2, w, self.clad(w))
         knv = ssp.kv(n, v)
         knpv = ssp.kvp(n, v)
-        val_u = 2 * np.pi * self.r ** 2 / en
+        val_u = 2 * np.pi * self.r**2 / en
         val_v = val_u * ((u * jnu) / (v * knv)) ** 2
         upart_diag = self.upart_diag(n, u, jnu, jnpu)
         vpart_diag = self.vpart_diag(n, v, knv, knpv)
@@ -342,7 +342,7 @@ class Cylinder(Waveguide):
 
     @staticmethod
     def upart_diag(n, u, jnu, jnpu):
-        return jnu * jnpu / u + (jnpu ** 2 + (1 - n ** 2 / u ** 2) * jnu ** 2) / 2
+        return jnu * jnpu / u + (jnpu**2 + (1 - n**2 / u**2) * jnu**2) / 2
 
     @staticmethod
     def upart_off(n, u, jnu):
@@ -350,7 +350,7 @@ class Cylinder(Waveguide):
 
     @staticmethod
     def vpart_diag(n, v, knv, knpv):
-        return knv * knpv / v + (knpv ** 2 - (1 + n ** 2 / v ** 2) * knv ** 2) / 2
+        return knv * knpv / v + (knpv**2 - (1 + n**2 / v**2) * knv**2) / 2
 
     @staticmethod
     def vpart_off(n, v, knv):
@@ -387,13 +387,13 @@ class Cylinder(Waveguide):
             else:
                 val = e1 * w / h
         else:
-            u = self.samples.u(h ** 2, w, e1)
+            u = self.samples.u(h**2, w, e1)
             jnu = ssp.jv(n, u)
             jnpu = ssp.jvp(n, u)
-            v = self.samples.v(h ** 2, w, e2)
+            v = self.samples.v(h**2, w, e2)
             knv = ssp.kv(n, v)
             knpv = ssp.kvp(n, v)
-            val_u = 2 * np.pi * self.r ** 2 / en
+            val_u = 2 * np.pi * self.r**2 / en
             val_v = val_u * ((u * jnu) / (v * knv)) ** 2
             upart_diag = self.upart_diag(n, u, jnu, jnpu)
             vpart_diag = self.vpart_diag(n, v, knv, knpv)
@@ -441,8 +441,8 @@ class Cylinder(Waveguide):
         a, b = coef
         r = np.hypot(x, y)
         p = np.arctan2(y, x)
-        u = self.samples.u(h ** 2, w, self.fill(w))
-        v = self.samples.v(h ** 2, w, self.clad(w))
+        u = self.samples.u(h**2, w, self.fill(w))
+        v = self.samples.v(h**2, w, self.clad(w))
         ur = u * r / self.r
         vr = v * r / self.r
         if dir == "h":
@@ -504,8 +504,8 @@ class Cylinder(Waveguide):
         a, b = coef
         r = np.hypot(x, y)
         p = np.arctan2(y, x)
-        u = self.samples.u(h ** 2, w, self.fill(w))
-        v = self.samples.v(h ** 2, w, self.clad(w))
+        u = self.samples.u(h**2, w, self.fill(w))
+        v = self.samples.v(h**2, w, self.clad(w))
         ur = u * r / self.r
         vr = v * r / self.r
         if dir == "h":
@@ -556,8 +556,8 @@ class Cylinder(Waveguide):
         a, b = coef
         r = np.hypot(x, y)
         p = np.arctan2(y, x)
-        u = self.samples.u(h ** 2, w, self.fill(w))
-        v = self.samples.v(h ** 2, w, self.clad(w))
+        u = self.samples.u(h**2, w, self.fill(w))
+        v = self.samples.v(h**2, w, self.clad(w))
         ur = u * r / self.r
         vr = v * r / self.r
         if dir == "h":
@@ -637,12 +637,12 @@ class Cylinder(Waveguide):
                 us[i] = self.u_pec[s, n, m - 1]
                 jus[i] = self.jnu_pec[s, n, m - 1]
                 jpus[i] = self.jnpu_pec[s, n, m - 1]
-            vs = (1 - 1j) * np.sqrt(0.5j * (-e2 * w ** 2 + hs ** 2)) * self.r
+            vs = (1 - 1j) * np.sqrt(0.5j * (-e2 * w**2 + hs**2)) * self.r
             kvs = np.zeros_like(vs)
             kpvs = np.zeros_like(vs)
         else:
-            us = self.samples.u(hs ** 2, w, e1)
-            vs = self.samples.v(hs ** 2, w, e2)
+            us = self.samples.u(hs**2, w, e1)
+            vs = self.samples.v(hs**2, w, e2)
             jus = ssp.jv(self.n_all, us)
             jpus = ssp.jvp(self.n_all, us)
             kvs = ssp.kv(self.n_all, vs)

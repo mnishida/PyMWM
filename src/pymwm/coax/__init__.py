@@ -104,7 +104,7 @@ class Coax(Waveguide):
         betas: dict = {}
         convs: dict = {}
         success = False
-        catalog = Database().load_catalog()
+        catalog = Database().load_catalog().query("shape=='coax'")
         num_n_max = catalog["num_n"].max()
         num_m_max = catalog["num_m"].max()
         if not np.isnan(num_n_max):
