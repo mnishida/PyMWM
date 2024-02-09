@@ -400,42 +400,78 @@ class Coax(Waveguide):
         jpx = -ssp.jv(n + 1, x) + n / x * jx
         yx = ssp.yv(n, x)
         ypx = -ssp.yv(n + 1, x) + n / x * yx
+
+        Au = ju * a2 + yu * c2
+        Apu = jpu * a2 + ypu * c2
+        Bu = ju * b2 + yu * d2
+        Bpu = jpu * b2 + ypu * d2
+        Ax = jx * a2 + yx * c2
+        Apx = jpx * a2 + ypx * c2
+        Bx = jx * b2 + yx * d2
+        Bpx = jpx * b2 + ypx * d2
+
         I2 = cmath.pi * (
             1
             / en
             * (
-                (
-                    r**2
-                    * (jpu**2 + (1 - n**2 / u**2) * ju**2 + 2 * jpu * ju / u)
-                    - ri**2
-                    * (jpx**2 + (1 - n**2 / x**2) * jx**2 + 2 * jpx * jx / x)
-                )
-                * (a2**2 + b2**2)
-                + (
-                    r**2
-                    * (ypu**2 + (1 - n**2 / u**2) * yu**2 + 2 * ypu * yu / u)
-                    - ri**2
-                    * (ypx**2 + (1 - n**2 / x**2) * yx**2 + 2 * ypx * yx / x)
-                )
-                * (c2**2 + d2**2)
-                + 2
+                r**2
                 * (
-                    r**2
-                    * (jpu * ypu + (1 - n**2 / u**2) * ju * yu + 2 * jpu * yu / u)
-                    - ri**2
-                    * (jpx * ypx + (1 - n**2 / x**2) * jx * yx + 2 * jpx * yx / x)
+                    Apu**2
+                    + (1 - n**2 / u**2) * Au**2
+                    + 2 * Apu * Au / u
+                    + Bpu**2
+                    + (1 - n**2 / u**2) * Bu**2
+                    + 2 * Bpu * Bu / u
                 )
-                * (a2 * c2 + b2 * d2)
+                - ri**2
+                * (
+                    Apx**2
+                    + (1 - n**2 / x**2) * Ax**2
+                    + 2 * Apx * Ax / x
+                    + Bpx**2
+                    + (1 - n**2 / x**2) * Bx**2
+                    + 2 * Bpx * Bx / x
+                )
             )
-            + 2
-            * n
-            * (
-                (r**2 / u**2 * ju**2 - ri**2 / x**2 * jx**2) * a2 * b2
-                + (r**2 / u**2 * yu**2 - ri**2 / x**2 * yx**2) * c2 * d2
-                + (r**2 / u**2 * ju * yu - ri**2 / x**2 * jx * yx)
-                * (a2 * d2 + b2 * c2)
-            )
+            + 2 * n * (r**2 / u**2 * Au * Bu - ri**2 / x**2 * Au * Bu)
         )
+
+        # I2 = cmath.pi * (
+        #     1
+        #     / en
+        #     * (
+        #         (
+        #             r**2
+        #             * (jpu**2 + (1 - n**2 / u**2) * ju**2 + 2 * jpu * ju / u)
+        #             - ri**2
+        #             * (jpx**2 + (1 - n**2 / x**2) * jx**2 + 2 * jpx * jx / x)
+        #         )
+        #         * (a2**2 + b2**2)
+        #         + (
+        #             r**2
+        #             * (ypu**2 + (1 - n**2 / u**2) * yu**2 + 2 * ypu * yu / u)
+        #             - ri**2
+        #             * (ypx**2 + (1 - n**2 / x**2) * yx**2 + 2 * ypx * yx / x)
+        #         )
+        #         * (c2**2 + d2**2)
+        #         + 2
+        #         * (
+        #             r**2
+        #             * (jpu * ypu + (1 - n**2 / u**2) * ju * yu + 2 * jpu * yu / u)
+        #             - ri**2
+        #             * (jpx * ypx + (1 - n**2 / x**2) * jx * yx + 2 * jpx * yx / x)
+        #         )
+        #         * (a2 * c2 + b2 * d2)
+        #     )
+        #     + 2
+        #     * n
+        #     * (
+        #         (r**2 / u**2 * ju**2 - ri**2 / x**2 * jx**2) * a2 * b2
+        #         + (r**2 / u**2 * yu**2 - ri**2 / x**2 * yx**2) * c2 * d2
+        #         + (r**2 / u**2 * ju * yu - ri**2 / x**2 * jx * yx)
+        #         * (a2 * d2 + b2 * c2)
+        #     )
+        # )
         if e2.real < -1e6:
             return cmath.sqrt(I2)
         else:
@@ -525,42 +561,76 @@ class Coax(Waveguide):
         jpx = -ssp.jv(n + 1, x) + n / x * jx
         yx = ssp.yv(n, x)
         ypx = -ssp.yv(n + 1, x) + n / x * yx
+
+        Au = ju * a2 + yu * c2
+        Apu = jpu * a2 + ypu * c2
+        Bu = ju * b2 + yu * d2
+        Bpu = jpu * b2 + ypu * d2
+        Ax = jx * a2 + yx * c2
+        Apx = jpx * a2 + ypx * c2
+        Bx = jx * b2 + yx * d2
+        Bpx = jpx * b2 + ypx * d2
+
         I2 = cmath.pi * (
             1
             / en
             * (
-                (
-                    r**2
-                    * (jpu**2 + (1 - n**2 / u**2) * ju**2 + 2 * jpu * ju / u)
-                    - ri**2
-                    * (jpx**2 + (1 - n**2 / x**2) * jx**2 + 2 * jpx * jx / x)
-                )
-                * (y_te * a2**2 + y_tm1 * b2**2)
-                + (
-                    r**2
-                    * (ypu**2 + (1 - n**2 / u**2) * yu**2 + 2 * ypu * yu / u)
-                    - ri**2
-                    * (ypx**2 + (1 - n**2 / x**2) * yx**2 + 2 * ypx * yx / x)
-                )
-                * (y_te * c2**2 + y_tm1 * d2**2)
-                + 2
+                r**2
                 * (
-                    r**2
-                    * (jpu * ypu + (1 - n**2 / u**2) * ju * yu + 2 * jpu * yu / u)
-                    - ri**2
-                    * (jpx * ypx + (1 - n**2 / x**2) * jx * yx + 2 * jpx * yx / x)
+                    y_te
+                    * (Apu**2 + (1 - n**2 / u**2) * Au**2 + 2 * Apu * Au / u)
+                    + y_tm1
+                    * (Bpu**2 + (1 - n**2 / u**2) * Bu**2 + 2 * Bpu * Bu / u)
                 )
-                * (y_te * a2 * c2 + y_tm1 * b2 * d2)
+                - ri**2
+                * (
+                    y_te
+                    * (Apx**2 + (1 - n**2 / x**2) * Ax**2 + 2 * Apx * Ax / x)
+                    + y_tm1
+                    * (Bpx**2 + (1 - n**2 / x**2) * Bx**2 + 2 * Bpx * Bx / x)
+                )
             )
             + n
             * (y_te + y_tm1)
-            * (
-                (r**2 / u**2 * ju**2 - ri**2 / x**2 * jx**2) * a2 * b2
-                + (r**2 / u**2 * yu**2 - ri**2 / x**2 * yx**2) * c2 * d2
-                + (r**2 / u**2 * ju * yu - ri**2 / x**2 * jx * yx)
-                * (a2 * d2 + b2 * c2)
-            )
+            * (r**2 / u**2 * Au * Bu - ri**2 / x**2 * Au * Bu)
         )
+
+        # I2 = cmath.pi * (
+        #     1
+        #     / en
+        #     * (
+        #         (
+        #             r**2
+        #             * (jpu**2 + (1 - n**2 / u**2) * ju**2 + 2 * jpu * ju / u)
+        #             - ri**2
+        #             * (jpx**2 + (1 - n**2 / x**2) * jx**2 + 2 * jpx * jx / x)
+        #         )
+        #         * (y_te * a2**2 + y_tm1 * b2**2)
+        #         + (
+        #             r**2
+        #             * (ypu**2 + (1 - n**2 / u**2) * yu**2 + 2 * ypu * yu / u)
+        #             - ri**2
+        #             * (ypx**2 + (1 - n**2 / x**2) * yx**2 + 2 * ypx * yx / x)
+        #         )
+        #         * (y_te * c2**2 + y_tm1 * d2**2)
+        #         + 2
+        #         * (
+        #             r**2
+        #             * (jpu * ypu + (1 - n**2 / u**2) * ju * yu + 2 * jpu * yu / u)
+        #             - ri**2
+        #             * (jpx * ypx + (1 - n**2 / x**2) * jx * yx + 2 * jpx * yx / x)
+        #         )
+        #         * (y_te * a2 * c2 + y_tm1 * b2 * d2)
+        #     )
+        #     + n
+        #     * (y_te + y_tm1)
+        #     * (
+        #         (r**2 / u**2 * ju**2 - ri**2 / x**2 * jx**2) * a2 * b2
+        #         + (r**2 / u**2 * yu**2 - ri**2 / x**2 * yx**2) * c2 * d2
+        #         + (r**2 / u**2 * ju * yu - ri**2 / x**2 * jx * yx)
+        #         * (a2 * d2 + b2 * c2)
+        #     )
+        # )
         if e2.real < -1e6:
             return I2
         else:
