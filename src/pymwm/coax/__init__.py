@@ -433,7 +433,7 @@ class Coax(Waveguide):
                     + 2 * Bpx * Bx / x
                 )
             )
-            + 2 * n * (r**2 / u**2 * Au * Bu - ri**2 / x**2 * Au * Bu)
+            + 2 * n * (r**2 / u**2 * Au * Bu - ri**2 / x**2 * Ax * Bx)
         )
 
         # I2 = cmath.pi * (
@@ -592,7 +592,7 @@ class Coax(Waveguide):
             )
             + n
             * (y_te + y_tm1)
-            * (r**2 / u**2 * Au * Bu - ri**2 / x**2 * Au * Bu)
+            * (r**2 / u**2 * Au * Bu - ri**2 / x**2 * Ax * Bx)
         )
 
         # I2 = cmath.pi * (
