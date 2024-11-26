@@ -148,6 +148,9 @@ class Coax(Waveguide):
                 )
                 for _ in range(psutil.cpu_count())
             )
+            # xs_success_list: list[tuple[np.ndarray, np.ndarray]] = list(
+            #     pool.map(lambda a, arg: a.__call__.remote(arg), range(num_n_0))
+            # )
             xs_success_wr_list: list[tuple[np.ndarray, np.ndarray]] = list(
                 pool.map(lambda a, arg: a.wr_sampling.remote(arg), range(num_n_0))
             )

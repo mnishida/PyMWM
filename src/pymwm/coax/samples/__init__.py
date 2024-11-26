@@ -687,14 +687,8 @@ class Samples(Sampling):
         Args:
             n: A integer indicating the order of the mode
         Returns:
-            betas: A dict containing arrays of roots, whose key is as follows:
-                (pol, n, m):
-                    pol: 'E' or 'M' indicating the polarization.
-                    n: A integer indicating the order of the mode.
-                    m: A integer indicating the ordinal of the mode in the same
-                        order.
-            convs: A dict containing the convergence information for betas,
-                whose key is the same as above.
+            xs_array: A 3D array indicating the roots, whose dimension is len(ws) x len(wis) x 2*num_m+1.
+            success_array: A 3D array indicating the convergence information for xs.
         """
         num_m = self.params["num_m"]
         xs_array = np.zeros((len(self.ws), len(self.wis), 2 * num_m + 1), dtype=complex)
@@ -903,9 +897,10 @@ class SamplesLowLossForRay(SamplesLowLoss):
         for n, x0s in enumerate(xis_list):
             xis = xs = x0s
             success = np.ones_like(xs, dtype=bool)
-            for i in range(1, 8):
-                self.clad.im_factor = 0.5**i
-                if i == 7 or self.clad.im_factor < im_factor:
+            for i in range(1, 128):
+                # self.clad.im_factor = 0.5**i
+                self.clad.im_factor = (128 - i) / 128
+                if i == 127 or self.clad.im_factor < im_factor:
                     self.clad.im_factor = im_factor
                 e2 = self.clad(w)
                 xs, success = self.beta2(w, n, e1, e2, xis)
