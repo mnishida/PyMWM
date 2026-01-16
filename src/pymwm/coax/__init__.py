@@ -300,13 +300,15 @@ class Coax(Waveguide):
         ee = e1 / e2
         u = self.samples.u(h**2, w, e1)
         ju = ssp.jv(n, u)
-        jpu = -ssp.jv(n + 1, u) + n / u * ju
+        # jpu = -ssp.jv(n + 1, u) + n / u * ju
+        jpu = 0.5 * (ssp.jv(n - 1, u) - ssp.jv(n + 1, u))
 
         yu = ssp.yv(n, u)
-        ypu = -ssp.yv(n + 1, u) + n / u * yu
+        # ypu = -ssp.yv(n + 1, u) + n / u * yu
+        ypu = 0.5 * (ssp.yv(n - 1, u) - ssp.yv(n + 1, u))
         if e2.real < -1e6:
             a1 = b1 = a3 = b3 = 0.0j
-            if pol == "TE":
+            if pol == "E":
                 a2 = 1.0 + 0.0j
                 c2 = -jpu / ypu
                 b2 = d2 = 0.0j
@@ -321,16 +323,20 @@ class Coax(Waveguide):
             v = self.samples.v(h**2, w, e2)
 
             kv = ssp.kv(n, v)
-            kpv = -ssp.kv(n + 1, v) + n / v * kv
+            # kpv = -ssp.kv(n + 1, v) + n / v * kv
+            kpv = -0.5 * (ssp.kv(n - 1, v) + ssp.kv(n + 1, v))
 
             jx = ssp.jv(n, x)
-            jpx = -ssp.jv(n + 1, x) + n / x * jx
+            # jpx = -ssp.jv(n + 1, x) + n / x * jx
+            jpx = 0.5 * (ssp.jv(n - 1, x) - ssp.jv(n + 1, x))
 
             yx = ssp.yv(n, x)
-            ypx = -ssp.yv(n + 1, x) + n / x * yx
+            # ypx = -ssp.yv(n + 1, x) + n / x * yx
+            ypx = 0.5 * (ssp.yv(n - 1, x) - ssp.yv(n + 1, x))
 
             iy = ssp.iv(n, y)
-            ipy = ssp.iv(n + 1, y) + n / y * iy
+            # ipy = ssp.iv(n + 1, y) + n / y * iy
+            ipy = 0.5 * (ssp.iv(n - 1, y) + ssp.iv(n + 1, y))
 
             nuv = n * (v / u + u / v)
             nxy = n * (y / x + x / y)

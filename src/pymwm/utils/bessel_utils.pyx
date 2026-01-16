@@ -102,7 +102,8 @@ cdef void jv_jvp(int n, cdouble z, cdouble vals[2]) nogil:
     cdef:
          cdouble j = jv(n, z)
     vals[0] = j
-    vals[1] = -jv(n + 1, z) + n * j / z
+    # vals[1] = -jv(n + 1, z) + n * j / z
+    vals[1] = 0.5 * (jv(n - 1, z) - jv(n + 1, z))
 
 
 @cython.boundscheck(False)
@@ -112,7 +113,8 @@ cdef void yv_yvp(int n, cdouble z, cdouble vals[2]) nogil:
     cdef:
          cdouble y = yv(n, z)
     vals[0] = y
-    vals[1] = -yv(n + 1, z) + n * y / z
+    # vals[1] = -yv(n + 1, z) + n * y / z
+    vals[1] = 0.5 * (yv(n - 1, z) - yv(n + 1, z))
 
 
 @cython.boundscheck(False)
@@ -131,7 +133,8 @@ cdef void kv_kvp(int n, cdouble z, cdouble vals[2]) nogil:
     cdef:
         cdouble k = kv(n, z)
     vals[0] = k
-    vals[1] = -kv(n + 1, z) + n * k / z
+    # vals[1] = -kv(n + 1, z) + n * k / z
+    vals[1] = -0.5 * (kv(n - 1, z) + kv(n + 1, z))
 
 
 @cython.boundscheck(False)
@@ -141,7 +144,8 @@ cdef void iv_ivp(int n, cdouble z, cdouble vals[2]) nogil:
     cdef:
         cdouble i = iv(n, z)
     vals[0] = i
-    vals[1] = iv(n + 1, z) + n * i / z
+    # vals[1] = iv(n + 1, z) + n * i / z
+    vals[1] = 0.5 * (iv(n - 1, z) + iv(n + 1, z))
 
 
 @cython.boundscheck(False)
